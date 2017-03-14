@@ -12,9 +12,6 @@
   },
   "name": "vizabi-bubblechart",
   "version": "1.0.0",
-  "dependencies": {
-    "vizabi-tool-bundler": "^1.0.0"
-  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/vizabi/vizabi-bubblechart.git"
