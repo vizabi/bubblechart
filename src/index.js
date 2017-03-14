@@ -1,5 +1,5 @@
 import "./styles.scss";
-import "./component";
+import component from "./component";
 
 export default Vizabi.Tool.extend("BubbleChart", {
 
@@ -15,35 +15,35 @@ export default Vizabi.Tool.extend("BubbleChart", {
 
     //specifying components
     this.components = [{
-      component: BubbleChartComponent,
+      component,
       placeholder: ".vzb-tool-viz",
       model: ["state.time", "state.entities", "state.marker", "locale", "ui"] //pass models to component
     }, {
-      component: timeslider,
+      component: Vizabi.Component.get("timeslider"),
       placeholder: ".vzb-tool-timeslider",
       model: ["state.time", "state.entities", "state.marker", "ui"]
     }, {
-      component: dialogs,
+      component: Vizabi.Component.get("dialogs"),
       placeholder: ".vzb-tool-dialogs",
       model: ["state", "ui", "locale"]
     }, {
-      component: buttonlist,
+      component: Vizabi.Component.get("buttonlist"),
       placeholder: ".vzb-tool-buttonlist",
       model: ["state", "ui", "locale"]
     }, {
-      component: treemenu,
+      component: Vizabi.Component.get("treemenu"),
       placeholder: ".vzb-tool-treemenu",
       model: ["state.marker", "state.marker_tags", "state.time", "locale"]
     }, {
-      component: datawarning,
+      component: Vizabi.Component.get("datawarning"),
       placeholder: ".vzb-tool-datawarning",
       model: ["locale"]
     }, {
-      component: datanotes,
+      component: Vizabi.Component.get("datanotes"),
       placeholder: ".vzb-tool-datanotes",
       model: ["state.marker", "locale"]
     }, {
-      component: steppedSpeedSlider,
+      component: Vizabi.Component.get("steppedspeedslider"),
       placeholder: ".vzb-tool-stepped-speed-slider",
       model: ["state.time", "locale"]
     }];

@@ -1,8 +1,8 @@
 const { utils } = Vizabi;
 
 const {
-  Exporter,
-  Labels,
+  svgexport: Exporter,
+  labels: Labels,
   'd3.axisWithLabelPicker': axisSmart,
   'd3.dynamicBackground': DynamicBackground
 } = Vizabi.helpers;
