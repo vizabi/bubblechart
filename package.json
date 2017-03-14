@@ -1,0 +1,27 @@
+{
+  "main": "build/dist/bubblechart.js",
+  "scripts": {
+    "link": "npm link ../vizabi",
+    "build": "webpack --progress"
+  },
+  "devDependencies": {
+    "vizabi-tool-bundler": "github:vizabi/vizabi-tool-bundler"
+  },
+  "name": "vizabi-bubblechart",
+  "version": "1.0.0",
+  "dependencies": {
+    "vizabi-tool-bundler": "^1.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vizabi/vizabi-bubblechart.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/vizabi/vizabi-bubblechart/issues"
+  },
+  "homepage": "https://github.com/vizabi/vizabi-bubblechart#readme",
+  "description": ""
+}
