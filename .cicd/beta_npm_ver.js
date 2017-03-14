@@ -17,7 +17,7 @@ const oldPjson = JSON.parse(shell.exec("git show HEAD~1:package.json").stdout);
 
 const lastPublishedVersion = shell.exec("npm show " + pjson.name + " version").stdout.trim();
 
-if (process.env.TRAVIS_BRANCH !== "master") {
+if (process.env.TRAVIS_BRANCH !== "develop") {
   console.log("--- Not publishing.");
   return;
 }
