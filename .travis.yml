@@ -1,0 +1,47 @@
+language: node_js
+dist: trusty
+sudo: true
+node_js:
+  - '7.5.0'
+addons:
+  apt:
+    packages:
+    - python-pip
+
+notifications:
+  email: false
+  slack:
+    rooms:
+      - gapminder:siB4Z9ymsYR6qHnRPpgUoB2Q#vizabi-spam
+    on_success: change
+    on_failure: always
+
+cache:
+  directories:
+    - node_modules
+
+before_install:
+  - npm install -g npm@latest
+  - sudo pip install s3cmd
+
+before_script:
+  - export DISPLAY=:99.0
+  - sh -e /etc/init.d/xvfb start
+  - npm run build
+
+script:
+  - '[ "${TRAVIS_PULL_REQUEST}" = "false" ] && sh deploy.sh || true'
+
+after_success:
+  .cicd/beta_npm_ver.js
+
+deploy:
+  skip_cleanup: true
+  provider: npm
+  email: "konzeptmeister@gmail.com"
+  api_key:
+    secure: "XVJ/QwnTYMNEUMtAcvmVdh6EHndHcEqzdJUe7JYYRXmA2qxhRGIC8VlnK9GKZOS3ACSDygp1lCam+BA5ZYy4QhvsMsPQukWeon6K8Zcerg8Lg3XfxXBilKATf83DQ0PZslus1XgynZmNgUCkJ61rhAhLVOx0iIpetMOHTZ3oJak="
+  on:
+    branch: master
+    node: 6.9.2
+    condition: "-e /tmp/deployment.flag"

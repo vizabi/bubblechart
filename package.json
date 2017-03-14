@@ -5,6 +5,9 @@
     "build": "webpack --progress"
   },
   "devDependencies": {
+    "compare-version": "^0.1.2",
+    "shelljs": "^0.7.7",
+    "vizabi": "^0.20.2-1",
     "vizabi-tool-bundler": "github:vizabi/vizabi-tool-bundler"
   },
   "name": "vizabi-bubblechart",
