@@ -4,6 +4,9 @@
     "link": "npm link ../vizabi",
     "build": "webpack --progress"
   },
+  "files": [
+    "build/dist"
+  ],
   "devDependencies": {
     "compare-version": "^0.1.2",
     "shelljs": "^0.7.7",
@@ -11,7 +14,7 @@
     "vizabi-tool-bundler": "github:vizabi/vizabi-tool-bundler"
   },
   "name": "vizabi-bubblechart",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/vizabi/vizabi-bubblechart.git"
