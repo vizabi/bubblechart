@@ -1062,13 +1062,18 @@ const BubbleChart = Vizabi.Component.extend({
     let minRadius = this.activeProfile.minRadiusPx;
     let maxRadius = this.activeProfile.maxRadiusPx;
 
-    minRadius = Math.max(maxRadius * extent[0], minRadius);
-    maxRadius = Math.max(maxRadius * extent[1], minRadius);
+    let minArea = utils.radiusToArea(Math.max(maxRadius * extent[0], minRadius));
+    let maxArea = utils.radiusToArea(Math.max(maxRadius * extent[1], minRadius));
 
     if (this.model.marker.size.scaleType !== "ordinal") {
-      this.sScale.range([utils.radiusToArea(minRadius), utils.radiusToArea(maxRadius)]);
+      this.sScale.range([minArea, maxArea]);
     } else {
-      this.sScale.rangePoints([utils.radiusToArea(minRadius), utils.radiusToArea(maxRadius)], _this.activeProfile.padding).range();
+      this.sScale.range(
+        this.sScale.domain().length === 1 ?
+        [(minArea + maxArea) / 2]
+        :
+        d3.range(minArea,maxArea,(maxArea - minArea)/this.sScale.domain().length)
+      );
     }
 
   },
