@@ -18,6 +18,7 @@ const PanZoom = Vizabi.Class.extend({
 
     this.zoomer
       .filter(this.zoomFilter())
+      .scaleExtent([0.0625, +Infinity])
       .on("start", this.zoom().start)
       .on("zoom", this.zoom().go)
       .on("end", this.zoom().stop);
@@ -299,6 +300,9 @@ const PanZoom = Vizabi.Class.extend({
           if (pan[1] < 0) pan[1] = 0;
           if (pan[1] > (1 - zoom * ratioY) * _this.height) pan[1] = (1 - zoom * ratioY) * _this.height;
         }
+
+        //limit zoom translate
+        self.zoomSelection.property("__zoom", d3.zoomIdentity.translate(pan[0], pan[1]).scale(zoom));
 
         const xPanOffset = _this.width * zoom * ratioX;
         const yPanOffset = _this.height * zoom * ratioY;
