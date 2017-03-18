@@ -1,3 +1,6 @@
+
+import cssEscape from "css.escape";
+
 const { utils } = Vizabi;
 
 const Trail = Vizabi.Class.extend({
@@ -60,7 +63,7 @@ const Trail = Vizabi.Class.extend({
       _trails.exit().remove();
       _trails.enter()
         .insert("g", function(d) {
-          return this.querySelector(".bubble-" + CSS.escape(d[KEY]));
+          return this.querySelector(".bubble-" + cssEscape(d[KEY]));
         })
         .attr("class", d => "vzb-bc-entity entity-trail trail-" + d[KEY])
         .merge(_trails)
