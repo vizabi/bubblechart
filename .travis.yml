@@ -2,46 +2,38 @@ language: node_js
 dist: trusty
 sudo: true
 node_js:
-  - '7.5.0'
+- 7.5.0
 addons:
   apt:
     packages:
     - python-pip
-
 notifications:
   email: false
   slack:
     rooms:
-      - gapminder:siB4Z9ymsYR6qHnRPpgUoB2Q#vizabi-spam
+    - gapminder:siB4Z9ymsYR6qHnRPpgUoB2Q#vizabi-spam
     on_success: change
     on_failure: always
-
 cache:
   directories:
-    - node_modules
-
+  - node_modules
 before_install:
-  - npm install -g npm@latest
-  - sudo pip install s3cmd
-
+- npm install -g npm@latest
+- sudo pip install s3cmd
 before_script:
-  - export DISPLAY=:99.0
-  - sh -e /etc/init.d/xvfb start
-  - npm run build
-
+- export DISPLAY=:99.0
+- sh -e /etc/init.d/xvfb start
+- npm run build
 script:
-  - '[ "${TRAVIS_PULL_REQUEST}" = "false" ] && sh deploy.sh || true'
-
-after_success:
-  .cicd/beta_npm_ver.js
-
+- '[ "${TRAVIS_PULL_REQUEST}" = "false" ] && sh deploy.sh || true'
+after_success: ".cicd/beta_npm_ver.js"
 deploy:
   skip_cleanup: true
   provider: npm
-  email: "konzeptmeister@gmail.com"
+  email: kgrpwnz@gmail.com
   api_key:
-    secure: "XVJ/QwnTYMNEUMtAcvmVdh6EHndHcEqzdJUe7JYYRXmA2qxhRGIC8VlnK9GKZOS3ACSDygp1lCam+BA5ZYy4QhvsMsPQukWeon6K8Zcerg8Lg3XfxXBilKATf83DQ0PZslus1XgynZmNgUCkJ61rhAhLVOx0iIpetMOHTZ3oJak="
+    secure: qG2/rttWoEfZ9b54+g0mAFZ9qZI7JbKq5RYqHQrzgHJs7CSFzcZ60d6V+DUFB/xlYBwfyvpXALkT8255gnlAodqRJnHqXveXU8hO8vk6PJF2VT8w4CtGnA0CaUnPnf56Se0o09jN2Rub8BTv6U9jjyFHBKt+nt1BgozV397iKpUNMzURq8TVZcmsrC37JSpF3PB6/znwFm1YeC3T1ymd0vTXkGdGdJLui5J4TbRzNkXZI3YsQLZJhzpfHvpUNpu0S0e1u37YBJgoH2zAC5XZrfUcZV1kR0b4ATyhVlpOYaVyWlPTM60AoNL0aR5NYD3Z3amURvu22pJPA6QVkhG9bSc7YJh7i2Z5VQB7dRI1Raz5mr+whh6IhrKKnVJ8NXzYEH/nrte9z+HhONWFUo+dEHOUcJ1cB16s0OZlCUR6vjlwLNLb3GvbJG7iITS7JDOZaXwRasEDSmDLd53iTELeAPz3hV6DHJAonr59nMjPJ5EXp0vKu61+KyfahfbQF4fAP+K28AKPYPk2EudMG+4z2tBW/ox9cm9fwdZ5X9hxb7ZhM8NMusQ7s79be9z2VIjkYOgJrGQkyuwx5KMurs2269vXurtQDYY6/tDXIpW+yZ1J4mMBVYKLNH47BTH12ApZQnZKULwOeeYs8xAPRCYpfaMANO4OPhJmFZOMiuHpR+4=
   on:
     branch: develop
-    node: 6.9.2
+    node: 7.5.0
     condition: "-e /tmp/deployment.flag"
