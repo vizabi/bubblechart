@@ -497,10 +497,10 @@ const BubbleChart = Vizabi.Component.extend({
      * The axes may return null when there is no value given for the zoomed
      * min and max values. In that case, fall back to the axes' domain values.
      */
-    const zoomedMinX = xAxis.getZoomedMin() ? xAxis.getZoomedMin() : xDomain[0];
-    const zoomedMaxX = xAxis.getZoomedMax() ? xAxis.getZoomedMax() : xDomain[1];
-    const zoomedMinY = yAxis.getZoomedMin() ? yAxis.getZoomedMin() : yDomain[0];
-    const zoomedMaxY = yAxis.getZoomedMax() ? yAxis.getZoomedMax() : yDomain[1];
+    const zoomedMinX = xAxis.getZoomedMin();
+    const zoomedMaxX = xAxis.getZoomedMax();
+    const zoomedMinY = yAxis.getZoomedMin();
+    const zoomedMaxY = yAxis.getZoomedMax();
 
     //by default this will apply no transition and feed values back to state
     this._panZoom.zoomToMaxMin(zoomedMinX, zoomedMaxX, zoomedMinY, zoomedMaxY, 0, "don't feed these zoom values back to state");
