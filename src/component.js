@@ -122,10 +122,10 @@ const BubbleChart = Vizabi.Component.extend({
           }
           _this._trails.run("abortAnimation");
           _this._panZoom.zoomToMaxMin(
-            _this.model.marker.axis_x.zoomedMin,
-            _this.model.marker.axis_x.zoomedMax,
-            _this.model.marker.axis_y.zoomedMin,
-            _this.model.marker.axis_y.zoomedMax,
+            _this.model.marker.axis_x.getZoomedMin(),
+            _this.model.marker.axis_x.getZoomedMax(),
+            _this.model.marker.axis_y.getZoomedMin(),
+            _this.model.marker.axis_y.getZoomedMax(),
             500 /*duration*/, "don't feed these zoom values back to state"
           );
           if (playAfterZoom) {
@@ -497,10 +497,10 @@ const BubbleChart = Vizabi.Component.extend({
      * The axes may return null when there is no value given for the zoomed
      * min and max values. In that case, fall back to the axes' domain values.
      */
-    const zoomedMinX = xAxis.zoomedMin ? xAxis.zoomedMin : xDomain[0];
-    const zoomedMaxX = xAxis.zoomedMax ? xAxis.zoomedMax : xDomain[1];
-    const zoomedMinY = yAxis.zoomedMin ? yAxis.zoomedMin : yDomain[0];
-    const zoomedMaxY = yAxis.zoomedMax ? yAxis.zoomedMax : yDomain[1];
+    const zoomedMinX = xAxis.getZoomedMin() ? xAxis.getZoomedMin() : xDomain[0];
+    const zoomedMaxX = xAxis.getZoomedMax() ? xAxis.getZoomedMax() : xDomain[1];
+    const zoomedMinY = yAxis.getZoomedMin() ? yAxis.getZoomedMin() : yDomain[0];
+    const zoomedMaxY = yAxis.getZoomedMax() ? yAxis.getZoomedMax() : yDomain[1];
 
     //by default this will apply no transition and feed values back to state
     this._panZoom.zoomToMaxMin(zoomedMinX, zoomedMaxX, zoomedMinY, zoomedMaxY, 0, "don't feed these zoom values back to state");
