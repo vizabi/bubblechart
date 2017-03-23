@@ -10,7 +10,7 @@
   "devDependencies": {
     "compare-version": "^0.1.2",
     "shelljs": "^0.7.7",
-    "vizabi": "^0.20.2-1",
+    "vizabi": "^0.21.0-1",
     "vizabi-tool-bundler": "github:vizabi/vizabi-tool-bundler",
     "css.escape": "^1.5.1"
   },
