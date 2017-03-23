@@ -15,7 +15,7 @@
     "css.escape": "^1.5.1"
   },
   "name": "vizabi-bubblechart",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/vizabi/vizabi-bubblechart.git"
