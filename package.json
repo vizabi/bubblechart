@@ -2,17 +2,18 @@
   "main": "build/dist/bubblechart.js",
   "scripts": {
     "link": "npm link ../vizabi",
-    "build": "webpack --progress"
+    "build": "cross-env NODE_ENV=production webpack --progress"
   },
   "files": [
     "build/dist"
   ],
   "devDependencies": {
     "compare-version": "^0.1.2",
+    "cross-env": "^3.2.4",
+    "css.escape": "^1.5.1",
     "shelljs": "^0.7.7",
     "vizabi": "^0.21.0-1",
-    "vizabi-tool-bundler": "github:vizabi/vizabi-tool-bundler",
-    "css.escape": "^1.5.1"
+    "vizabi-tool-bundler": "github:vizabi/vizabi-tool-bundler"
   },
   "name": "vizabi-bubblechart",
   "version": "1.0.8-1",
