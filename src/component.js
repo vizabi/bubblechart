@@ -861,7 +861,10 @@ const BubbleChart = Vizabi.Component.extend({
     this.activeProfile = this.getActiveProfile(profiles, presentationProfileChanges);
 
     const containerWH = this.root.getVizWidthHeight();
-    this.activeProfile.maxRadiusPx = this.activeProfile.maxRadiusEm * utils.hypotenuse(containerWH.width, containerWH.height);
+    this.activeProfile.maxRadiusPx = Math.max(
+      this.activeProfile.minRadiusPx,
+      this.activeProfile.maxRadiusEm * utils.hypotenuse(containerWH.width, containerWH.height)
+    );
 
     const margin = this.activeProfile.margin;
     const infoElHeight = this.activeProfile.infoElHeight;
