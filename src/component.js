@@ -1068,17 +1068,7 @@ const BubbleChart = Vizabi.Component.extend({
     let minArea = utils.radiusToArea(Math.max(maxRadius * extent[0], minRadius));
     let maxArea = utils.radiusToArea(Math.max(maxRadius * extent[1], minRadius));
 
-    if (this.model.marker.size.scaleType !== "ordinal") {
-      this.sScale.range([minArea, maxArea]);
-    } else {
-      this.sScale.range(
-        this.sScale.domain().length === 1 ?
-        [(minArea + maxArea) / 2]
-        :
-        d3.range(minArea,maxArea,(maxArea - minArea)/this.sScale.domain().length)
-      );
-    }
-
+    this.sScale.range(d3.range(minArea,maxArea,(maxArea - minArea)/this.sScale.domain().length).concat(maxArea));
   },
 
   redrawDataPointsOnlyColors() {
