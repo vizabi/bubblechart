@@ -424,6 +424,7 @@ const Trail = Vizabi.Class.extend({
 
   _reveal(trail, duration, d) {
     const _context = this.context;
+    if(_context.model.time.playing) duration = _context.model.time.delay;
     const _this = this;
     const KEY = _context.KEY;
     d.status = "reveal";
@@ -530,14 +531,14 @@ const Trail = Vizabi.Class.extend({
               Math.pow(_context.yScale(segment.valueY) - _context.yScale(nextFrame.axis_y[d[KEY]]), 2)
             );
             view.select("line")
+              .attr("stroke-dasharray", lineLength)
+              .attr("stroke-dashoffset", utils.areaToRadius(_context.sScale(segment.valueS)))
+              .style("stroke", strokeColor)
               .transition().duration(duration).ease(d3.easeLinear)
               .attr("x1", _context.xScale(nextSegment.valueX))
               .attr("y1", _context.yScale(nextSegment.valueY))
               .attr("x2", _context.xScale(segment.valueX))
-              .attr("y2", _context.yScale(segment.valueY))
-              .attr("stroke-dasharray", lineLength)
-              .attr("stroke-dashoffset", utils.areaToRadius(_context.sScale(segment.valueS)))
-              .style("stroke", strokeColor);
+              .attr("y2", _context.yScale(segment.valueY));
             if (nextIndex - index > 1) {
               addNewIntervals(index, nextIndex);
               return resolve();
