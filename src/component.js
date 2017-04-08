@@ -1068,7 +1068,10 @@ const BubbleChart = Vizabi.Component.extend({
     let minArea = utils.radiusToArea(Math.max(maxRadius * extent[0], minRadius));
     let maxArea = utils.radiusToArea(Math.max(maxRadius * extent[1], minRadius));
 
-    this.sScale.range(d3.range(minArea,maxArea,(maxArea - minArea)/this.sScale.domain().length).concat(maxArea));
+    let range = minArea === maxArea? [minArea, maxArea] :
+      d3.range(minArea, maxArea, (maxArea - minArea)/this.sScale.domain().length).concat(maxArea);
+
+    this.sScale.range(range);
   },
 
   redrawDataPointsOnlyColors() {
