@@ -25,8 +25,7 @@ before_script:
 - sh -e /etc/init.d/xvfb start
 - npm run build
 script:
-- '[ "${TRAVIS_PULL_REQUEST}" = "false" ] && sh deploy.sh || true'
-after_success: ".cicd/beta_npm_ver.js"
+- npm run deploy
 deploy:
   skip_cleanup: true
   provider: npm
