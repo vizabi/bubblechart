@@ -17,7 +17,7 @@ import PanZoom from './panzoom';
 
 
 // BUBBLE CHART COMPONENT
-const BubbleChart = Vizabi.Component.extend({
+const BubbleChart = Vizabi.Component.extend("bubblechart", {
 
   /**
    * Initializes the component (Bubble Chart).
