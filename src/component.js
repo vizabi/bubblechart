@@ -241,6 +241,14 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
           svg.classed("vzb-panhand", false);
         }
       },
+      "change:entities.dim": function() {
+        if (_this.someHighlighted) {
+          _this.model.marker.clearHighlighted();
+        }
+        if (_this.someSelected) {
+          _this.model.marker.clearSelected();
+        }
+      },
       "ready": function() {
         // if(_this.model.marker.color.scaleType === 'time') {
         //   _this.model.marker.color.scale = null;
@@ -443,6 +451,7 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
 
   ready() {
     const _this = this;
+    this.KEY = this.model.entities.getDimension();
     this.updateUIStrings();
     const endTime = this.model.time.end;
     this.updateIndicators();
