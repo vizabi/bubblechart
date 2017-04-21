@@ -1,6 +1,8 @@
 import "./styles.scss";
 import component from "./component";
 
+const VERSION_INFO = { version: __VERSION, build: __BUILD };
+
 export default Vizabi.Tool.extend("BubbleChart", {
 
   /**
@@ -188,5 +190,7 @@ export default Vizabi.Tool.extend("BubbleChart", {
         moreoptions: ["opacity", "speed", "axes", "size", "colors", "label", "zoom", "presentation", "about"]
       }
     }
-  }
+  },
+
+  versionInfo: VERSION_INFO
 });
