@@ -6,7 +6,7 @@
     "deploy": "tool-deploy"
   },
   "files": [
-    "build/dist"
+    "build"
   ],
   "devDependencies": {
     "cross-env": "^4.0.0",
