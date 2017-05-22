@@ -611,10 +611,12 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
       .text(this.translator("hints/dataWarning"));
 
     utils.setIcon(this.yInfoEl, iconQuestion)
-      .select("svg").attr("width", "0px").attr("height", "0px");
+      .select("svg").attr("width", "0px").attr("height", "0px")
+      .style('opacity', Number(Boolean(conceptPropsY.description || conceptPropsY.sourceLink)));
 
     utils.setIcon(this.xInfoEl, iconQuestion)
-      .select("svg").attr("width", "0px").attr("height", "0px");
+      .select("svg").attr("width", "0px").attr("height", "0px")
+      .style('opacity', Number(Boolean(conceptPropsX.description || conceptPropsX.sourceLink)));
 
 
     //TODO: move away from UI strings, maybe to ready or ready once
