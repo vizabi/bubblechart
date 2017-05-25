@@ -720,7 +720,7 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
         _this._bubblesInteract().mouseout(d, i);
       })
       .on("click", (d, i) => {
-        if (utils.isTouchDevice() || _this.model.ui.cursorMode !== "arrow") return;
+        if (utils.isTouchDevice() || (_this.model.ui.cursorMode !== "arrow" && _this.model.ui.cursorMode !== "hand")) return;
 
         _this._bubblesInteract().click(d, i);
       })
