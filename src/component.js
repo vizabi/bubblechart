@@ -1443,7 +1443,9 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
         yOffset = offset * 0.71;
       }
       //position tooltip
-      this.tooltip.classed("vzb-hidden", false)
+      this.tooltip
+        .style("font-size", this.activeProfile.infoElHeight)
+        .classed("vzb-hidden", false)
       //.attr("style", "left:" + (mouse[0] + 50) + "px;top:" + (mouse[1] + 50) + "px")
         .selectAll("text")
         .text(tooltipText);
