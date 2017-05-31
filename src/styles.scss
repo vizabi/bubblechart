@@ -60,7 +60,6 @@
 
       .vzb-bc-entity {
         &.vzb-super-highlighted {
-          fill: red;
           animation: blink 1s step-start 0s infinite;
 
           @keyframes blink {
