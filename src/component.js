@@ -151,6 +151,11 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
         _this.updateBubbleOpacity();
         _this._updateDoubtOpacity();
       },
+      "change:marker.superHighlight": (evt, path) => {
+        if (this._readyOnce) {
+          this._blinkSuperHighlighted();
+        }
+      },
       "change:marker.highlight": function(evt, path) {
         if (!_this._readyOnce) return;
         //path have values if trail is highlighted
@@ -1625,6 +1630,11 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
       this._labels.highlight(null, false);
     }
 
+  },
+
+  _blinkSuperHighlighted() {
+    this.entityBubbles
+      .classed("vzb-super-highlighted", d => this.model.marker.isSuperHighlighted(d));
   },
 
   updateBubbleOpacity(duration) {

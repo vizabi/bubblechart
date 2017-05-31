@@ -58,10 +58,23 @@
         fill: none;
       }
 
-      .vzb-bc-entity .vzb-bc-trailsegment {
-        line {
-          pointer-events: none;
-          stroke-width: 2;
+      .vzb-bc-entity {
+        &.vzb-super-highlighted {
+          fill: red;
+          animation: blink 1s step-start 0s infinite;
+
+          @keyframes blink {
+            50% {
+              opacity: 0;
+            }
+          }
+        }
+
+        &.vzb-bc-trailsegment {
+          line {
+            pointer-events: none;
+            stroke-width: 2;
+          }
         }
       }
 
