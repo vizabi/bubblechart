@@ -161,6 +161,7 @@ export default Vizabi.Tool.extend("BubbleChart", {
     locale: {},
     ui: {
       chart: {
+        superhighlightOnMinimapHover: true,
         whenHovering: {
           showProjectionLineX: true,
           showProjectionLineY: true,
