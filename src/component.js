@@ -827,7 +827,6 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
     const { chartSvg } = this;
     const svgWidth = utils.px2num(chartSvg.style("width"));
     const svgHeight = utils.px2num(chartSvg.style("height"));
-    const marginScale = (marginMin, ratio = 0) => marginMin + svgDiagonal * ratio;
     const marginScaleH = (marginMin, ratio = 0) => marginMin + svgHeight * ratio;
     const marginScaleW = (marginMin, ratio = 0) => marginMin + svgWidth * ratio;
 
@@ -878,8 +877,6 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
       }
     };
     
-    console.log(marginScaleW(50, 0.02))
-
     const _this = this;
 
     this.activeProfile = this.getActiveProfile(profiles, presentationProfileChanges);
