@@ -824,10 +824,15 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
    */
   updateSize() {
 
+    const { chartSvg } = this;
+    const svgWidth = utils.px2num(chartSvg.style("width"));
+    const svgHeight = utils.px2num(chartSvg.style("height"));
+    const svgDiagonal = utils.calcDiagonal(svgWidth, svgHeight) / 1000;
+    const marginScale = margin => Math.max(margin, margin * svgDiagonal);
 
     const profiles = {
       small: {
-        margin: { top: 30, right: 10, left: 40, bottom: 35 },
+        margin: { top: marginScale(30), right: marginScale(10), left: marginScale(25), bottom: marginScale(35) },
         padding: 2,
         minRadiusPx: 0.5,
         maxRadiusEm: 0.05,
@@ -836,7 +841,7 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
         xAxisTitleBottomMargin: 4
       },
       medium: {
-        margin: { top: 40, right: 15, left: 60, bottom: 55 },
+        margin: { top: marginScale(30), right: marginScale(15), left: marginScale(30), bottom: marginScale(45) },
         padding: 2,
         minRadiusPx: 1,
         maxRadiusEm: 0.05,
@@ -845,7 +850,7 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
         xAxisTitleBottomMargin: 5
       },
       large: {
-        margin: { top: 50, right: 20, left: 60, bottom: 60 },
+        margin: { top: marginScale(30), right: marginScale(20), left: marginScale(40), bottom: marginScale(50) },
         padding: 2,
         minRadiusPx: 1,
         maxRadiusEm: 0.05,
@@ -857,14 +862,14 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
     };
 
     const presentationProfileChanges = {
-      "medium": {
-        margin: { top: 80, bottom: 80, left: 100 },
+      medium: {
+        margin: { top: marginScale(50), bottom: marginScale(80), left: marginScale(40), right: marginScale(20) },
         yAxisTitleBottomMargin: 20,
         xAxisTitleBottomMargin: 20,
         infoElHeight: 26,
       },
-      "large": {
-        margin: { top: 80, bottom: 100, left: 100 },
+      large: {
+        margin: { top: marginScale(60), bottom: marginScale(90), left: marginScale(50), right: marginScale(30) },
         yAxisTitleBottomMargin: 20,
         xAxisTitleBottomMargin: 20,
         infoElHeight: 32,
