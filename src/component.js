@@ -827,12 +827,13 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
     const { chartSvg } = this;
     const svgWidth = utils.px2num(chartSvg.style("width"));
     const svgHeight = utils.px2num(chartSvg.style("height"));
-    const svgDiagonal = utils.calcDiagonal(svgWidth, svgHeight) / 1000;
-    const marginScale = margin => Math.max(margin, margin * svgDiagonal);
+    const marginScale = (marginMin, ratio = 0) => marginMin + svgDiagonal * ratio;
+    const marginScaleH = (marginMin, ratio = 0) => marginMin + svgHeight * ratio;
+    const marginScaleW = (marginMin, ratio = 0) => marginMin + svgWidth * ratio;
 
     const profiles = {
       small: {
-        margin: { top: marginScale(30), right: marginScale(10), left: marginScale(25), bottom: marginScale(35) },
+        margin: { top: 30, bottom: 35, left: 25, right: 10},
         padding: 2,
         minRadiusPx: 0.5,
         maxRadiusEm: 0.05,
@@ -841,7 +842,7 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
         xAxisTitleBottomMargin: 4
       },
       medium: {
-        margin: { top: marginScale(30), right: marginScale(15), left: marginScale(30), bottom: marginScale(45) },
+        margin: { top: 30, bottom: 45, left: 30, right: 15},
         padding: 2,
         minRadiusPx: 1,
         maxRadiusEm: 0.05,
@@ -850,32 +851,34 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
         xAxisTitleBottomMargin: 5
       },
       large: {
-        margin: { top: marginScale(30), right: marginScale(20), left: marginScale(40), bottom: marginScale(50) },
+        margin: { top: marginScaleH(20, 0.02), bottom: marginScaleH(40, 0.03), left: marginScaleW(25, 0.025), right: 20},
         padding: 2,
         minRadiusPx: 1,
         maxRadiusEm: 0.05,
         infoElHeight: 22,
-        yAxisTitleBottomMargin: 6,
-        xAxisTitleBottomMargin: 5,
+        yAxisTitleBottomMargin: marginScaleH(4, 0.01),
+        xAxisTitleBottomMargin: marginScaleH(4, 0.01),
         hideSTitle: true
       }
     };
 
     const presentationProfileChanges = {
       medium: {
-        margin: { top: marginScale(50), bottom: marginScale(80), left: marginScale(40), right: marginScale(20) },
-        yAxisTitleBottomMargin: 20,
-        xAxisTitleBottomMargin: 20,
+        margin: { top: 50, bottom: 65, left: 50, right: 20 },
+        yAxisTitleBottomMargin: 15,
+        xAxisTitleBottomMargin: 4,
         infoElHeight: 26,
       },
       large: {
-        margin: { top: marginScale(60), bottom: marginScale(90), left: marginScale(50), right: marginScale(30) },
-        yAxisTitleBottomMargin: 20,
-        xAxisTitleBottomMargin: 20,
+        margin: { top: marginScaleH(40, 0.02), bottom: marginScaleH(60, 0.03), left: marginScaleW(35, 0.025), right: 30 },
+        yAxisTitleBottomMargin: marginScaleH(4, 0.01),
+        xAxisTitleBottomMargin: marginScaleH(4, 0.01),
         infoElHeight: 32,
         hideSTitle: true
       }
     };
+    
+    console.log(marginScaleW(50, 0.02))
 
     const _this = this;
 
