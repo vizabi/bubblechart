@@ -15,7 +15,7 @@
     "vizabi-tool-bundler": "github:vizabi/vizabi-tool-bundler"
   },
   "name": "vizabi-bubblechart",
-  "version": "1.0.16",
+  "version": "1.0.17",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/vizabi/vizabi-bubblechart.git"
