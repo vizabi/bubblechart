@@ -9,9 +9,9 @@
     "build"
   ],
   "devDependencies": {
-    "cross-env": "^4.0.0",
+    "cross-env": "^5.0.0",
     "css.escape": "^1.5.1",
-    "vizabi": "^0.21.0-1",
+    "vizabi": "^0.23.0-28",
     "vizabi-tool-bundler": "github:vizabi/vizabi-tool-bundler"
   },
   "name": "vizabi-bubblechart",
@@ -27,5 +27,5 @@
     "url": "https://github.com/vizabi/vizabi-bubblechart/issues"
   },
   "homepage": "https://github.com/vizabi/vizabi-bubblechart#readme",
-  "description": ""
+  "description": "Gapminder's bubble chart data visualisation tool. See it in action on gapminder.org/tools"
 }
