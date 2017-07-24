@@ -172,7 +172,7 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
         _this.highlightDataPoints();
       },
       "change:time.value": function() {
-        if (!_this._readyOnce || !_this.entityBubbles) return;
+        if (_this.model.time.splash || !_this._readyOnce || !_this.entityBubbles) return;
         if (!_this.calculationQueue) { // collect timestamp that we request
           _this.calculationQueue = [_this.model.time.value.toString()];
         } else {
