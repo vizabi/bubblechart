@@ -426,7 +426,7 @@ const PanZoom = Vizabi.Class.extend({
         }
 
         const formatter = function(n) {
-          return utils.isDate(n) ? n : d3.round(n, 2);
+          return utils.isDate(n) ? n : +n.toFixed(2);
         };
 
         const zoomedXRange = xRangeBoundsBumped;
