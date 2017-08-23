@@ -835,7 +835,7 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
         margin: { top: 30, bottom: 35, left: 25, right: 10},
         padding: 2,
         minRadiusPx: 0.5,
-        maxRadiusEm: 0.05,
+        maxRadiusEm: this.model.ui.chart.maxRadiusEm || 0.05,
         infoElHeight: 16,
         yAxisTitleBottomMargin: 6,
         xAxisTitleBottomMargin: 4
@@ -844,7 +844,7 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
         margin: { top: 30, bottom: 45, left: 30, right: 15},
         padding: 2,
         minRadiusPx: 1,
-        maxRadiusEm: 0.05,
+        maxRadiusEm: this.model.ui.chart.maxRadiusEm || 0.05,
         infoElHeight: 20,
         yAxisTitleBottomMargin: 6,
         xAxisTitleBottomMargin: 5
@@ -853,7 +853,7 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
         margin: { top: marginScaleH(20, 0.02), bottom: marginScaleH(40, 0.03), left: marginScaleW(25, 0.025), right: 20},
         padding: 2,
         minRadiusPx: 1,
-        maxRadiusEm: 0.05,
+        maxRadiusEm: this.model.ui.chart.maxRadiusEm || 0.05,
         infoElHeight: 22,
         yAxisTitleBottomMargin: marginScaleH(4, 0.01),
         xAxisTitleBottomMargin: marginScaleH(4, 0.01),
