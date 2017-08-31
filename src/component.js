@@ -55,9 +55,6 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
         }
       },
       "change:time.start": function(evt, original) {
-        if (_this.model.marker.color.scaleType === "time") {
-          _this.model.marker.color.scale = null;
-        }
         if (!_this._readyOnce || _this.model.time.splash) return;
         _this._trails.create().then(() => {
           _this._trails.run(["findVisible", "reveal", "opacityHandler"]);
