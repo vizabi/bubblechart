@@ -1647,7 +1647,7 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
 
     const OPACITY_HIGHLT = 1.0;
     const OPACITY_HIGHLT_DIM = this.model.marker.opacityHighlightDim;
-    const OPACITY_SELECT = this.model.marker.opacityRegular;
+    const OPACITY_SELECT = 1.0;
     const OPACITY_REGULAR = this.model.marker.opacityRegular;
     const OPACITY_SELECT_DIM = this.model.marker.opacitySelectDim;
 
