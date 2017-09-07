@@ -223,6 +223,15 @@
       .vzb-bc-axis-y {
         @extend %vzb-chart-axis;
       }
+      
+      .vzb-bc-axis-x-subtitle,
+      .vzb-bc-axis-y-subtitle {
+        @extend %vzb-chart-axis;
+        text {
+          text-anchor: end;
+        }
+      }
+
       .vzb-bc-axis-x-title,
       .vzb-bc-axis-y-title {
         @extend %vzb-chart-axis-title;
@@ -301,6 +310,11 @@
         @extend %vzb-chart-axis-title-large;
       }
 
+      .vzb-bc-axis-x-title,
+      .vzb-bc-axis-y-title {
+        text-anchor: middle;
+      }
+
       .vzb-bc-labels,
       .vzb-bc-tooltip,
       .vzb-axis-value,
@@ -330,6 +344,11 @@
       .vzb-bc-axis-s-title,
       .vzb-bc-axis-c-title {
         @extend %vzb-chart-axis-title-medium;
+      }
+
+      .vzb-bc-axis-x-title,
+      .vzb-bc-axis-y-title {
+        text-anchor: middle;
       }
 
       .vzb-bc-labels,
