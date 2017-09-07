@@ -339,6 +339,8 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
     this.xAxisElContainer = this.graph.select(".vzb-bc-axis-x");
     this.xAxisEl = this.xAxisElContainer.select("g");
 
+    this.ySubTitleEl = this.graph.select(".vzb-bc-axis-y-subtitle");
+    this.xSubTitleEl = this.graph.select(".vzb-bc-axis-x-subtitle");
     this.yTitleEl = this.graph.select(".vzb-bc-axis-y-title");
     this.xTitleEl = this.graph.select(".vzb-bc-axis-x-title");
     this.sTitleEl = this.graph.select(".vzb-bc-axis-s-title");
@@ -551,8 +553,15 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
     this._reorderEntities();
   },
 
+  _getSubtitle(title, shortTitle) {
+    const subtitle = title.replace(shortTitle,"").trim();
+    const regexpResult = /^\((.*)\)$|.*/.exec(subtitle);
+    return regexpResult[1] || regexpResult[0] || "";
+  },
+
   updateUIStrings() {
     const _this = this;
+    const layoutProfile = this.getLayoutProfile();
 
     const conceptPropsY = _this.model.marker.axis_y.getConceptprops();
     const conceptPropsX = _this.model.marker.axis_x.getConceptprops();
@@ -567,6 +576,18 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
         S: conceptPropsS.name,
         C: conceptPropsC.name
       },
+      title_short: {
+        Y: conceptPropsY.name_short,
+        X: conceptPropsX.name_short,
+        S: conceptPropsS.name_short,
+        C: conceptPropsC.name_short        
+      },
+      subtitle: {
+        Y: this._getSubtitle(conceptPropsY.name, conceptPropsY.name_short),
+        X: this._getSubtitle(conceptPropsX.name, conceptPropsX.name_short),
+        S: conceptPropsS.name_short,
+        C: conceptPropsC.name_short        
+      },
       unit: {
         Y: conceptPropsY.unit || "",
         X: conceptPropsX.unit || "",
@@ -574,6 +595,11 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
         C: conceptPropsC.unit || ""
       }
     };
+
+    const ySubTitle = this.ySubTitleEl.selectAll("text").data([0]);
+    ySubTitle.enter().append("text");
+    const xSubTitle = this.xSubTitleEl.selectAll("text").data([0]);
+    xSubTitle.enter().append("text");
 
     const yTitle = this.yTitleEl.selectAll("text").data([0]);
     yTitle.enter().append("text");
@@ -829,7 +855,8 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
 
     const profiles = {
       small: {
-        margin: { top: 30, bottom: 35, left: 25, right: 10},
+        margin: { top: 30, bottom: 35, left: 30, right: 10},
+        leftMarginRatio: 1,
         padding: 2,
         minRadiusPx: 0.5,
         maxRadiusEm: this.model.ui.chart.maxRadiusEm || 0.05,
@@ -838,21 +865,23 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
         xAxisTitleBottomMargin: 4
       },
       medium: {
-        margin: { top: 30, bottom: 45, left: 30, right: 15},
+        margin: { top: 30, bottom: 45, left: 35, right: 15},
+        leftMarginRatio: 1.6,
         padding: 2,
         minRadiusPx: 1,
         maxRadiusEm: this.model.ui.chart.maxRadiusEm || 0.05,
         infoElHeight: 20,
-        yAxisTitleBottomMargin: 6,
+        yAxisTitleBottomMargin: 3,
         xAxisTitleBottomMargin: 5
       },
       large: {
         margin: { top: marginScaleH(20, 0.02), bottom: marginScaleH(40, 0.03), left: marginScaleW(25, 0.025), right: 20},
+        leftMarginRatio: 1.6,
         padding: 2,
         minRadiusPx: 1,
         maxRadiusEm: this.model.ui.chart.maxRadiusEm || 0.05,
         infoElHeight: 22,
-        yAxisTitleBottomMargin: marginScaleH(4, 0.01),
+        yAxisTitleBottomMargin: 3,//marginScaleH(4, 0.01),
         xAxisTitleBottomMargin: marginScaleH(4, 0.01),
         hideSTitle: true
       }
@@ -861,13 +890,13 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
     const presentationProfileChanges = {
       medium: {
         margin: { top: 50, bottom: 65, left: 50, right: 20 },
-        yAxisTitleBottomMargin: 15,
+        yAxisTitleBottomMargin: 3,
         xAxisTitleBottomMargin: 4,
         infoElHeight: 26,
       },
       large: {
         margin: { top: marginScaleH(40, 0.02), bottom: marginScaleH(60, 0.03), left: marginScaleW(35, 0.025), right: 30 },
-        yAxisTitleBottomMargin: marginScaleH(4, 0.01),
+        yAxisTitleBottomMargin: 3,//marginScaleH(4, 0.01),
         xAxisTitleBottomMargin: marginScaleH(4, 0.01),
         infoElHeight: 32,
         hideSTitle: true
@@ -877,7 +906,7 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
     const _this = this;
 
     this.activeProfile = this.getActiveProfile(profiles, presentationProfileChanges);
-
+    const layoutProfile = this.getLayoutProfile();
     const containerWH = this.root.getVizWidthHeight();
     this.activeProfile.maxRadiusPx = Math.max(
       this.activeProfile.minRadiusPx,
@@ -892,7 +921,7 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
 
     //stage
     this.height = (parseInt(this.element.style("height"), 10) - margin.top - margin.bottom) || 0;
-    this.width = (parseInt(this.element.style("width"), 10) - margin.left - margin.right) || 0;
+    this.width = (parseInt(this.element.style("width"), 10) - margin.left * this.activeProfile.leftMarginRatio - margin.right) || 0;
 
     if (this.height <= 0 || this.width <= 0) {
       this.height = 0;
@@ -902,7 +931,7 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
 
     //graph group is shifted according to margins (while svg element is at 100 by 100%)
     this.graph
-      .attr("transform", "translate(" + margin.left + "," + margin.top + ")");
+      .attr("transform", "translate(" + (margin.left * this.activeProfile.leftMarginRatio) + "," + margin.top + ")");
 
     this.year.resize(this.width, this.height);
     this.eventArea
@@ -985,22 +1014,44 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
     this.sTitleEl
       .attr("transform", "translate(" + this.width + "," + 20 + ") rotate(-90)");
 
+    if (layoutProfile !== "small") {
+      this.ySubTitleEl.select("text").attr("dy", infoElHeight * 0.6).text(this.strings.subtitle.Y);
+      this.xSubTitleEl.select("text").attr("dy", -infoElHeight * 0.3).text(this.strings.subtitle.X);
+      
+      this.yTitleEl.select("text").text(this.strings.title_short.Y);
+      this.xTitleEl.select("text").text(this.strings.title_short.X);
+    } else {
+      this.ySubTitleEl.select("text").text("");
+      this.xSubTitleEl.select("text").text("");
+
+      const yTitleText = this.yTitleEl.select("text").text(this.strings.title.Y);
+      if (yTitleText.node().getBBox().width > this.width) yTitleText.text(this.strings.title_short.Y);
+    
+      const xTitleText = this.xTitleEl.select("text").text(this.strings.title.X);
+      if (xTitleText.node().getBBox().width > this.width - 100) xTitleText.text(this.strings.title_short.X);      
+    }
+
     const isRTL = this.model.locale.isRTL();
+    this.ySubTitleEl
+      .style("font-size", (infoElHeight * 0.8) + "px")
+      .attr("transform", "translate(" + 0 + "," + 0 + ") rotate(-90)");
+    this.xSubTitleEl
+      .style("font-size", (infoElHeight * 0.8) + "px")
+      .attr("transform", "translate(" + this.width + "," + this.height + ")");
+  
     this.yTitleEl
       .style("font-size", infoElHeight + "px")
-      .attr("transform", "translate(" + (isRTL ? this.width : 10 - this.activeProfile.margin.left) + ", -" + this.activeProfile.yAxisTitleBottomMargin + ")");
+      .attr("transform", layoutProfile !== "small" ?
+        "translate(" + (-margin.left - this.activeProfile.yAxisTitleBottomMargin)  + "," + (this.height * 0.5) + ") rotate(-90)"
+        : 
+        "translate(" + (isRTL ? this.width : 10 - this.activeProfile.margin.left) + ", -" + this.activeProfile.yAxisTitleBottomMargin + ")")
 
     this.xTitleEl
       .style("font-size", infoElHeight + "px")
-      .attr("transform", "translate(" + (isRTL ? this.width : 0) + "," + (this.height + margin.bottom - this.activeProfile.xAxisTitleBottomMargin) + ")");
-
-    const ySeparator = this.strings.unit.Y ? ", " : "";
-    const yTitleText = this.yTitleEl.select("text").text(this.strings.title.Y + ySeparator + this.strings.unit.Y);
-    if (yTitleText.node().getBBox().width > this.width) yTitleText.text(this.strings.title.Y);
-
-    const xSeparator = this.strings.unit.Y ? ", " : "";
-    const xTitleText = this.xTitleEl.select("text").text(this.strings.title.X + xSeparator + this.strings.unit.X);
-    if (xTitleText.node().getBBox().width > this.width - 100) xTitleText.text(this.strings.title.X);
+      .attr("transform", layoutProfile !== "small" ?
+        "translate(" + (this.width * 0.5) + "," + (this.height + margin.bottom - this.activeProfile.xAxisTitleBottomMargin) + ")"
+        :
+        "translate(" + (isRTL ? this.width : 0) + "," + (this.height + margin.bottom - this.activeProfile.xAxisTitleBottomMargin) + ")");
 
     if (this.yInfoEl.select("svg").node()) {
       const titleBBox = this.yTitleEl.node().getBBox();
@@ -1010,9 +1061,10 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
       this.yInfoEl.select("svg")
         .attr("width", infoElHeight + "px")
         .attr("height", infoElHeight + "px");
-      this.yInfoEl.attr("transform", "translate("
-        + hTranslate + ","
-        + (t.translateY - infoElHeight * 0.8) + ")");
+      this.yInfoEl.attr("transform", layoutProfile !== "small" ?
+        "translate(" + (t.translateX - infoElHeight * 0.8) + "," + (t.translateY - infoElHeight * 0.4 - titleBBox.width * 0.5) + ") rotate(-90)"
+        :
+        "translate(" + hTranslate + "," + (t.translateY - infoElHeight * 0.8) + ")");
     }
 
     if (this.xInfoEl.select("svg").node()) {
