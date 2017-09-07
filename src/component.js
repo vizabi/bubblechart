@@ -554,8 +554,9 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
   },
 
   _getSubtitle(title, shortTitle) {
-    const subtitle = title.replace(shortTitle,"").trim();
-    const regexpResult = /^\((.*)\)$|.*/.exec(subtitle);
+    let subtitle = title.replace(shortTitle,"");
+    if (subtitle[0] === ",") subtitle = subtitle.slice(1);
+    const regexpResult = /^\((.*)\)$|.*/.exec(subtitle.trim());
     return regexpResult[1] || regexpResult[0] || "";
   },
 
