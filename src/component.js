@@ -866,39 +866,39 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
         xAxisTitleBottomMargin: 4
       },
       medium: {
-        margin: { top: 30, bottom: 45, left: 35, right: 15},
+        margin: { top: 15, bottom: 40, left: 35, right: 15},
         leftMarginRatio: 1.6,
         padding: 2,
         minRadiusPx: 1,
         maxRadiusEm: this.model.ui.chart.maxRadiusEm || 0.05,
         infoElHeight: 20,
         yAxisTitleBottomMargin: 3,
-        xAxisTitleBottomMargin: 5
+        xAxisTitleBottomMargin: 4
       },
       large: {
-        margin: { top: marginScaleH(20, 0.02), bottom: marginScaleH(40, 0.03), left: marginScaleW(25, 0.025), right: 20},
-        leftMarginRatio: 1.6,
+        margin: { top: 15, bottom: marginScaleH(20, 0.03), left: marginScaleW(31, 0.015), right: 20},
+        leftMarginRatio: 1.8,
         padding: 2,
         minRadiusPx: 1,
         maxRadiusEm: this.model.ui.chart.maxRadiusEm || 0.05,
         infoElHeight: 22,
         yAxisTitleBottomMargin: 3,//marginScaleH(4, 0.01),
-        xAxisTitleBottomMargin: marginScaleH(4, 0.01),
+        xAxisTitleBottomMargin: marginScaleH(-10, 0.01),
         hideSTitle: true
       }
     };
 
     const presentationProfileChanges = {
       medium: {
-        margin: { top: 50, bottom: 65, left: 50, right: 20 },
+        margin: { top: 20, bottom: 55, left: 50, right: 20 },
         yAxisTitleBottomMargin: 3,
         xAxisTitleBottomMargin: 4,
         infoElHeight: 26,
       },
       large: {
-        margin: { top: marginScaleH(40, 0.02), bottom: marginScaleH(60, 0.03), left: marginScaleW(35, 0.025), right: 30 },
+        margin: { top: 30, bottom: marginScaleH(45, 0.03), left: marginScaleW(35, 0.025), right: 30 },
         yAxisTitleBottomMargin: 3,//marginScaleH(4, 0.01),
-        xAxisTitleBottomMargin: marginScaleH(4, 0.01),
+        xAxisTitleBottomMargin: marginScaleH(-10, 0.01),
         infoElHeight: 32,
         hideSTitle: true
       }
@@ -1019,8 +1019,14 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
       this.ySubTitleEl.select("text").attr("dy", infoElHeight * 0.6).text(this.strings.subtitle.Y);
       this.xSubTitleEl.select("text").attr("dy", -infoElHeight * 0.3).text(this.strings.subtitle.X);
       
-      this.yTitleEl.select("text").text(this.strings.title_short.Y);
-      this.xTitleEl.select("text").text(this.strings.title_short.X);
+      this.yTitleEl.select("text").text(this.strings.title_short.Y + " ")
+        .append("tspan")
+        .style("font-size", (infoElHeight * 0.7) + "px")
+        .text("▼");
+      this.xTitleEl.select("text").text(this.strings.title_short.X + " ")
+        .append("tspan")
+        .style("font-size", (infoElHeight * 0.7) + "px")
+        .text("▼");
     } else {
       this.ySubTitleEl.select("text").text("");
       this.xSubTitleEl.select("text").text("");
@@ -1082,6 +1088,8 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
     }
 
     this._resizeDataWarning();
+
+    this.model.ui.chart.margin.set("left", margin.left * this.activeProfile.leftMarginRatio, false, false);
   },
 
 
