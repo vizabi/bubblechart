@@ -10,7 +10,8 @@
 
   .vzb-bubblechart {
     @extend %vzb-chart-wrapper;
-
+    overflow: visible;
+    
     //ie11 support for zoom-in, zoom-out cursors
     //ie11 only:The base URI is considered to be the URI of the document containing the element
     //and not the URI of the style sheet in which the declaration appears.
@@ -39,7 +40,8 @@
 
     .vzb-bubblechart-svg {
       @extend %vzb-chart-svg;
-
+      overflow: visible;
+      
       .vzb-bc-bubbles-crop {
         touch-action: none;
       }
@@ -240,6 +242,9 @@
             direction: rtl;
             unicode-bidi: embed;
           }
+        }
+        tspan {
+          color: $vzb-color-primary-light;
         }
       }
 

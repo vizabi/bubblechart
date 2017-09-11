@@ -172,6 +172,10 @@ export default Vizabi.Tool.extend("BubbleChart", {
           dragging: true,
           removeLabelBox: false
         },
+        margin: {
+          left: 0,
+          top:0
+        },
         trails: true,
         lockNonSelected: 0
       },
@@ -179,6 +183,7 @@ export default Vizabi.Tool.extend("BubbleChart", {
         doubtDomain: [],
         doubtRange: []
       },
+      show_ticks: true,
       presentation: false,
       panWithArrow: false,
       adaptMinMaxZoom: false,
