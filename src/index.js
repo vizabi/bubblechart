@@ -81,13 +81,15 @@ export default Vizabi.Tool.extend("BubbleChart", {
       entities: {
         autogenerate: {
           data: "data",
-          conceptIndex: 0
+          conceptIndex: 0,
+          conceptType: "entity_domain"
         }
       },
       entities_colorlegend: {
         autogenerate: {
           data: "data",
-          conceptIndex: 0
+          conceptIndex: 0,
+          conceptType: "entity_domain"
         }
       },
       entities_tags: {},
@@ -115,7 +117,8 @@ export default Vizabi.Tool.extend("BubbleChart", {
         label: {
           use: "property",
           autogenerate: {
-            conceptIndex: 0
+            conceptIndex: 0,
+            conceptType: "entity_domain"
           }
         },
         size: {
@@ -128,7 +131,7 @@ export default Vizabi.Tool.extend("BubbleChart", {
           syncModels: ["marker_colorlegend"],
           autogenerate: {
             conceptIndex: 0,
-            conceptType: "entity_set"
+            conceptType: "entity_domain"
           }
         },
         size_label: {
