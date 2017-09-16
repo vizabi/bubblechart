@@ -866,7 +866,7 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
         xAxisTitleBottomMargin: 4
       },
       medium: {
-        margin: { top: 15, bottom: 40, left: 35, right: 15},
+        margin: { top: 15, bottom: 40, left: 40, right: 15},
         leftMarginRatio: 1.6,
         padding: 2,
         minRadiusPx: 1,
