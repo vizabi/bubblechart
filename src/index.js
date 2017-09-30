@@ -84,11 +84,16 @@ export default Vizabi.Tool.extend("BubbleChart", {
           "excludeIDs": ["tag"]
         }
       },
-      entities_tags: {},
+      entities_tags: {
+        "autoconfig": {
+          "type": "entity_domain",
+          "includeOnlyIDs": ["tag"]
+        }
+      },
       marker_tags: {
         space: ["entities_tags"],
         label: {
-          use: "property"
+          use: "property",
         },
         hook_parent: {}
       },
@@ -109,7 +114,11 @@ export default Vizabi.Tool.extend("BubbleChart", {
           }
         },
         label: {
-          use: "property"
+          use: "property",
+          "autoconfig": {
+            "includeOnlyIDs": ["name"],
+            "type": "string"
+          }
         },
         size: {
           "autoconfig": {
