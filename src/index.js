@@ -71,68 +71,54 @@ export default Vizabi.Tool.extend("BubbleChart", {
    */
   default_model: {
     state: {
-      time: {
-        autogenerate: {
-          data: "data",
-          conceptIndex: 0,
-          conceptType: "time"
-        }
-      },
+      time: {},
       entities: {
-        autogenerate: {
-          data: "data",
-          conceptIndex: 0,
-          conceptType: "entity_domain"
+        "autoconfig": {
+          "type": "entity_domain",
+          "excludeIDs": ["tag"]
         }
       },
       entities_colorlegend: {
-        autogenerate: {
-          data: "data",
-          conceptIndex: 0,
-          conceptType: "entity_domain"
+        "autoconfig": {
+          "type": "entity_domain",
+          "excludeIDs": ["tag"]
         }
       },
       entities_tags: {},
       marker_tags: {
         space: ["entities_tags"],
-        label: {},
+        label: {
+          use: "property"
+        },
         hook_parent: {}
       },
       marker: {
         space: ["entities", "time"],
         axis_x: {
           use: "indicator",
-          autogenerate: {
-            conceptIndex: 1,
-            conceptType: "measure"
+          "autoconfig": {
+            index: 0,
+            type: "measure"
           }
         },
         axis_y: {
           use: "indicator",
-          autogenerate: {
-            conceptIndex: 0,
-            conceptType: "measure"
+          "autoconfig": {
+            index: 1,
+            type: "measure"
           }
         },
         label: {
-          use: "property",
-          autogenerate: {
-            conceptIndex: 0,
-            conceptType: "entity_domain"
-          }
+          use: "property"
         },
         size: {
-          autogenerate: {
-            conceptIndex: 2,
-            conceptType: "measure"
-          }
+          "autoconfig": {
+              index: 2,
+              type: "measure"
+            }
         },
         color: {
-          syncModels: ["marker_colorlegend"],
-          autogenerate: {
-            conceptIndex: 0,
-            conceptType: "entity_domain"
-          }
+          syncModels: ["marker_colorlegend"]
         },
         size_label: {
           use: "constant",
