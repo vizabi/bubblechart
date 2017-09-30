@@ -136,6 +136,10 @@
         .vzb-label-fill {
           pointer-events: visible;
         }
+        .vzb-bc-tooltip .vzb-label-glow {
+            stroke-width: 8px;
+            fill: none;
+        }
         .vzb-bc-entity {
           .vzb-bc-label-x {
             transition: opacity 200ms linear;
@@ -195,24 +199,8 @@
           opacity: .8;
         }
       }
-      .vzb-bc-tooltip {
-        @extend %vzb-chart-tooltip;
-        @include rtl {
-          text {
-            direction: rtl;
-            text-anchor: start;
-            unicode-bidi: embed;
-          }
-        }
-        .vzb-tooltip-glow {
-          stroke-width: 8px;
-          fill: none;
-          opacity: 0;
-        }
-      }
 
-      .vzb-bc-label-shadow,
-      .vzb-bc-tooltip-shadow {
+      .vzb-bc-label-shadow {
         @extend %vzb-chart-label-shadow;
       }
 

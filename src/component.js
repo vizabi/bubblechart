@@ -372,11 +372,6 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
     //set filter
     this.bubbleCrown.selectAll(".vzb-crown-glow")
       .attr("filter", "url(" + location.pathname + "#vzb-glow-filter)");
-    this.tooltip = this.element.select(".vzb-bc-tooltip");
-    //set filter
-    this.tooltip.select(".vzb-tooltip-glow")
-      .attr("filter", "url(" + location.pathname + "#vzb-glow-filter)");
-
     this.tooltipMobile = this.element.select(".vzb-tooltip-mobile");
     //component events
     this.on("resize", () => {
@@ -919,7 +914,8 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
 
     //labels
     _this._labels.setCloseCrossHeight(_this.activeProfile.infoElHeight * 1.2);
-
+    _this._labels.setTooltipFontSize(_this.activeProfile.infoElHeight + "px");
+    
     //stage
     this.height = (parseInt(this.element.style("height"), 10) - margin.top - margin.bottom) || 0;
     this.width = (parseInt(this.element.style("width"), 10) - margin.left * this.activeProfile.leftMarginRatio - margin.right) || 0;
@@ -1402,18 +1398,49 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
         cache.labelX0 = valueX;
         cache.labelY0 = valueY;
         cache.scaledC0 = valueC != null ? _this.cScale(valueC) : _this.COLOR_WHITEISH,
-          cache.scaledS0 = (valueS || valueS === 0) ? utils.areaToRadius(_this.sScale(valueS)) : null;
+        cache.scaledS0 = (valueS || valueS === 0) ? utils.areaToRadius(_this.sScale(valueS)) : null;
       }
 
       const trailStartTime = _this.model.time.parse("" + select.trailStartTime);
 
-      const labelText = valueL + (_this.model.ui.chart.trails ? " " + select.trailStartTime : "");
+      const labelText = _this._getLabelText(valueL, select.trailStartTime);
 
       if (showhide && d.hidden && _this.model.ui.chart.trails && trailStartTime && (trailStartTime < _this.time)) showhide = false;
       if (d.hidden && !_this.model.ui.chart.trails) showhide = true;
 
       this._labels.updateLabel(d, index, cache, valueX, valueY, valueS, valueC, labelText, valueLST, duration, showhide);
 
+    }
+  },
+
+  _getLabelText(value, time) {    
+    return value + (this.model.ui.chart.trails ? " " + time : "");
+  },
+
+  _setTooltip(tooltipText, x, y, s, c, d) {
+    if (tooltipText) {
+      const labelValues = {};
+      if (d) {
+        const KEY = this.KEY;
+        const values = this.frame;
+        labelValues.valueY = values.axis_y[d[KEY]];
+        labelValues.valueX = values.axis_x[d[KEY]];
+        labelValues.valueS = values.size[d[KEY]];
+        labelValues.valueL = values.label[d[KEY]];
+        labelValues.valueC = values.color[d[KEY]];
+        labelValues.valueLST = values.size_label[d[KEY]];
+        labelValues.labelText = this._getLabelText(labelValues.valueL, this.model.time.formatDate(this.time));
+      }
+
+      const tooltipCache = {};
+      tooltipCache.labelX0 = this.xScale.invert(x);
+      tooltipCache.labelY0 = this.yScale.invert(y);
+      tooltipCache.scaledS0 = s;
+      tooltipCache.scaledC0 = null;
+
+      this._labels.setTooltip(d, tooltipText, tooltipCache, labelValues);
+    } else {
+      this._labels.setTooltip();
     }
   },
 
@@ -1497,63 +1524,6 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
       this.bubbleCrown.classed("vzb-hidden", true);
     }
 
-  },
-
-  _setTooltip(tooltipText, x, y, offset, glow) {
-    if (tooltipText) {
-      let xPos, yPos, xSign = -1,
-        ySign = -1,
-        xOffset = 0,
-        yOffset = 0;
-
-      if (offset) {
-        xOffset = offset * 0.71; // .71 - sin and cos for 315
-        yOffset = offset * 0.71;
-      }
-      //position tooltip
-      this.tooltip
-        .style("font-size", this.activeProfile.infoElHeight)
-        .classed("vzb-hidden", false)
-      //.attr("style", "left:" + (mouse[0] + 50) + "px;top:" + (mouse[1] + 50) + "px")
-        .selectAll("text")
-        .text(tooltipText);
-
-      const contentBBox = this.tooltip.select("text").node().getBBox();
-      if (x - xOffset - contentBBox.width < 0) {
-        xSign = 1;
-        x += contentBBox.width + 5; // corrective to the block Radius and text padding
-      } else {
-        x -= 5; // corrective to the block Radius and text padding
-      }
-      if (y - yOffset - contentBBox.height < 0) {
-        ySign = 1;
-        y += contentBBox.height;
-      } else {
-        y -= 11; // corrective to the block Radius and text padding
-      }
-      if (offset) {
-        xPos = x + xOffset * xSign;
-        yPos = y + yOffset * ySign; // 5 and 11 - corrective to the block Radius and text padding
-      } else {
-        xPos = x + xOffset * xSign; // .71 - sin and cos for 315
-        yPos = y + yOffset * ySign; // 5 and 11 - corrective to the block Radius and text padding
-      }
-      this.tooltip.attr("transform", "translate(" + xPos + "," + yPos + ")");
-
-      this.tooltip.selectAll("rect")
-        .attr("width", contentBBox.width + 8)
-        .attr("height", contentBBox.height * 1.2)
-        .attr("x", -contentBBox.width - 4)
-        .attr("y", -contentBBox.height * 0.85)
-        .attr("rx", contentBBox.height * 0.2)
-        .attr("ry", contentBBox.height * 0.2);
-
-      this.tooltip.select(".vzb-tooltip-glow")
-        .attr("stroke", glow);
-
-    } else {
-      this.tooltip.classed("vzb-hidden", true);
-    }
   },
 
   /*
@@ -1674,7 +1644,7 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
 
         //set tooltip and show axis projections
         if (text && !entityOutOfView && !hoverTrail) {
-          _this._setTooltip(text, x, y, s + 3, c);
+          _this._setTooltip(text, x, y, s + 3, c, d);
         }
 
         const selectedData = utils.find(_this.model.marker.select, f => f[KEY] == d[KEY]);
