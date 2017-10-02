@@ -94,6 +94,7 @@ export default Vizabi.Tool.extend("BubbleChart", {
         space: ["entities_tags"],
         label: {
           use: "property",
+          which: "name"
         },
         hook_parent: {}
       },
@@ -127,7 +128,8 @@ export default Vizabi.Tool.extend("BubbleChart", {
             }
         },
         color: {
-          syncModels: ["marker_colorlegend"]
+          syncModels: ["marker_colorlegend"],
+          "autoconfig": {}
         },
         size_label: {
           use: "constant",
