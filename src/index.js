@@ -71,7 +71,11 @@ export default Vizabi.Tool.extend("BubbleChart", {
    */
   default_model: {
     state: {
-      time: {},
+      time: {
+        "autoconfig": {
+          "type": "time"
+        }
+      },
       entities: {
         "autoconfig": {
           "type": "entity_domain",
