@@ -39,7 +39,7 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
       type: "entities"
     }, {
       name: "marker",
-      type: "model"
+      type: "marker"
     }, {
       name: "locale",
       type: "locale"
