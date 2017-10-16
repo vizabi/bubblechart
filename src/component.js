@@ -141,6 +141,7 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
         if ((evt.source._val || []).length - (evt.source._previousVal || []).length > 50) _this.model.ui.chart.trails = false;
 
         _this.selectDataPoints();
+        _this.updateShiftedColors(!(evt.source._val || []).length);
         _this.redrawDataPoints();
         _this._trails.create().then(() => {
           _this._trails.run(["findVisible", "reveal", "opacityHandler"]);
@@ -473,6 +474,7 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
       _this.updateMarkerSizeLimits();
       _this.updateEntities();
       _this._labels.ready();
+      _this.updateShiftedColors(true);
       _this.redrawDataPoints();
       _this.selectDataPoints();
       _this.updateBubbleOpacity();
@@ -1334,7 +1336,7 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
       // if entity has all the data we update the visuals
       const scaledS = utils.areaToRadius(_this.sScale(valueS));
 
-      view.style("fill", valueC != null ? _this.cScale(valueC) : _this.COLOR_WHITEISH);
+      view.style("fill", valueC != null ? _this.getShiftedColor(d[KEY], _this.cScale(valueC)) : _this.COLOR_WHITEISH);
 
       if (duration) {
         if (showhide) {
@@ -1711,6 +1713,48 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
     }
 
     this.nonSelectedOpacityZero = _this.model.marker.opacitySelectDim < 0.01;
+  },
+
+  getShiftedColor(key, color) {
+    if (!this.shiftedColors) return color;
+
+    return this.shiftedColors[key] || color;
+  },
+
+  updateShiftedColors(resetColors) {
+    const _this = this;
+    const KEY = this.KEY;
+    
+    if (this.model.marker.color.use != "property") {
+      this.shiftedColors = null;
+      return;
+    }
+
+    if (resetColors) this.shiftedColors = {};
+
+    const newShiftedColors = {};
+    const colorValues = {};
+    this.model.marker.select.forEach(d => {
+      const colorValue = _this.frame.color[d[KEY]];
+      if (!colorValues[colorValue]) {
+        colorValues[colorValue] = true;
+        this.shiftedColors[d[KEY]] = _this.cScale(colorValue);
+      }
+      newShiftedColors[d[KEY]] = this.shiftedColors[d[KEY]] || this.randomColorSimilarTo(this.cScale(colorValue), 8, 15, 15);        
+    });
+    this.shiftedColors = newShiftedColors;
+  },
+  
+  randomColorSimilarTo(color, maxFromH, maxFromS, maxFromL) {
+    const hsl = d3.hsl(color);
+    const rndH = (360 + hsl.h + this._getRandomInt(-maxFromH * 10, maxFromH * 10) * 0.1) % 360;
+    const rndS = hsl.s + this._getRandomInt(-maxFromS, maxFromS) * 0.01 - (hsl.s + maxFromS * 0.01 > 1 ? hsl.s + maxFromS * 0.01 - 1 : 0);
+    const rndL = hsl.l + this._getRandomInt(-maxFromL, maxFromL) * 0.01;
+    return d3.hsl(rndH, rndS, rndL).rgb();
+  },
+
+  _getRandomInt(min, max) {
+    return Math.floor(Math.random() * (max - min)) + min;
   }
 
 });

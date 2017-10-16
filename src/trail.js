@@ -333,7 +333,7 @@ const Trail = Vizabi.Class.extend({
 
       view.select("circle")
       //.transition().duration(duration).ease(d3.easeLinear)
-        .style("fill", segment.valueC != null ? _context.cScale(segment.valueC) : _context.COLOR_WHITEISH);
+        .style("fill", segment.valueC != null ? _context.getShiftedColor(d[KEY], _context.cScale(segment.valueC)) : _context.COLOR_WHITEISH);
       view.select("line")
       //.transition().duration(duration).ease(d3.easeLinear)
         .style("stroke", strokeColor);
@@ -471,7 +471,7 @@ const Trail = Vizabi.Class.extend({
             .attr("cy", _context.yScale(segment.valueY))
             .attr("cx", _context.xScale(segment.valueX))
             .attr("r", utils.areaToRadius(_context.sScale(segment.valueS)))
-            .style("fill", segment.valueC != null ? _context.cScale(segment.valueC) : _context.COLOR_WHITEISH);
+            .style("fill", segment.valueC != null ? _context.getShiftedColor(d[KEY], _context.cScale(segment.valueC)) : _context.COLOR_WHITEISH);
 
           view.select("line")
             .attr("x2", _context.xScale(segment.valueX))
