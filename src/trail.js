@@ -28,7 +28,7 @@ const Trail = Vizabi.Class.extend({
     } else {
       _context._trails.run("remove");
       _context.model.marker.select.forEach(d => {
-        d.trailStartTime = null;
+        delete d.trailStartTime;
       });
     }
   },
