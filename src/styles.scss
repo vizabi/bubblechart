@@ -133,6 +133,9 @@
             unicode-bidi: embed;
           }
         }
+        .vzb-bc-label-shadow {
+          @extend %vzb-chart-label-shadow;
+        }
         .vzb-label-fill {
           pointer-events: visible;
         }
@@ -198,10 +201,6 @@
           fill: none;
           opacity: .8;
         }
-      }
-
-      .vzb-bc-label-shadow {
-        @extend %vzb-chart-label-shadow;
       }
 
       .vzb-bc-lines .vzb-bc-entity line {
@@ -291,6 +290,7 @@
         stroke-opacity: 1;
       }
 
+      .vzb-bc-label-content.stroke,
       .vzb-bc-label-shadow,
       .vzb-bc-tooltip-shadow {
         @extend %vzb-chart-label-shadow-large;
@@ -327,6 +327,7 @@
         stroke-opacity: .8;
       }
 
+      .vzb-bc-label-content.stroke,
       .vzb-bc-label-shadow,
       .vzb-bc-tooltip-shadow {
         @extend %vzb-chart-label-shadow-medium;
@@ -364,6 +365,7 @@
         stroke-opacity: .7;
       }
 
+      .vzb-bc-label-content.stroke,
       .vzb-bc-label-shadow,
       .vzb-bc-tooltip-shadow {
         @extend %vzb-chart-label-shadow-small;
