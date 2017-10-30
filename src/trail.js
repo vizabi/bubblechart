@@ -82,7 +82,7 @@ const Trail = Vizabi.Class.extend({
             entityTrails.exit().remove();
 
             _this.entityTrails[d[KEY]] = entityTrails.enter().append("g")
-              .attr("class", "vzb-bc-trailsegment")
+              .attr("class", "vzb-bc-trailsegment vzb-invisible")
               .on("mouseover", function(segment, index) {
                 if (utils.isTouchDevice()) return;
 

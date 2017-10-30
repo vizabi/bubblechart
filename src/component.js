@@ -787,7 +787,7 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
         if (sizeA != sizeB) return d3.descending(sizeA, sizeB);
         if (a[KEY] != b[KEY]) return d3.ascending(a[KEY], b[KEY]);
         if (typeof a.trailStartTime !== "undefined" || typeof b.trailStartTime !== "undefined") return typeof a.trailStartTime !== "undefined" ? -1 : 1; // only lines has trailStartTime
-        if (typeof a.limits !== "undefined" || typeof b.limits !== "undefined") return typeof a.limits !== "undefined" ? -1 : 1; // only trails has attribute limits
+        if (typeof a.status !== "undefined" || typeof b.status !== "undefined") return typeof a.status !== "undefined" ? -1 : 1; // only trails has attribute status
         return d3.descending(sizeA, sizeB);
       });
   },
