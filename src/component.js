@@ -76,10 +76,12 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
       },
       "change:ui.chart.trails": function(evt) {
         //console.log("EVENT change:time:trails");
+        if (!_this._readyOnce) return;
         _this._trails.toggle(_this.model.ui.chart.trails);
         _this.redrawDataPoints();
       },
       "change:ui.chart.lockNonSelected": function(evt) {
+        if (!_this._readyOnce) return;
         //console.log("EVENT change:time:lockNonSelected");
         _this.redrawDataPoints(500);
       },
