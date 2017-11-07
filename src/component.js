@@ -1070,12 +1070,13 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
       const titleBBox = this.yTitleEl.node().getBBox();
       const t = utils.transform(this.yTitleEl.node());
       const hTranslate = isRTL ? (titleBBox.x + t.translateX - infoElHeight * 1.4) : (titleBBox.x + t.translateX + titleBBox.width + infoElHeight * 0.4);
+      const vTranslate = isRTL ? (t.translateY + infoElHeight * 1.4 + titleBBox.width * 0.5) : (t.translateY - infoElHeight * 0.4 - titleBBox.width * 0.5);
 
       this.yInfoEl.select("svg")
         .attr("width", infoElHeight + "px")
         .attr("height", infoElHeight + "px");
       this.yInfoEl.attr("transform", layoutProfile !== "small" ?
-        "translate(" + (t.translateX - infoElHeight * 0.8) + "," + (t.translateY - infoElHeight * 0.4 - titleBBox.width * 0.5) + ") rotate(-90)"
+        "translate(" + (t.translateX - infoElHeight * 0.8) + "," + vTranslate + ") rotate(-90)"
         :
         "translate(" + hTranslate + "," + (t.translateY - infoElHeight * 0.8) + ")");
     }
