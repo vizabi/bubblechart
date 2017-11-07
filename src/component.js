@@ -56,12 +56,20 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
       },
       "change:time.start": function(evt, original) {
         if (!_this._readyOnce || _this.model.time.splash) return;
+        if (["color", "axis_x", "axis_y"].filter(hook => _this.model.marker[hook].which == _this.model.time.dim).length) {
+          _this.ready();
+          return;          
+        };
         _this._trails.create().then(() => {
           _this._trails.run(["findVisible", "reveal", "opacityHandler"]);
         });
       },
       "change:time.end": function(evt, original) {
         if (!_this._readyOnce || _this.model.time.splash) return;
+        if (["color", "axis_x", "axis_y"].filter(hook => _this.model.marker[hook].which == _this.model.time.dim).length) {
+          _this.ready();
+          return;          
+        };
         _this._trails.create().then(() => {
           _this._trails.run(["findVisible", "reveal", "opacityHandler"]);
         });
