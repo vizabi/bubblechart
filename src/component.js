@@ -35,9 +35,6 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
       name: "time",
       type: "time"
     }, {
-      name: "entities",
-      type: "entities"
-    }, {
       name: "marker",
       type: "marker"
     }, {
@@ -136,7 +133,7 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
       },
       "change:marker.select": function(evt, path) {
         if (!_this._readyOnce || !_this.entityBubbles) return;
-        //console.log("EVENT change:entities:select");
+        //console.log("EVENT change:marker:select");
 
         //disable trails if too many items get selected at once
         //otherwise it's too much waiting time
@@ -167,7 +164,7 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
           }
           return;
         }
-        //console.log("EVENT change:entities:highlight");
+        //console.log("EVENT change:marker:highlight");
         _this.highlightDataPoints();
       },
       "change:time.value": function() {
@@ -245,7 +242,7 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
           svg.classed("vzb-panhand", false);
         }
       },
-      "change:entities.dim": function() {
+      "change:marker.space": function() {
         if (_this.someHighlighted) {
           _this.model.marker.clearHighlighted();
         }
@@ -429,8 +426,11 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
         }
       });
 
-    this.KEY = this.model.entities.getDimension();
     this.TIMEDIM = this.model.time.getDimension();
+    this.KEYS = utils.unique(this.model.marker._getAllDimensions({ exceptType: "time" }));
+    this.KEY = this.KEYS.join(",");
+    this.dataKeys = this.model.marker.getDataKeysPerHook();
+    this.labelNames = this.model.marker.getLabelHookNames();
 
     this.updateUIStrings();
 
@@ -452,7 +452,11 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
 
   ready() {
     const _this = this;
-    this.KEY = this.model.entities.getDimension();
+    this.KEYS = utils.unique(this.model.marker._getAllDimensions({ exceptType: "time" }));
+    this.KEY = this.KEYS.join(",");
+    this.dataKeys = this.model.marker.getDataKeysPerHook();
+    this.labelNames = this.model.marker.getLabelHookNames();
+
     this.updateUIStrings();
     const endTime = this.model.time.end;
     this.updateIndicators();
@@ -698,6 +702,8 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
    */
   updateEntities() {
     const _this = this;
+    const dataKeys = this.dataKeys;
+    const KEYS = this.KEYS;
     const KEY = this.KEY;
     const TIMEDIM = this.TIMEDIM;
 
@@ -705,11 +711,11 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
       prefix = prefix || "";
       return _this.model.marker.getKeys()
         .map(d => {
-          const pointer = {};
-          pointer[KEY] = d[KEY];
+          const pointer = Object.assign({}, d);
+          //pointer[KEY] = d[KEY];
           pointer[TIMEDIM] = endTime;
-          pointer.sortValue = _this.frame.size[d[KEY]] || 0;
-          pointer[KEY] = prefix + d[KEY];
+          pointer.sortValue = _this.frame.size[utils.getKey(d, dataKeys.size)] || 0;
+          pointer[KEY] = prefix + utils.getKey(d, KEYS);
           return pointer;
         })
         .sort((a, b) => b.sortValue - a.sortValue);
@@ -763,6 +769,7 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
 
   unselectBubblesWithNoData(entities) {
     const _this = this;
+    const KEYS = this.KEYS;
     const KEY = this.KEY;
     if (!this.model.marker.select.length) return;
 
@@ -770,7 +777,7 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
     const keys = entities.map(d => d[KEY]);
 
     this.model.marker.select.forEach(d => {
-      if (keys.indexOf(d[KEY]) !== -1) _select.push(d);
+      if (keys.indexOf(utils.getKey(d, KEYS)) !== -1) _select.push(d);
     });
 
     if (_select.length !== _this.model.marker.select.length) _this.model.marker.select = _select;
@@ -778,11 +785,12 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
 
   _reorderEntities() {
     const _this = this;
+    const dataKeys = this.dataKeys;
     const KEY = this.KEY;
     this.bubbleContainer.selectAll(".vzb-bc-entity")
       .sort((a, b) => {
-        const sizeA = _this.frame.size[a[KEY]];
-        const sizeB = _this.frame.size[b[KEY]];
+        const sizeA = _this.frame.size[utils.getKey(a, dataKeys.size)];
+        const sizeB = _this.frame.size[utils.getKey(b, dataKeys.size)];
 
         if (typeof sizeA === "undefined" && typeof sizeB !== "undefined") return -1;
         if (typeof sizeA !== "undefined" && typeof sizeB === "undefined") return 1;
@@ -1156,8 +1164,10 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
     if (!this.entityBubbles) return utils.warn("redrawDataPointsOnlyColors(): no entityBubbles defined. likely a premature call, fix it!");
 
     let valuesNow;
+    const dataKeys = this.dataKeys;
+    const KEYS = this.KEYS;
     const KEY = this.KEY;
-
+    
 
     let time = this.model.time.value;
 
@@ -1172,7 +1182,7 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
 
         const selected = _this.model.marker.isSelected(d);
 
-        const valueC = selected ? valuesNow.color[d[KEY]] : valuesLocked.color[d[KEY]];
+        const valueC = selected ? valuesNow.color[utils.getKey(d, dataKeys.color)] : valuesLocked.color[utils.getKey(d, dataKeys.color)];
 
         const scaledC = valueC != null ? _this.cScale(valueC) : _this.COLOR_WHITEISH;
 
@@ -1181,7 +1191,7 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
         //update lines of labels
         if (selected) {
 
-          const select = utils.find(_this.model.marker.select, f => f[KEY] == d[KEY]);
+          const select = utils.find(_this.model.marker.select, f => utils.getKey(f, KEYS) == d[KEY]);
 
           const trailStartTime = _this.model.time.parse("" + select.trailStartTime);
 
@@ -1192,7 +1202,7 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
             if (!_this.model.ui.chart.trails || trailStartTime - _this.time == 0) {
               cache.scaledC0 = scaledC;
             } else {
-              const valueC = valuesTrailStart.color[d[KEY]];
+              const valueC = valuesTrailStart.color[utils.getKey(d, dataKeys.color)];
               cache.scaledC0 = valueC != null ? _this.cScale(valueC) : _this.COLOR_WHITEISH;
             }
 
@@ -1209,8 +1219,10 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
     const _this = this;
 
     let valuesNow;
+    const dataKeys = this.dataKeys;
+    const KEYS = this.KEYS;
     const KEY = this.KEY;
-
+    
 
     let time = this.model.time.value;
 
@@ -1225,7 +1237,7 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
 
         const selected = _this.model.marker.isSelected(d);
 
-        const valueS = selected ? valuesNow.size[d[KEY]] : valuesLocked.size[d[KEY]];
+        const valueS = selected ? valuesNow.size[utils.getKey(d, dataKeys.size)] : valuesLocked.size[utils.getKey(d, dataKeys.size)];
         if (valueS == null) return;
 
         const scaledS = utils.areaToRadius(_this.sScale(valueS));
@@ -1234,7 +1246,7 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
         //update lines of labels
         if (selected) {
 
-          const select = utils.find(_this.model.marker.select, f => f[KEY] == d[KEY]);
+          const select = utils.find(_this.model.marker.select, f => utils.getKey(f, KEYS) == d[KEY]);
 
           const trailStartTime = _this.model.time.parse("" + select.trailStartTime);
 
@@ -1245,7 +1257,7 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
             if (!_this.model.ui.chart.trails || trailStartTime - _this.time == 0) {
               cache.scaledS0 = scaledS;
             } else {
-              cache.scaledS0 = utils.areaToRadius(_this.sScale(valuesTrailStart.size[d[KEY]]));
+              cache.scaledS0 = utils.areaToRadius(_this.sScale(valuesTrailStart.size[utils.getKey(d, dataKeys.size)]));
             }
 
             _this._labels.updateLabelOnlyPosition(d, index, cache);
@@ -1292,16 +1304,16 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
   //redraw Data Points
   _updateBubble(d, values, index, view, duration) {
     const _this = this;
-    const KEY = this.KEY;
-
+    const dataKeys = this.dataKeys;
+    
     let showhide = false;
 
-    const valueY = values.axis_y[d[KEY]];
-    const valueX = values.axis_x[d[KEY]];
-    const valueS = values.size[d[KEY]];
-    const valueL = values.label[d[KEY]];
-    const valueC = values.color[d[KEY]];
-    const valueLST = values.size_label[d[KEY]];
+    const valueY = values.axis_y[utils.getKey(d, dataKeys.axis_y)];
+    const valueX = values.axis_x[utils.getKey(d, dataKeys.axis_x)];
+    const valueS = values.size[utils.getKey(d, dataKeys.size)];
+    const valueL = values.label[utils.getKey(d, dataKeys.label)];
+    const valueC = values.color[utils.getKey(d, dataKeys.color)];
+    const valueLST = values.size_label[utils.getKey(d, dataKeys.size_label)];
 
     // check if fetching data succeeded
     if (!valueL && valueL !== 0 || !valueY && valueY !== 0 || !valueX && valueX !== 0 || !valueS && valueS !== 0) {
@@ -1379,19 +1391,20 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
       });
 
     } // data exists
-    _this._updateLabel(d, index, valueX, valueY, valueS, valueC, valueL, valueLST, duration, showhide);
+    _this._updateLabel(d, index, values, valueX, valueY, valueS, valueC, valueL, valueLST, duration, showhide);
   },
 
-  _updateLabel(d, index, valueX, valueY, valueS, valueC, valueL, valueLST, duration, showhide) {
+  _updateLabel(d, index, values, valueX, valueY, valueS, valueC, valueL, valueLST, duration, showhide) {
     const _this = this;
+    const KEYS = this.KEYS;
     const KEY = this.KEY;
-
+    
     // only for selected markers
     if (_this.model.marker.isSelected(d)) {
 
       const cache = {};
 
-      const select = utils.find(_this.model.marker.select, f => f[KEY] == d[KEY]);
+      const select = utils.find(_this.model.marker.select, f => utils.getKey(f, KEYS) == d[KEY]);
 
       const time = _this.model.time.formatDate(_this.time);
       if (!this.model.ui.chart.trails || select.trailStartTime == time || select.trailStartTime == null) {
@@ -1405,7 +1418,7 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
 
       const trailStartTime = _this.model.time.parse("" + select.trailStartTime);
 
-      const labelText = _this._getLabelText(valueL, select.trailStartTime);
+      const labelText = _this._getLabelText(values, this.labelNames, d, select.trailStartTime);
 
       if (showhide && d.hidden && _this.model.ui.chart.trails && trailStartTime && (trailStartTime < _this.time)) showhide = false;
       if (d.hidden && !_this.model.ui.chart.trails) showhide = true;
@@ -1415,7 +1428,8 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
     }
   },
 
-  _getLabelText(value, time) {    
+  _getLabelText(values, labelNames, d, time) {
+    const value = this.KEYS.map(key => values[labelNames[key]] ? values[labelNames[key]][d[key]] : d[key]).join(", ");    
     return value + (this.model.ui.chart.trails ? " " + time : "");
   },
 
@@ -1423,15 +1437,14 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
     if (tooltipText) {
       const labelValues = {};
       if (d) {
-        const KEY = this.KEY;
+        const dataKeys = this.dataKeys;
         const values = this.frame;
-        labelValues.valueY = values.axis_y[d[KEY]];
-        labelValues.valueX = values.axis_x[d[KEY]];
-        labelValues.valueS = values.size[d[KEY]];
-        labelValues.valueL = values.label[d[KEY]];
-        labelValues.valueC = values.color[d[KEY]];
-        labelValues.valueLST = values.size_label[d[KEY]];
-        labelValues.labelText = this._getLabelText(labelValues.valueL, this.model.time.formatDate(this.time));
+        labelValues.valueY = values.axis_y[utils.getKey(d, dataKeys.axis_y)];
+        labelValues.valueX = values.axis_x[utils.getKey(d, dataKeys.axis_x)];
+        labelValues.valueS = values.size[utils.getKey(d, dataKeys.size)];
+        labelValues.valueC = values.color[utils.getKey(d, dataKeys.color)];
+        labelValues.valueLST = values.size_label[utils.getKey(d, dataKeys.size_label)];
+        labelValues.labelText = this._getLabelText(values, this.labelNames, d, this.model.time.formatDate(this.time));
       }
 
       const tooltipCache = {};
@@ -1534,14 +1547,14 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
   _axisProjections(d) {
     const _this = this;
     const TIMEDIM = this.TIMEDIM;
-    const KEY = this.KEY;
+    const dataKeys = this.dataKeys;
 
     if (d != null) {
 
       this.model.marker.getFrame(d[TIMEDIM], values => {
-        const valueY = values.axis_y[d[KEY]];
-        const valueX = values.axis_x[d[KEY]];
-        const valueS = values.size[d[KEY]];
+        const valueY = values.axis_y[utils.getKey(d, dataKeys.axis_y)];
+        const valueX = values.axis_x[utils.getKey(d, dataKeys.axis_x)];
+        const valueS = values.size[utils.getKey(d, dataKeys.size)];
         const radius = utils.areaToRadius(_this.sScale(valueS));
 
         if (!valueY && valueY !== 0 || !valueX && valueX !== 0 || !valueS && valueS !== 0) return;
@@ -1592,14 +1605,17 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
   highlightDataPoints() {
     const _this = this;
     const TIMEDIM = this.TIMEDIM;
+    const dataKeys = this.dataKeys;
+    const KEYS = this.KEYS;
     const KEY = this.KEY;
-
+    
     this.someHighlighted = (this.model.marker.highlight.length > 0);
 
     this.updateBubbleOpacity();
 
     if (this.model.marker.highlight.length === 1) {
       const d = utils.clone(this.model.marker.highlight[0]);
+      d[KEY] = utils.getKey(d, KEYS);
 
       if (_this.model.ui.chart.lockNonSelected && _this.someSelected && !_this.model.marker.isSelected(d)) {
         d[TIMEDIM] = _this.model.time.parse("" + _this.model.ui.chart.lockNonSelected);
@@ -1609,13 +1625,13 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
 
       _this.model.marker.getFrame(d[TIMEDIM], values => {
         if (!values) return;
-        const x = _this.xScale(values.axis_x[d[KEY]]);
-        const y = _this.yScale(values.axis_y[d[KEY]]);
-        const s = utils.areaToRadius(_this.sScale(values.size[d[KEY]]));
-        const c = values.color[d[KEY]] != null ? _this.cScale(values.color[d[KEY]]) : _this.COLOR_WHITEISH;
+        const x = _this.xScale(values.axis_x[utils.getKey(d, dataKeys.axis_x)]);
+        const y = _this.yScale(values.axis_y[utils.getKey(d, dataKeys.axis_y)]);
+        const s = utils.areaToRadius(_this.sScale(values.size[utils.getKey(d, dataKeys.size)]));
+        const c = values.color[utils.getKey(d, dataKeys.color)] != null ? _this.cScale(values.color[utils.getKey(d, dataKeys.color)]) : _this.COLOR_WHITEISH;
         let entityOutOfView = false;
 
-        const titles = _this._formatSTitleValues(values.size[d[KEY]], values.color[d[KEY]]);
+        const titles = _this._formatSTitleValues(values.size[utils.getKey(d, dataKeys.size)], values.color[utils.getKey(d, dataKeys.color)]);
         _this._updateSTitle(titles[0], titles[1]);
         if (x + s < 0 || x - s > _this.width || y + s < 0 || y - s > _this.height) {
           entityOutOfView = true;
@@ -1626,11 +1642,11 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
         let hoverTrail = false;
         if (_this.model.marker.isSelected(d) && _this.model.ui.chart.trails) {
           text = _this.model.time.formatDate(_this.time);
-          const selectedData = utils.find(_this.model.marker.select, f => f[KEY] == d[KEY]);
+          const selectedData = utils.find(_this.model.marker.select, f => utils.getKey(f, KEYS) == d[KEY]);
           hoverTrail = text !== selectedData.trailStartTime && !d3.select(d3.event.target).classed("bubble-" + d[KEY]);
           text = text !== selectedData.trailStartTime && _this.time === d[TIMEDIM] ? text : "";
         } else {
-          text = _this.model.marker.isSelected(d) ? "" : values.label[d[KEY]];
+          text = _this.model.marker.isSelected(d) ? "" : _this._getLabelText(values, _this.labelNames, d);
         }
 
         _this._labels.highlight(null, false);
@@ -1649,7 +1665,7 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
           _this._setTooltip(text, x, y, s + 3, c, d);
         }
 
-        const selectedData = utils.find(_this.model.marker.select, f => f[KEY] == d[KEY]);
+        const selectedData = utils.find(_this.model.marker.select, f => utils.getKey(f, KEYS) == d[KEY]);
         if (selectedData) {
           const clonedSelectedData = utils.clone(selectedData);
           //change opacity to OPACITY_HIGHLT = 1.0;

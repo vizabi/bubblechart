@@ -19,11 +19,11 @@ export default Vizabi.Tool.extend("BubbleChart", {
     this.components = [{
       component,
       placeholder: ".vzb-tool-viz",
-      model: ["state.time", "state.entities", "state.marker", "locale", "ui"] //pass models to component
+      model: ["state.time", "state.marker", "locale", "ui"] //pass models to component
     }, {
       component: Vizabi.Component.get("timeslider"),
       placeholder: ".vzb-tool-timeslider",
-      model: ["state.time", "state.entities", "state.marker", "ui"]
+      model: ["state.time", "state.marker", "ui"]
     }, {
       component: Vizabi.Component.get("dialogs"),
       placeholder: ".vzb-tool-dialogs",

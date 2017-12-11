@@ -36,7 +36,9 @@ const Trail = Vizabi.Class.extend({
   create(selection) {
     const _context = this.context;
     const _this = this;
+    const KEYS = _context.KEYS;
     const KEY = _context.KEY;
+    const dataKeys = _context.dataKeys;
     const TIMEDIM = _context.TIMEDIM;
     this._isCreated = new Promise((resolve, reject) => {
       //quit if the function is called accidentally
@@ -53,7 +55,8 @@ const Trail = Vizabi.Class.extend({
           status: "created",
           selectedEntityData: d
         };
-        r[KEY] = d[KEY];
+        KEYS.forEach(key => r[key] = d[key]);
+        r[KEY] = utils.getKey(d, KEYS);
         return r;
       });
       _this.trailTransitions = {};
@@ -93,19 +96,19 @@ const Trail = Vizabi.Class.extend({
                 _context._axisProjections(pointer);
                 _context._labels.highlight(d, true);
                 const text = _context.model.time.formatDate(segment.t);
-                const selectedData = utils.find(_context.model.marker.select, f => f[KEY] == d[KEY]);
+                const selectedData = utils.find(_context.model.marker.select, f => utils.getKey(f, KEYS) == d[KEY]);
                 _context.model.marker.getFrame(pointer[TIMEDIM], values => {
-                  const x = _context.xScale(values.axis_x[pointer[KEY]]);
-                  const y = _context.yScale(values.axis_y[pointer[KEY]]);
-                  const s = utils.areaToRadius(_context.sScale(values.size[pointer[KEY]]));
-                  const c = values.color[pointer[KEY]] != null ? _context.cScale(values.color[pointer[KEY]]) : _context.COLOR_WHITEISH;
+                  const x = _context.xScale(values.axis_x[utils.getKey(d, dataKeys.axis_x)]);
+                  const y = _context.yScale(values.axis_y[utils.getKey(d, dataKeys.axis_y)]);
+                  const s = utils.areaToRadius(_context.sScale(values.size[utils.getKey(d, dataKeys.size)]));
+                  const c = values.color[utils.getKey(d, dataKeys.color)] != null ? _context.cScale(values.color[utils.getKey(d, dataKeys.color)]) : _context.COLOR_WHITEISH;
                   if (text !== selectedData.trailStartTime) {
                     _context._setTooltip(text, x, y, s + 3, c);
                   }
                   _context._setBubbleCrown(x, y, s, c);
                   _context.model.marker.getModelObject("highlight").trigger("change", {
-                    "size": values.size[pointer[KEY]],
-                    "color": values.color[pointer[KEY]]
+                    "size": values.size[utils.getKey(d, dataKeys.size)],
+                    "color": values.color[utils.getKey(d, dataKeys.color)]
                   });
                 });
                 //change opacity to OPACITY_HIGHLT = 1.0;
@@ -149,30 +152,32 @@ const Trail = Vizabi.Class.extend({
   _addActions(selections, actions) {
     const _context = this.context;
     const _this = this;
-    const KEY = _context.KEY;
+    const KEYS = _context.KEYS;
 
     selections.forEach(d => {
-      if (!_this.actionsQueue[d[KEY]]) _this.actionsQueue[d[KEY]] = [];
-      _this.actionsQueue[d[KEY]] = [].concat(_this.actionsQueue[d[KEY]].filter(value => actions.indexOf(value) == -1), actions);
+      const key = utils.getKey(d, KEYS);
+      if (!_this.actionsQueue[key]) _this.actionsQueue[key] = [];
+      _this.actionsQueue[key] = [].concat(_this.actionsQueue[key].filter(value => actions.indexOf(value) == -1), actions);
     });
   },
 
   _clearActions(selections) {
     const _context = this.context;
     const _this = this;
-    const KEY = _context.KEY;
-
+    const KEYS = _context.KEYS;
+    
     selections.forEach(d => {
-      if (!_this.actionsQueue[d[KEY]]) _this.actionsQueue[d[KEY]] = [];
-      _this.actionsQueue[d[KEY]] = [];
-      _this.drawingQueue[d[KEY]] = {};
-      _this.delayedIterations[d[KEY]] = {};
-      if (!_this.activePromises[d[KEY]]) _this.activePromises[d[KEY]] = [];
-      utils.forEach(_this.activePromises[d[KEY]], (promise, key) => {
+      const key = utils.getKey(d, KEYS);
+      if (!_this.actionsQueue[key]) _this.actionsQueue[key] = [];
+      _this.actionsQueue[key] = [];
+      _this.drawingQueue[key] = {};
+      _this.delayedIterations[key] = {};
+      if (!_this.activePromises[key]) _this.activePromises[key] = [];
+      utils.forEach(_this.activePromises[key], (promise, key) => {
         if (promise.status === "pending") promise.reject();
       });
-      _this.trailsInProgress[d[KEY]] = null;
-      _this.activePromises[d[KEY]] = [];
+      _this.trailsInProgress[key] = null;
+      _this.activePromises[key] = [];
     });
   },
 
@@ -358,6 +363,7 @@ const Trail = Vizabi.Class.extend({
     const _context = this.context;
     const _this = this;
     const KEY = _context.KEY;
+    const dataKeys = _context.dataKeys;
     return new Promise((resolve, reject) => {
       new Promise((resolve1, reject1) => {
         if (!d.limits) {
@@ -384,13 +390,13 @@ const Trail = Vizabi.Class.extend({
             trailStartTime = _context.model.time.parse("" + d.selectedEntityData.trailStartTime);
           }
           const cache = _context._labels.cached[d[KEY]];
-          const valueS = _context.frame.size[d[KEY]];
-          const valueC = _context.frame.color[d[KEY]];
-          cache.labelX0 = _context.frame.axis_x[d[KEY]];
-          cache.labelY0 = _context.frame.axis_y[d[KEY]];
+          const valueS = _context.frame.size[utils.getKey(d, dataKeys.size)];
+          const valueC = _context.frame.color[utils.getKey(d, dataKeys.color)];
+          cache.labelX0 = _context.frame.axis_x[utils.getKey(d, dataKeys.axis_x)];
+          cache.labelY0 = _context.frame.axis_y[utils.getKey(d, dataKeys.axis_y)];
           cache.scaledS0 = (valueS || valueS === 0) ? utils.areaToRadius(_context.sScale(valueS)) : null;
           cache.scaledC0 = valueC != null ? _context.cScale(valueC) : _context.COLOR_WHITEISH;
-          _context._updateLabel(d, 0, _context.frame.axis_x[d[KEY]], _context.frame.axis_y[d[KEY]], _context.frame.size[d[KEY]], _context.frame.color[d[KEY]], _context.frame.label[d[KEY]], _context.frame.size_label[d[KEY]], 0, true);
+          _context._updateLabel(d, 0, _context.frame, cache.labelX0, cache.labelY0, valueS, valueC, _context.frame.label[utils.getKey(d, dataKeys.label)], _context.frame.size_label[utils.getKey(d, dataKeys.size_label)], 0, true);
         }
         trail.each((segment, index) => {
           // segment is transparent if it is after current time or before trail StartTime
@@ -426,7 +432,9 @@ const Trail = Vizabi.Class.extend({
     const _context = this.context;
     if(_context.model.time.playing) duration = _context.model.time.delay;
     const _this = this;
+    const KEYS = _context.KEYS;
     const KEY = _context.KEY;
+    const dataKeys = _context.dataKeys;
     d.status = "reveal";
     const trailStartTime = _context.model.time.parse("" + d.selectedEntityData.trailStartTime);
     const generateTrailSegment = function(trail, index, nextIndex, level) {
@@ -447,10 +455,10 @@ const Trail = Vizabi.Class.extend({
         _context.model.marker.getFrame(segment.t, frame => {
           if (d.status != "reveal") return resolve();
           if (!frame) return resolve();
-          segment.valueY = frame.axis_y[d[KEY]];
-          segment.valueX = frame.axis_x[d[KEY]];
-          segment.valueS = frame.size[d[KEY]];
-          segment.valueC = frame.color[d[KEY]];
+          segment.valueY = frame.axis_y[utils.getKey(d, dataKeys.axis_y)];
+          segment.valueX = frame.axis_x[utils.getKey(d, dataKeys.axis_x)];
+          segment.valueS = frame.size[utils.getKey(d, dataKeys.size)];
+          segment.valueC = frame.color[utils.getKey(d, dataKeys.color)];
 
           if (segment.valueY == null || segment.valueX == null || segment.valueS == null) {
             return resolve();
@@ -464,7 +472,7 @@ const Trail = Vizabi.Class.extend({
             const valueS = segment.valueS;
             cache.scaledS0 = (valueS || valueS === 0) ? utils.areaToRadius(_context.sScale(valueS)) : null;
             cache.scaledC0 = segment.valueC != null ? _context.cScale(segment.valueC) : _context.COLOR_WHITEISH;
-            _context._updateLabel(d, index, segment.valueX, segment.valueY, segment.valueS, segment.valueC, frame.label[d[KEY]], frame.size_label[d[KEY]], 0, true);
+            _context._updateLabel(d, index, frame, segment.valueX, segment.valueY, segment.valueS, segment.valueC, frame.label[utils.getKey(d, dataKeys.label)], frame.size_label[utils.getKey(d, dataKeys.size_label)], 0, true);
           }
           view.select("circle")
           //.transition().duration(duration).ease(d3.easeLinear)
@@ -506,14 +514,14 @@ const Trail = Vizabi.Class.extend({
               return resolve();
             }
 
-            if (nextFrame.axis_x[d[KEY]] == null || nextFrame.axis_y[d[KEY]] == null) {
+            if (nextFrame.axis_x[utils.getKey(d, dataKeys.axis_x)] == null || nextFrame.axis_y[utils.getKey(d, dataKeys.axis_y)] == null) {
               return resolve();
             }
 
-            nextSegment.valueY = nextFrame.axis_y[d[KEY]];
-            nextSegment.valueX = nextFrame.axis_x[d[KEY]];
-            nextSegment.valueS = nextFrame.size[d[KEY]];
-            nextSegment.valueC = nextFrame.color[d[KEY]];
+            nextSegment.valueY = nextFrame.axis_y[utils.getKey(d, dataKeys.axis_y)];
+            nextSegment.valueX = nextFrame.axis_x[utils.getKey(d, dataKeys.axis_x)];
+            nextSegment.valueS = nextFrame.size[utils.getKey(d, dataKeys.size)];
+            nextSegment.valueC = nextFrame.color[utils.getKey(d, dataKeys.color)];
 
             _this.trailTransitions[d[KEY]] = view;
             const strokeColor = _context.model.marker.color.which == "geo.world_4region" ?
@@ -527,8 +535,8 @@ const Trail = Vizabi.Class.extend({
               (segment.valueC != null ? _context.cScale(segment.valueC) : _context.COLOR_BLACKISH);
 
             const lineLength = Math.sqrt(
-              Math.pow(_context.xScale(segment.valueX) - _context.xScale(nextFrame.axis_x[d[KEY]]), 2) +
-              Math.pow(_context.yScale(segment.valueY) - _context.yScale(nextFrame.axis_y[d[KEY]]), 2)
+              Math.pow(_context.xScale(segment.valueX) - _context.xScale(nextSegment.valueX), 2) +
+              Math.pow(_context.yScale(segment.valueY) - _context.yScale(nextSegment.valueY), 2)
             );
             view.select("line")
               .attr("stroke-dasharray", lineLength)
@@ -565,15 +573,15 @@ const Trail = Vizabi.Class.extend({
         _context.model.marker.getFrame(segment.t, frame => {
           if (d.status != "reveal") return resolve();
           if (!frame ||
-            (typeof frame.axis_x === "undefined") || frame.axis_x[d[KEY]] == null ||
-            (typeof frame.axis_y === "undefined") || frame.axis_y[d[KEY]] == null) {
+            (typeof frame.axis_x === "undefined") || frame.axis_x[utils.getKey(d, dataKeys.axis_x)] == null ||
+            (typeof frame.axis_y === "undefined") || frame.axis_y[utils.getKey(d, dataKeys.axis_y)] == null) {
             utils.warn("Frame for trail missed: " + segment.t);
             return resolve();
           }
-          segment.valueY = frame.axis_y[d[KEY]];
-          segment.valueX = frame.axis_x[d[KEY]];
-          segment.valueS = frame.size[d[KEY]];
-          segment.valueC = frame.color[d[KEY]];
+          segment.valueY = frame.axis_y[utils.getKey(d, dataKeys.axis_y)];
+          segment.valueX = frame.axis_x[utils.getKey(d, dataKeys.axis_x)];
+          segment.valueS = frame.size[utils.getKey(d, dataKeys.size)];
+          segment.valueC = frame.color[utils.getKey(d, dataKeys.color)];
 
           segment.previous = previousSegment;
           segment.next = nextSegment;
