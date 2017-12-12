@@ -1439,7 +1439,7 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
 
   _getLabelText(values, labelNames, d, time) {
     const value = this.KEYS.map(key => values[labelNames[key]] ? values[labelNames[key]][d[key]] : d[key]).join(", ");    
-    return value + (this.model.ui.chart.trails ? " " + time : "");
+    return value + (time || time === 0 ? " " + time : "");
   },
 
   _setTooltip(tooltipText, x, y, s, c, d) {
