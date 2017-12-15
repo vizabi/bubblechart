@@ -889,14 +889,14 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
         xAxisTitleBottomMargin: 4
       },
       large: {
-        margin: { top: 15, bottom: marginScaleH(20, 0.03), left: marginScaleW(31, 0.015), right: 20},
+        margin: { top: 15, bottom: marginScaleH(30, 0.03), left: marginScaleW(31, 0.015), right: 20},
         leftMarginRatio: 1.8,
         padding: 2,
         minRadiusPx: 1,
         maxRadiusEm: this.model.ui.chart.maxRadiusEm || 0.05,
         infoElHeight: 22,
         yAxisTitleBottomMargin: 3,//marginScaleH(4, 0.01),
-        xAxisTitleBottomMargin: marginScaleH(-10, 0.01),
+        xAxisTitleBottomMargin: marginScaleH(0, 0.01),
         hideSTitle: true
       }
     };
