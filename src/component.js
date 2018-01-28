@@ -710,7 +710,7 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
    */
   updateEntities() {
     const _this = this;
-    const dataKeys = this.dataKeys;
+    const dataKeys = this.dataKeys = this.model.marker.getDataKeysPerHook();
     const KEYS = this.KEYS;
     const KEY = this.KEY;
     const TIMEDIM = this.TIMEDIM;
@@ -1173,7 +1173,7 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
     if (!this.entityBubbles) return utils.warn("redrawDataPointsOnlyColors(): no entityBubbles defined. likely a premature call, fix it!");
 
     let valuesNow;
-    const dataKeys = this.dataKeys;
+    const dataKeys = this.dataKeys = this.model.marker.getDataKeysPerHook();
     const KEYS = this.KEYS;
     const KEY = this.KEY;
     
@@ -1228,7 +1228,7 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
     const _this = this;
 
     let valuesNow;
-    const dataKeys = this.dataKeys;
+    const dataKeys = this.dataKeys = this.model.marker.getDataKeysPerHook();
     const KEYS = this.KEYS;
     const KEY = this.KEY;
     
