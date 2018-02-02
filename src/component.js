@@ -1435,9 +1435,9 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
     }
   },
 
-  _getLabelText(values, mark, time) {
-    const value = this.model.marker.getMarksLabelText(mark, values);
-    return value + (time && (this.model.time.start - this.model.time.end !== 0) ? " " + time : "");
+  _getLabelText(values, d, time) {
+    return this.model.marker.getCompoundLabelText(d, values)
+      + (time && (this.model.time.start - this.model.time.end !== 0) ? " " + time : "");
   },
 
   _setTooltip(tooltipText, x, y, s, c, d) {
