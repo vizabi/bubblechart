@@ -90,6 +90,11 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
         //console.log("EVENT change:time:lockNonSelected");
         _this.redrawDataPoints(500);
       },
+      "change:ui.chart.decorations": function(evt) {
+        if (!_this._readyOnce) return;
+        _this._updateDecorations(500);
+      },
+      
       "change:marker": function(evt, path) {
         // bubble size change is processed separately
         if (!_this._readyOnce) return;
@@ -362,7 +367,9 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
 
     this.projectionX = this.graph.select(".vzb-bc-projection-x");
     this.projectionY = this.graph.select(".vzb-bc-projection-y");
-    this.lineEqualXY = this.graph.select(".vzb-bc-line-equal-xy");
+    this.decorationsEl = this.graph.select(".vzb-bc-decorations");
+    this.lineEqualXY = this.decorationsEl.select(".vzb-bc-line-equal-xy");
+    this.xAxisGroupsEl = this.decorationsEl.select(".vzb-bc-x-axis-groups");
 
     this.trailsContainer = this.graph.select(".vzb-bc-trails");
     this.bubbleContainerCrop = this.graph.select(".vzb-bc-bubbles-crop");
@@ -1106,21 +1113,79 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
   },
 
 
-  _updateLineEqualXY(duration) {
-    const oneMeasure = this.model.marker.axis_x.which == this.model.marker.axis_y.which;
-    this.lineEqualXY.classed("vzb-invisible", !oneMeasure);
-    if (!oneMeasure) return;
+  _updateDecorations(duration) {
+    const _this = this;
+    
+    // x axis groups used for incomes
+    const showxAxisGroups = this.model.ui.chart.decorations.xAxisGroups 
+      && this.model.ui.chart.decorations.xAxisGroups[this.model.marker.axis_x.which] 
+      && this.model.ui.chart.decorations.enabled
+      && this.getLayoutProfile() !== "small";
+    
+    this.xAxisGroupsEl.classed("vzb-invisible", !showxAxisGroups);
+    if (showxAxisGroups) {
+      const axisGroupsData = this.model.ui.chart.decorations.xAxisGroups[this.model.marker.axis_x.which];
+      let xAxisGroups = this.xAxisGroupsEl.selectAll(".vzb-bc-x-axis-group").data(axisGroupsData);
+      
+      xAxisGroups.exit().remove();
+      xAxisGroups = xAxisGroups.enter().append("g").attr("class", "vzb-bc-x-axis-group")
+        .each(function(){
+          const view = d3.select(this);
+          view.append("line").attr("class", "vzb-bc-x-axis-group-line");
+          view.append("text");
+        })
+        .merge(xAxisGroups);
+      
+      xAxisGroups.each(function(d){
+        const view = d3.select(this);
+        
+        const text = view.select("text")
+          .text(_this.translator(d.label))
+        
+        const textHeight = text.node().getBBox().height;
+        
+        text
+          .transition()
+          .duration(duration || 0)
+          .attr("y", textHeight)
+          .attr("x", _this.xScale(d.min || d.min === 0? d.min : _this.model.marker.axis_x.domainMin)/2 + _this.xScale(d.max || d.max === 0? d.max : _this.model.marker.axis_x.domainMax)/2);
+        
+        const showLineMax = d.max || d.max === 0;
+        view.select("line.vzb-bc-x-axis-group-line")
+          .classed("vzb-invisible", !showLineMax)
+        
+        if (showLineMax) {
+          view.select("line.vzb-bc-x-axis-group-line")
+            .transition()
+            .duration(duration || 0)
+            .attr("y1", 0)
+            .attr("y2", textHeight)
+            .attr("x1", _this.xScale(d.max))
+            .attr("x2", _this.xScale(d.max));
+        }
+      })
+    }
+    
+    
+    // diagonal line that is used when the same idicator ID is used for both axis X and Y
+    const showLineEqualXY = 
+      this.model.marker.axis_x.which == this.model.marker.axis_y.which 
+      && this.model.ui.chart.decorations.enabled
+      && this.getLayoutProfile() !== "small";
+    
+    this.lineEqualXY.classed("vzb-invisible", !showLineEqualXY);
+    if (showLineEqualXY) {
+      const min = d3.min(this.yScale.domain().concat(this.xScale.domain()));
+      const max = d3.max(this.yScale.domain().concat(this.xScale.domain()));
 
-    const min = d3.min(this.yScale.domain().concat(this.xScale.domain()));
-    const max = d3.max(this.yScale.domain().concat(this.xScale.domain()));
-
-    this.lineEqualXY
-      .transition()
-      .duration(duration || 0)
-      .attr("y1", this.yScale(min))
-      .attr("y2", this.yScale(max))
-      .attr("x1", this.xScale(min))
-      .attr("x2", this.xScale(max));
+      this.lineEqualXY
+        .transition()
+        .duration(duration || 0)
+        .attr("y1", this.yScale(min))
+        .attr("y2", this.yScale(max))
+        .attr("x1", this.xScale(min))
+        .attr("x2", this.xScale(max));
+    }
   },
 
   _resizeDataWarning() {
@@ -1305,7 +1370,7 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
       });
     }
 
-    this._updateLineEqualXY(duration);
+    this._updateDecorations(duration);
   },
 
   //redraw Data Points

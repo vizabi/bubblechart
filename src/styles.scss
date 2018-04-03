@@ -253,9 +253,22 @@
         @extend %vzb-chart-info;
       }
 
-      .vzb-bc-line-equal-xy {
-        stroke-dasharray: 4 4;
-        stroke: $vzb-color-black;
+      .vzb-bc-decorations {
+        .vzb-bc-line-equal-xy {
+          stroke-dasharray: 4 4;
+          stroke: $vzb-color-black;
+        }
+        .vzb-bc-x-axis-groups line {
+          stroke-width: 3px;
+          stroke: $vzb-color-primary-light;
+          shape-rendering: crisp-edges;
+        }
+        .vzb-bc-x-axis-groups text {
+          text-anchor: middle;
+          fill: $vzb-color-primary-light;
+          dominant-baseline: ideographic;
+          text-transform: uppercase;
+        }
       }
 
       .vzb-bc-projection-x,
@@ -302,6 +315,15 @@
       .vzb-bc-axis-c-title {
         @extend %vzb-chart-axis-title-large;
       }
+      
+      .vzb-bc-decorations .vzb-bc-x-axis-groups text {
+        @extend %vzb-chart-axis-title-medium;
+      }
+      
+      .vzb-bc-axis-x,
+      .vzb-bc-axis-y {
+        @extend %vzb-chart-axis-large;
+      }
 
       .vzb-bc-axis-x-title,
       .vzb-bc-axis-y-title {
@@ -340,6 +362,15 @@
         @extend %vzb-chart-axis-title-medium;
       }
 
+      .vzb-bc-decorations .vzb-bc-x-axis-groups text {
+        @extend %vzb-chart-axis-title-small;
+      }      
+      
+      .vzb-bc-axis-x,
+      .vzb-bc-axis-y {
+        @extend %vzb-chart-axis-medium;
+      }      
+      
       .vzb-bc-axis-x-title,
       .vzb-bc-axis-y-title {
         text-anchor: middle;
