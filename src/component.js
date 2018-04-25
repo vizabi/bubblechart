@@ -1388,7 +1388,7 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
     const valueLST = values.size_label[utils.getKey(d, dataKeys.size_label)];
 
     // check if fetching data succeeded
-    if (!valueL && valueL !== 0 || !valueY && valueY !== 0 || !valueX && valueX !== 0 || !valueS && valueS !== 0) {
+    if (!valueY && valueY !== 0 || !valueX && valueX !== 0 || !valueS && valueS !== 0) {
       // if entity is missing data it should hide
       if (!d.hidden) {
         d.hidden = true;
