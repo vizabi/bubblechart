@@ -100,7 +100,10 @@ export default Vizabi.Tool.extend("BubbleChart", {
           use: "property",
           which: "name"
         },
-        hook_parent: {}
+        hook_parent: {
+          "use": "property",
+          "which": "parent"        
+        }
       },
       marker: {
         limit: 5000,
