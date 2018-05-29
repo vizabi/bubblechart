@@ -1131,38 +1131,60 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
       xAxisGroups = xAxisGroups.enter().append("g").attr("class", "vzb-bc-x-axis-group")
         .each(function(){
           const view = d3.select(this);
-          view.append("line").attr("class", "vzb-bc-x-axis-group-line");
-          view.append("text");
+          view.append("text").attr("class", "vzb-bc-x-axis-group-line").text("◆").style("text-anchor","middle");
+          view.append("text").attr("class", "vzb-bc-x-axis-group-text");
         })
         .merge(xAxisGroups);
       
-      xAxisGroups.each(function(d){
+      const xAxisGroups_calcs = [];
+      
+      xAxisGroups.each(function(d, i){
         const view = d3.select(this);
         
-        const text = view.select("text")
+        const text = view.select("text.vzb-bc-x-axis-group-text")
           .text(_this.translator(d.label))
         
-        const textHeight = text.node().getBBox().height;
+        const calcs = {min: d.min, max: d.max};
         
-        text
+        calcs.textHeight = text.node().getBBox().height;
+        calcs.textWidth = text.node().getBBox().width;
+        
+        calcs.boundaryMinX_px = _this.xScale(d.min || d.min === 0? d.min : d3.min(_this.xScale.domain()));
+        calcs.boundaryMaxX_px = _this.xScale(d.max || d.max === 0? d.max : d3.max(_this.xScale.domain()));
+        
+        calcs.centerX_px = (calcs.boundaryMinX_px + calcs.boundaryMaxX_px) / 2;
+        calcs.marginX_px = (Math.abs(calcs.boundaryMinX_px - calcs.boundaryMaxX_px) - calcs.textWidth) / 2;
+        
+        xAxisGroups_calcs.push(calcs);
+      });
+      
+      xAxisGroups.each(function(d, i){
+        const view = d3.select(this);
+        
+        const isFirst = (i == 0);
+        const isLast = (i == xAxisGroups_calcs.length - 1);
+        const calcs = xAxisGroups_calcs[i];
+        const minMargin = calcs.textHeight/4;
+        let x = calcs.centerX_px;
+        
+        if (isFirst) x = xAxisGroups_calcs[i+1].boundaryMinX_px - Math.max(xAxisGroups_calcs[i+1].marginX_px, minMargin);
+        if (isLast) x = xAxisGroups_calcs[i-1].boundaryMaxX_px + Math.max(xAxisGroups_calcs[i-1].marginX_px, minMargin);
+        
+        const text = view.select("text.vzb-bc-x-axis-group-text")
           .transition()
           .duration(duration || 0)
-          .attr("y", textHeight)
-          .attr("x", _this.xScale(d.min || d.min === 0? d.min : _this.model.marker.axis_x.domainMin)/2 + _this.xScale(d.max || d.max === 0? d.max : _this.model.marker.axis_x.domainMax)/2);
+          .style("text-anchor", isFirst ? "end" : isLast ? "start" : "middle")
+          .attr("y", calcs.textHeight)
+          .attr("x", x);
         
-        const showLineMax = d.max || d.max === 0;
-        view.select("line.vzb-bc-x-axis-group-line")
-          .classed("vzb-invisible", !showLineMax)
+        if(calcs.marginX_px < 0 && !isFirst && !isLast) text.text(i+1);
         
-        if (showLineMax) {
-          view.select("line.vzb-bc-x-axis-group-line")
-            .transition()
-            .duration(duration || 0)
-            .attr("y1", 0)
-            .attr("y2", textHeight)
-            .attr("x1", _this.xScale(d.max))
-            .attr("x2", _this.xScale(d.max));
-        }
+        view.select("text.vzb-bc-x-axis-group-line")
+          .classed("vzb-invisible", isLast)
+          .transition()
+          .duration(duration || 0)
+          .attr("y", calcs.textHeight * 0.9)
+          .attr("x", calcs.boundaryMaxX_px);
       })
     }
     
