@@ -1078,6 +1078,9 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
         "translate(" + (this.width * 0.5) + "," + (this.height + margin.bottom - this.activeProfile.xAxisTitleBottomMargin) + ")"
         :
         "translate(" + (isRTL ? this.width : 0) + "," + (this.height + margin.bottom - this.activeProfile.xAxisTitleBottomMargin) + ")");
+    
+    this.xAxisGroupsEl
+      .style("font-size", infoElHeight * 0.8 + "px");
 
     if (this.yInfoEl.select("svg").node()) {
       const titleBBox = this.yTitleEl.node().getBBox();
@@ -1137,12 +1140,14 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
         .merge(xAxisGroups);
       
       const xAxisGroups_calcs = [];
+      let useShorterLabels = false;
       
+      // first pass: calculate label text sizes and margins
       xAxisGroups.each(function(d, i){
         const view = d3.select(this);
         
         const text = view.select("text.vzb-bc-x-axis-group-text")
-          .text(_this.translator(d.label))
+          .text(_this.translator(d.label));
         
         const calcs = {min: d.min, max: d.max};
         
@@ -1155,9 +1160,29 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
         calcs.centerX_px = (calcs.boundaryMinX_px + calcs.boundaryMaxX_px) / 2;
         calcs.marginX_px = (Math.abs(calcs.boundaryMinX_px - calcs.boundaryMaxX_px) - calcs.textWidth) / 2;
         
-        xAxisGroups_calcs.push(calcs);
+        if (calcs.marginX_px - calcs.textHeight < 0) useShorterLabels = true;
+        
+        xAxisGroups_calcs[i] = calcs;
       });
       
+      // second pass: if at least one of labels doesn't fit, switch to compact mode and recalculate text sizes and margins
+      if (useShorterLabels) {
+        xAxisGroups.each(function(d, i){
+          const view = d3.select(this);
+
+          const text = view.select("text.vzb-bc-x-axis-group-text")
+            .text(_this.translator(d.label_short));
+
+          const calcs = xAxisGroups_calcs[i];
+
+          calcs.textWidth = text.node().getBBox().width;
+          calcs.marginX_px = (Math.abs(calcs.boundaryMinX_px - calcs.boundaryMaxX_px) - calcs.textWidth) / 2;
+
+          xAxisGroups_calcs[i] = calcs;
+        });
+      }
+      
+      // third pass: actually put labels in places
       xAxisGroups.each(function(d, i){
         const view = d3.select(this);
         
@@ -1174,15 +1199,15 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
           .transition()
           .duration(duration || 0)
           .style("text-anchor", isFirst ? "end" : isLast ? "start" : "middle")
+          .attr("dy", "-0.2em")
           .attr("y", calcs.textHeight)
           .attr("x", x);
-        
-        if(calcs.marginX_px < 0 && !isFirst && !isLast) text.text(i+1);
         
         view.select("text.vzb-bc-x-axis-group-line")
           .classed("vzb-invisible", isLast)
           .transition()
           .duration(duration || 0)
+          .attr("dy", "-0.2em")
           .attr("y", calcs.textHeight * 0.9)
           .attr("x", calcs.boundaryMaxX_px);
       })
