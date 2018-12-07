@@ -374,6 +374,17 @@
     }
   }
 
+  &.vzb-large, &.vzb-medium {
+    .vzb-bc-axis-x,
+    .vzb-bc-axis-y {
+      @extend %vzb-chart-axis;
+      overflow: visible;
+      text.stroke {
+        @include stroke(6px, $opacity:1);
+      }
+    }
+  }
+
   &.vzb-small {
 
     .vzb-bubblechart-svg {
