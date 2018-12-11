@@ -184,7 +184,7 @@ export default Vizabi.Tool.extend("BubbleChart", {
       adaptMinMaxZoom: false,
       cursorMode: "arrow",
       zoomOnScrolling: false,
-      buttons: ["colors", "find", "zoom", "trails", "lock", "moreoptions", "fullscreen", "presentation"],
+      buttons: ["colors", "find", "zoom", "trails", "lock", "moreoptions", "presentation", "sidebarcollapse", "fullscreen"],
       dialogs: {
         popup: ["colors", "find", "size", "zoom", "moreoptions"],
         sidebar: ["colors", "find", "size", "zoom"],
