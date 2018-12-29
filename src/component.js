@@ -94,6 +94,10 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
         if (!_this._readyOnce) return;
         _this._updateDecorations(500);
       },
+      "change:ui.chart.showForecastOverlay": function(evt) {
+        if (!_this._readyOnce) return;
+        _this._updateForecastOverlay();
+      },
       
       "change:marker": function(evt, path) {
         // bubble size change is processed separately
@@ -380,6 +384,7 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
     this.linesContainer = this.graph.select(".vzb-bc-lines");
     this.zoomRect = this.element.select(".vzb-bc-zoom-rect");
     this.eventArea = this.element.select(".vzb-bc-eventarea");
+    this.forecastOverlay = this.element.select(".vzb-bc-forecastoverlay");
 
     this.entityBubbles = null;
     this.bubbleCrown = this.element.select(".vzb-bc-bubble-crown");
@@ -858,6 +863,7 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
     this.time = this.model.time.value;
     this.duration = this.model.time.playing && (this.time - this.time_1 > 0) ? this.model.time.delayAnimations : 0;
     this.year.setText(this.model.time.formatDate(this.time, "ui"), this.duration);
+    this._updateForecastOverlay();
   },
 
   /*
@@ -1550,6 +1556,10 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
   _getLabelText(values, d, time) {
     return this.model.marker.getCompoundLabelText(d, values)
       + (time && (this.model.time.start - this.model.time.end !== 0) ? " " + time : "");
+  },
+  
+  _updateForecastOverlay() {
+    this.forecastOverlay.classed("vzb-hidden", (this.model.time.value <= this.model.time.endBeforeForecast) || !this.model.time.endBeforeForecast || !this.model.ui.chart.showForecastOverlay);
   },
 
   _setTooltip(tooltipText, x, y, s, c, d) {
