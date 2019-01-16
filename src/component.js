@@ -1216,9 +1216,39 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
           .attr("dy", "-0.2em")
           .attr("y", calcs.textHeight * 0.9)
           .attr("x", calcs.boundaryMaxX_px);
-      })
-    }
-    
+      });
+      
+      xAxisGroups.select("text.vzb-bc-x-axis-group-text").on("mouseenter", function(d, i) {
+        const calcs = xAxisGroups_calcs[i];
+        const parentView = d3.select(this.parentNode);
+  
+        d3.select(this).attr("font-weight", "bold");
+        parentView.append("rect").lower()
+          .attr("x", calcs.boundaryMinX_px)
+          .attr("width", calcs.boundaryMaxX_px - calcs.boundaryMinX_px)
+          .attr("y", -_this.activeProfile.margin.top)
+          .attr("height", _this.height + _this.activeProfile.margin.top)
+  
+        if (calcs.min || calcs.min === 0) parentView.append("line").lower()
+          .attr("x1", calcs.boundaryMinX_px)
+          .attr("x2", calcs.boundaryMinX_px)
+          .attr("y1", -_this.activeProfile.margin.top)
+          .attr("y2", _this.height)
+  
+        if (calcs.max || calcs.max === 0) parentView.append("line").lower()
+          .attr("x1", calcs.boundaryMaxX_px)
+          .attr("x2", calcs.boundaryMaxX_px)
+          .attr("y1", -_this.activeProfile.margin.top)
+          .attr("y2", _this.height)
+  
+      }).on("mouseleave", function(d, i) {
+        const parentView = d3.select(this.parentNode);
+  
+        d3.select(this).attr("font-weight", null);
+        parentView.selectAll("rect").remove();
+        parentView.selectAll("line").remove();
+      });
+    }    
     
     // diagonal line that is used when the same idicator ID is used for both axis X and Y
     const showLineEqualXY = 
