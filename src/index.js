@@ -188,7 +188,7 @@ export default Vizabi.Tool.extend("BubbleChart", {
       dialogs: {
         popup: ["colors", "find", "size", "zoom", "moreoptions"],
         sidebar: ["colors", "find", "size", "zoom"],
-        moreoptions: ["opacity", "speed", "axes", "size", "colors", "label", "zoom", "presentation", "about"]
+        moreoptions: ["opacity", "speed", "axes", "size", "colors", "label", "zoom", "presentation", "technical", "about"]
       }
     }
   },
