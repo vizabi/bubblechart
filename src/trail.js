@@ -379,10 +379,11 @@ const Trail = Vizabi.Class.extend({
           d.selectedEntityData.trailStartTime = _context.model.time.formatDate(_context.time);
         }
         let trailStartTime = _context.model.time.parse("" + d.selectedEntityData.trailStartTime);
-        if (_context.time - trailStartTime < 0 || d.limits.min - trailStartTime > 0) {
-          if (_context.time - trailStartTime < 0) {
+        let trailStartTime_minus1 = _context.model.time.decrementTime(trailStartTime);
+        if (_context.time - trailStartTime_minus1 <= 0 || d.limits.min - trailStartTime > 0) {
+          if (_context.time - trailStartTime_minus1 <= 0) {
             // move trail start time with trail label back if need
-            d.selectedEntityData.trailStartTime = _context.model.time.formatDate(d3.max([_context.time, d.limits.min]));
+            d.selectedEntityData.trailStartTime = _context.model.time.formatDate(d3.max([_context.model.time.ceilTime(_context.time), d.limits.min]));
             trailStartTime = _context.model.time.parse("" + d.selectedEntityData.trailStartTime);
           } else {
             // move trail start time with trail label to start time if need
@@ -399,11 +400,9 @@ const Trail = Vizabi.Class.extend({
           _context._updateLabel(d, 0, _context.frame, cache.labelX0, cache.labelY0, valueS, valueC, _context.frame.label[utils.getKey(d, dataKeys.label)], _context.frame.size_label[utils.getKey(d, dataKeys.size_label)], 0, true);
         }
         trail.each((segment, index) => {
-          // segment is transparent if it is after current time or before trail StartTime
           const segmentVisibility = segment.transparent;
-          segment.transparent = d.selectedEntityData.trailStartTime == null || (segment.t - _context.time > 0) || (trailStartTime - segment.t > 0)
-            //no trail segment should be visible if leading bubble is shifted backwards, beyond start time
-            || (d.selectedEntityData.trailStartTime - _context.model.time.formatDate(_context.time) >= 0);
+          // segment is transparent if it is after current time or before trail StartTime
+          segment.transparent = (segment.t - _context.time > 0) || (trailStartTime - segment.t > 0)
           // always update nearest 2 points
           if (segmentVisibility != segment.transparent || Math.abs(_context.model.time.formatDate(segment.t) - _context.model.time.formatDate(_context.time)) < 2) segment.visibilityChanged = true; // segment changed, so need to update it
           if (segment.transparent) {
