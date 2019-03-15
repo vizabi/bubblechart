@@ -308,6 +308,10 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
       LINES_CONTAINER_CLASS: "vzb-bc-bubbles",
       LINES_CONTAINER_SELECTOR_PREFIX: "bubble-"
     });
+
+    d3.namespaces.custom = "https://d3js.org/namespace/custom";
+    this._drawAnimate = this._drawAnimate.bind(this);
+    this._drawFunc = this._drawFunc.bind(this);
   },
 
   _rangeBump(arg, undo) {
@@ -347,12 +351,83 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
     this.element = d3.select(this.element);
 
     // reference elements
-    this.chartSvg = this.element.select("svg");
-    this.graph = this.element.select(".vzb-bc-graph");
-    this.yAxisElContainer = this.graph.select(".vzb-bc-axis-y");
+    this.chartSvg = this.element.select(".vzb-bubblechart-frontstage-svg");
+    this.chartBackstageSvg = this.element.select(".vzb-bubblechart-backstage-svg");
+    this.graph = this.chartSvg.select(".vzb-bc-graph");
+    this.backstageGraph = this.chartBackstageSvg.select(".vzb-bc-graph");
+
+
+    ////canvas try
+
+    this.bubbleContainer = d3.create("custom:bubbles");
+    this.canvases = this.element.select(".vzb-bc-canvases");
+    this.mainCanvas = this.canvases.select(".vzb-bc-main-canvas");
+    this.hiddenCanvas = this.canvases.select(".vzb-bc-hidden-canvas");
+    this._nextCol = 1;
+    this._colorToNode = {};
+    
+    this._lastHoverTrail = null;
+    this.mainCanvas.on('mousemove', function() {
+      const node = _this.trackCanvasObject(d3.event.offsetX, d3.event.offsetY);
+      if (utils.isTouchDevice() || (_this.model.ui.cursorMode !== "arrow" && _this.model.ui.cursorMode !== "hand")) return;
+      if (node) {
+        const d = d3.select(node).datum();
+        const trailHovered = Boolean(d.t);
+        _this.mainCanvas.style("cursor", "pointer");
+        //_this._lastHoverTrail = Boolean(d.t) ? node : null;
+        if (_this.someHighlighted) {
+          //break if same bubble hovered
+          if (!trailHovered && _this.model.marker.isHighlighted(d)) return;
+          _this._bubblesInteract().mouseout(_this.model.marker.highlight[0]);
+        } else if (_this._lastHoverTrail) {
+          //break if same trail hovered
+          if (trailHovered && _this._lastHoverTrail === node) return;
+          _this._trails._trailInteract().mouseout.call(_this._lastHoverTrail);
+          _this._lastHoverTrail = null;
+        }
+
+        if (trailHovered) {
+          _this._trails._trailInteract().mouseover.call(node, d);
+          _this._lastHoverTrail = node;
+        } else {
+          _this._bubblesInteract().mouseover(d);
+        }
+      } else if (_this.someHighlighted || _this._lastHoverTrail) {
+        _this.mainCanvas.style("cursor", null);
+        if (_this._lastHoverTrail) {
+          _this._trails._trailInteract().mouseout.call(_this._lastHoverTrail);
+          _this._lastHoverTrail = null;
+        } else {
+          _this._bubblesInteract().mouseout(_this.model.marker.highlight[0]);
+        }
+      }
+    });
+    
+    this.mainCanvas.on('mouseout', function() {
+      if (_this.someHighlighted || _this._lastHoverTrail) {
+        _this.mainCanvas.style("cursor", null);
+        if (_this._lastHoverTrail) {
+          _this._trails._trailInteract().mouseout.call(_this._lastHoverTrail);
+          _this._lastHoverTrail = null;
+        } else {
+          _this._bubblesInteract().mouseout(_this.model.marker.highlight[0]);
+        }
+      }
+    });
+    
+    this.mainCanvas.on('click', function() {
+      const node = _this.trackCanvasObject(d3.event.offsetX, d3.event.offsetY);
+      if (!node || utils.isTouchDevice() || (_this.model.ui.cursorMode !== "arrow" && _this.model.ui.cursorMode !== "hand")) return;
+
+      //if not trail
+      const d = d3.select(node).datum();
+      if (!d.t) _this._bubblesInteract().click(d);
+    });
+
+    this.yAxisElContainer = this.backstageGraph.select(".vzb-bc-axis-y");
     this.yAxisEl = this.yAxisElContainer.select("g");
 
-    this.xAxisElContainer = this.graph.select(".vzb-bc-axis-x");
+    this.xAxisElContainer = this.backstageGraph.select(".vzb-bc-axis-x");
     this.xAxisEl = this.xAxisElContainer.select("g");
 
     this.ySubTitleEl = this.graph.select(".vzb-bc-axis-y-subtitle");
@@ -361,7 +436,7 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
     this.xTitleEl = this.graph.select(".vzb-bc-axis-x-title");
     this.sTitleEl = this.graph.select(".vzb-bc-axis-s-title");
     this.cTitleEl = this.graph.select(".vzb-bc-axis-c-title");
-    this.yearEl = this.graph.select(".vzb-bc-year");
+    this.yearEl = this.backstageGraph.select(".vzb-bc-year");
 
     this.year = new DynamicBackground(this.yearEl);
 
@@ -369,9 +444,9 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
     this.xInfoEl = this.graph.select(".vzb-bc-axis-x-info");
     this.dataWarningEl = this.graph.select(".vzb-data-warning");
 
-    this.projectionX = this.graph.select(".vzb-bc-projection-x");
-    this.projectionY = this.graph.select(".vzb-bc-projection-y");
-    this.decorationsEl = this.graph.select(".vzb-bc-decorations");
+    this.projectionX = this.backstageGraph.select(".vzb-bc-projection-x");
+    this.projectionY = this.backstageGraph.select(".vzb-bc-projection-y");
+    this.decorationsEl = this.backstageGraph.select(".vzb-bc-decorations");
     this.lineEqualXY = this.decorationsEl.select(".vzb-bc-line-equal-xy");
     this.xAxisGroupsEl = this.decorationsEl.select(".vzb-bc-x-axis-groups");
 
@@ -379,7 +454,7 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
     this.bubbleContainerCrop = this.graph.select(".vzb-bc-bubbles-crop");
     this.zoomSelection = this.graph.select(".vzb-zoom-selection");
     this.labelsContainerCrop = this.graph.select(".vzb-bc-labels-crop");
-    this.bubbleContainer = this.graph.select(".vzb-bc-bubbles");
+    //this.bubbleContainer = this.graph.select(".vzb-bc-bubbles");
     this.labelsContainer = this.graph.select(".vzb-bc-labels");
     this.linesContainer = this.graph.select(".vzb-bc-lines");
     this.zoomRect = this.element.select(".vzb-bc-zoom-rect");
@@ -497,9 +572,9 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
       _this.updateMarkerSizeLimits();
       _this.updateEntities();
       _this._labels.ready();
-      _this.redrawDataPoints();
       _this.selectDataPoints();
       _this.updateBubbleOpacity();
+      _this.redrawDataPoints();
       _this._updateDoubtOpacity();
       _this.zoomToMarkerMaxMin(); // includes redraw data points and trail resize
       if (!_this.model.time.splash) {
@@ -758,28 +833,28 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
     this.entityBubbles.exit().remove();
 
     //enter selection -- init circles
-    this.entityBubbles = this.entityBubbles.enter().append("circle")
+    this.entityBubbles = this.entityBubbles.enter().append("custom:circle")
       .attr("class", d => "vzb-bc-entity " + "bubble-" + d[KEY])
-      .on("mouseover", (d, i) => {
-        if (utils.isTouchDevice() || (_this.model.ui.cursorMode !== "arrow" && _this.model.ui.cursorMode !== "hand")) return;
-        _this._bubblesInteract().mouseover(d, i);
-      })
-      .on("mouseout", (d, i) => {
-        if (utils.isTouchDevice() || (_this.model.ui.cursorMode !== "arrow" && _this.model.ui.cursorMode !== "hand")) return;
+      // .on("mouseover", (d, i) => {
+      //   if (utils.isTouchDevice() || (_this.model.ui.cursorMode !== "arrow" && _this.model.ui.cursorMode !== "hand")) return;
+      //   _this._bubblesInteract().mouseover(d, i);
+      // })
+      // .on("mouseout", (d, i) => {
+      //   if (utils.isTouchDevice() || (_this.model.ui.cursorMode !== "arrow" && _this.model.ui.cursorMode !== "hand")) return;
 
-        _this._bubblesInteract().mouseout(d, i);
-      })
-      .on("click", (d, i) => {
-        if (utils.isTouchDevice() || (_this.model.ui.cursorMode !== "arrow" && _this.model.ui.cursorMode !== "hand")) return;
+      //   _this._bubblesInteract().mouseout(d, i);
+      // })
+      // .on("click", (d, i) => {
+      //   if (utils.isTouchDevice() || (_this.model.ui.cursorMode !== "arrow" && _this.model.ui.cursorMode !== "hand")) return;
 
-        _this._bubblesInteract().click(d, i);
-      })
-      .onTap((d, i) => {
-        d3.event.stopPropagation();
-        _this._bubblesInteract().click(d, i);
-      })
-      .onLongTap((d, i) => {
-      })
+      //   _this._bubblesInteract().click(d, i);
+      // })
+      // .onTap((d, i) => {
+      //   d3.event.stopPropagation();
+      //   _this._bubblesInteract().click(d, i);
+      // })
+      // .onLongTap((d, i) => {
+      // })
       .merge(this.entityBubbles);
 
     this._reorderEntities();
@@ -958,6 +1033,16 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
     //graph group is shifted according to margins (while svg element is at 100 by 100%)
     this.graph
       .attr("transform", "translate(" + (margin.left * this.activeProfile.leftMarginRatio) + "," + margin.top + ")");
+    this.backstageGraph
+      .attr("transform", "translate(" + (margin.left * this.activeProfile.leftMarginRatio) + "," + margin.top + ")");
+    this.canvases
+      .style("transform", "translate(" + (margin.left * this.activeProfile.leftMarginRatio) + "px," + margin.top + "px)");
+    this.mainCanvas
+      .attr("width", this.width)
+      .attr("height", Math.max(0, this.height));
+    this.hiddenCanvas
+      .attr("width", this.width)
+      .attr("height", Math.max(0, this.height));
 
     this.year.resize(this.width, this.height);
     this.eventArea
@@ -1156,9 +1241,9 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
           .text(_this.translator(d.label));
         
         const calcs = {min: d.min, max: d.max};
-        
-        calcs.textHeight = text.node().getBBox().height;
-        calcs.textWidth = text.node().getBBox().width;
+        const bBox = text.node().getBBox();
+        calcs.textHeight = bBox.height;
+        calcs.textWidth = bBox.width;
         
         calcs.boundaryMinX_px = _this.xScale(d.min || d.min === 0? d.min : d3.min(_this.xScale.domain()));
         calcs.boundaryMaxX_px = _this.xScale(d.max || d.max === 0? d.max : d3.max(_this.xScale.domain()));
@@ -1341,7 +1426,7 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
 
         const scaledC = valueC != null ? _this.cScale(valueC) : _this.COLOR_WHITEISH;
 
-        d3.select(this).style("fill", scaledC);
+        d3.select(this).attr("fill", scaledC);
 
         //update lines of labels
         if (selected) {
@@ -1361,9 +1446,13 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
               cache.scaledC0 = valueC != null ? _this.cScale(valueC) : _this.COLOR_WHITEISH;
             }
 
+            _this._canvasRedraw(_this.duration);
+
             _this._labels.updateLabelOnlyColor(d, index, cache);
 
           });
+        } else {
+          _this._canvasRedraw(_this.duration);
         }
       });
     });
@@ -1415,9 +1504,13 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
               cache.scaledS0 = utils.areaToRadius(_this.sScale(valuesTrailStart.size[utils.getKey(d, dataKeys.size)]));
             }
 
+            _this._canvasRedraw(_this.duration);
+
             _this._labels.updateLabelOnlyPosition(d, index, cache);
 
           });
+        } else {
+          _this._canvasRedraw(_this.duration);
         }
       });
     });
@@ -1445,12 +1538,16 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
           const frame = _this.model.marker.isSelected(d) ? _this.frame : lockedFrame;
           _this._updateBubble(d, frame, index, d3.select(this), duration);
         });
+
+        this._canvasRedraw(duration);
       });
     } else {
       // each bubble
       _this.entityBubbles.each(function(d, index) {
         _this._updateBubble(d, _this.frame, index, d3.select(this), duration);
       });
+
+      this._canvasRedraw(duration);
     }
 
     this._updateDecorations(duration);
@@ -1480,21 +1577,21 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
 
       if (showhide) {
         if (duration) {
-          const opacity = view.style("opacity");
+          const opacity = view.attr("opacity");
           view.transition().duration(duration).ease(d3.easeExp)
-            .style("opacity", 0)
+            .attr("opacity", 0)
             .on("end", () => {
               //to avoid transition from null state add class with a delay
-              view.classed("vzb-invisible", d.hidden);
-              view.style("opacity", opacity);
+              view.attr("vzb-invisible", d.hidden);
+              view.attr("opacity", opacity);
             });
         } else {
           //immediately hide the bubble
-          view.classed("vzb-invisible", d.hidden);
+          view.attr("vzb-invisible", d.hidden);
         }
       }
     } else {
-      if (d.hidden || view.classed("vzb-invisible")) {
+      if (d.hidden || view.attr("vzb-invisible")) {
         d.hidden = false;
         showhide = true;
       }
@@ -1503,18 +1600,18 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
       // if entity has all the data we update the visuals
       const scaledS = utils.areaToRadius(_this.sScale(valueS));
 
-      view.style("fill", valueC != null ? _this.cScale(valueC) : _this.COLOR_WHITEISH);
+      view.attr("fill", valueC != null ? _this.cScale(valueC) : _this.COLOR_WHITEISH);
 
       if (duration) {
         if (showhide) {
-          const opacity = view.style("opacity");
-          view.classed("vzb-invisible", d.hidden);
-          view.style("opacity", 0)
+          const opacity = view.attr("opacity");
+          view.attr("vzb-invisible", d.hidden);
+          view.attr("opacity", 0)
             .attr("cy", _this.yScale(valueY))
             .attr("cx", _this.xScale(valueX))
             .attr("r", scaledS)
             .transition().duration(duration).ease(d3.easeExp)
-            .style("opacity", opacity);
+            .attr("opacity", opacity);
         } else {
           view.transition().duration(duration).ease(d3.easeLinear)
             .attr("cy", _this.yScale(valueY))
@@ -1532,7 +1629,7 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
           .transition();
 
         //show entity if it was hidden
-        if (showhide) view.classed("vzb-invisible", d.hidden);
+        if (showhide) view.attr("vzb-invisible", d.hidden);
       }
 
       if (this.model.time.record) _this._export.write({
@@ -1861,7 +1958,7 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
 
     this.entityBubbles
     //.transition().duration(duration)
-      .style("opacity", d => {
+      .attr("opacity", d => {
 
         if (_this.someHighlighted) {
           //highlight or non-highlight
@@ -1888,8 +1985,130 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
     }
 
     this.nonSelectedOpacityZero = _this.model.marker.opacitySelectDim < 0.01;
-  }
 
+    this._canvasRedraw(duration);
+  },
+
+  _drawFunc() {
+    this._drawPending = false;
+    this.draw(this.bubbleContainer.selectAll("*"), this.mainCanvas.node(), false);
+  },
+
+  _drawAnimate() {
+    this._drawFunc();
+    this.drawAnimFrame = requestAnimationFrame(this._drawAnimate);
+  },
+
+  _canvasRedraw(duration) {
+    if (duration) {
+      !this.drawAnimFrame && (this.drawAnimFrame = requestAnimationFrame(this._drawAnimate));
+    } else {
+      this.drawAnimFrame && cancelAnimationFrame(this.drawAnimFrame);
+      this.drawAnimFrame = null;
+      if (!this._drawPending) {
+        this._drawPending = true;
+        requestAnimationFrame(this._drawFunc);
+      }
+    }
+  },
+
+  genColor() { 
+    const ret = [];
+    const _nextCol = this._nextCol;
+    if(_nextCol < 16777215){         
+      ret.push(_nextCol & 0xff); // R 
+      ret.push((_nextCol & 0xff00) >> 8); // G 
+      ret.push((_nextCol & 0xff0000) >> 16); // B
+      this._nextCol += 100; 
+    }
+    return "rgb(" + ret.join(',') + ")";
+  },
+
+  draw(data, canvas, hidden) {
+    const _this = this;
+    const ctx = hidden ? canvas.getContext("2d", { alpha: false }) : canvas.getContext("2d");
+    ctx.clearRect(0, 0, this.width, this.height);
+
+    data.each(function(d) {
+      if (hidden) {
+        if (d.__pickColor === undefined) {
+          d.__pickColor = _this.genColor();
+          _this._colorToNode[d.__pickColor] = this;
+        }
+        ctx.fillStyle = d.__pickColor;
+        _this.drawHiddenBubble(ctx, this);
+      }   
+      else
+        _this.drawBubble(ctx, this);
+    })
+  },
+
+  drawHiddenBubble(ctx, elem) {
+    ctx.imageSmoothingEnabled = false;
+    ctx.msImageSmoothingEnabled = false;
+    if (elem.getAttribute("vzb-invisible") === "true") return;
+    ctx.beginPath();
+    switch (elem.tagName) {
+      case "circle": {
+        ctx.arc(elem.getAttribute("cx"), elem.getAttribute("cy"), Math.ceil(elem.getAttribute("r")) + 1, 0, 2 * Math.PI);
+        ctx.fill();
+        break;
+      }
+      case "trail": {
+        ctx.arc(elem.getAttribute("cx"), elem.getAttribute("cy"), Math.ceil(elem.getAttribute("r")) + 1, 0, 2 * Math.PI);
+        ctx.fill();
+        break;
+      }
+    }
+  },
+
+  drawBubble(ctx, elem) {
+    let color;
+    if (elem.getAttribute("vzb-invisible") === "true") return;
+    ctx.beginPath();
+    switch (elem.tagName) {
+      case "circle": {
+        ctx.globalAlpha = elem.getAttribute("opacity") || 1;
+        ctx.arc(elem.getAttribute("cx"), elem.getAttribute("cy"), elem.getAttribute("r"), 0, 2 * Math.PI);
+        ctx.fillStyle = elem.getAttribute("fill");
+        ctx.fill();
+        ctx.strokeStyle = "#000";
+        ctx.stroke();
+        break;
+      }
+      case "trail": {
+        ctx.globalAlpha = elem.getAttribute("opacity") || 1;
+        ctx.arc(elem.getAttribute("cx"), elem.getAttribute("cy"), elem.getAttribute("r"), 0, 2 * Math.PI);
+        ctx.fillStyle = elem.getAttribute("fill");
+        ctx.fill();
+        ctx.strokeStyle = "#000";
+        ctx.stroke();
+        //line
+        ctx.beginPath();
+        ctx.moveTo(elem.getAttribute("x1"),elem.getAttribute("y1"));
+        ctx.lineTo(elem.getAttribute("x2"),elem.getAttribute("y2"));
+        ctx.strokeStyle = elem.getAttribute("stroke");
+        ctx.stroke();        
+        break;
+      }
+      case "line": {
+        ctx.globalAlpha = elem.getAttribute("opacity") || 1;
+        ctx.beginPath();
+        ctx.moveTo(elem.getAttribute("x1"),elem.getAttribute("y1"));
+        ctx.lineTo(elem.getAttribute("x2"),elem.getAttribute("y2"));
+        ctx.strokeStyle = elem.getAttribute("stroke");
+        ctx.stroke();        
+        break;
+      }
+    }
+  },
+
+  trackCanvasObject(x, y) {
+    this.draw(this.bubbleContainer.selectAll("*"), this.hiddenCanvas.node(), true);
+    const col = this.hiddenCanvas.node().getContext('2d').getImageData(x, y, 1, 1).data;
+    //console.log('rgb(' + col[0] + ',' + col[1] + ',' + col[2] + ')');
+    return this._colorToNode['rgb(' + col[0] + ',' + col[1] + ',' + col[2] + ')'];
+  }
 });
 
 export default BubbleChart;

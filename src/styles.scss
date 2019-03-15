@@ -38,8 +38,20 @@
       cursor: url('assets/cursors/grabbing.cur'), auto;
     }
 
+    .vzb-bc-main-canvas, .vzb-bc-hidden-canvas {
+      position: absolute;
+    }
+    .vzb-bc-hidden-canvas {
+      image-rendering: -moz-crisp-edges;
+      image-rendering: -webkit-crisp-edges;
+      image-rendering: pixelated;
+      image-rendering: crisp-edges;
+      display: none;
+    }
+
     .vzb-bubblechart-svg {
       @extend %vzb-chart-svg;
+      pointer-events: none;
       overflow: visible;
       
       .vzb-bc-bubbles-crop {
@@ -56,8 +68,16 @@
         stroke: $vzb-color-grey;
       }
       .vzb-bc-eventarea {
-        pointer-events: all;
+        pointer-events: none;
         fill: none;
+      }
+
+      &.vzb-zoomin,
+      &.vzb-zoomout,
+      &.vzb-panhand {
+        .vzb-bc-eventarea {
+          pointer-events: all;
+        }
       }
 
       .vzb-bc-entity {
@@ -230,6 +250,7 @@
             unicode-bidi: embed;
           }
         }
+        pointer-events: all;
         tspan {
           fill: $vzb-color-primary-light;
         }
@@ -297,6 +318,9 @@
       }
       .vzb-axis-value text {
         fill: $vzb-color-primary;
+      }
+      .vzb-data-warning {
+        pointer-events: all;
       }
     }
   }

@@ -1,27 +1,38 @@
 <!-- Bubble Chart Component -->
 <div class="vzb-bubblechart">
-    <svg class="vzb-bubblechart-svg vzb-export">
+    <svg class="vzb-bubblechart-svg vzb-bubblechart-backstage-svg vzb-export">
         <g class="vzb-bc-graph">
             <g class="vzb-bc-year"></g>
 
-            <g class="vzb-bc-axis-x-title"></g>
-            <g class="vzb-bc-axis-x-info vzb-noexport"></g>
             <svg class="vzb-bc-axis-x"><g></g></svg>
-
-            <g class="vzb-bc-axis-y-title"></g>
-            <g class="vzb-bc-axis-y-info vzb-noexport"></g>
             <svg class="vzb-bc-axis-y"><g></g></svg>
 
             <line class="vzb-bc-projection-x"></line>
             <line class="vzb-bc-projection-y"></line>
 
             <svg class="vzb-bc-bubbles-crop">
-                <g class="vzb-zoom-selection"></g>
-                <rect class="vzb-bc-eventarea"></rect>
                 <g class="vzb-bc-decorations">
                     <line class="vzb-bc-line-equal-xy vzb-invisible"></line>
                     <g class="vzb-bc-x-axis-groups"></g>
                 </g>
+            </svg>
+        </g>
+    </svg>
+    <div class="vzb-bc-canvases">
+        <canvas class="vzb-bc-main-canvas"></canvas>
+        <canvas class="vzb-bc-hidden-canvas"></canvas>
+    </div>
+    <svg class="vzb-bubblechart-svg vzb-bubblechart-frontstage-svg vzb-export">
+        <g class="vzb-bc-graph">
+            
+            <g class="vzb-bc-axis-x-title"></g>
+            <g class="vzb-bc-axis-x-info vzb-noexport"></g>
+            <g class="vzb-bc-axis-y-title"></g>
+            <g class="vzb-bc-axis-y-info vzb-noexport"></g>
+            
+            <svg class="vzb-bc-bubbles-crop">
+                <g class="vzb-zoom-selection"></g>
+                <rect class="vzb-bc-eventarea"></rect>
                 <g class="vzb-bc-trails"></g>
                 <g class="vzb-bc-bubbles"></g>
                 <g class="vzb-bc-lines"></g>
@@ -31,7 +42,6 @@
                 </g>
                 <rect class="vzb-bc-forecastoverlay vzb-hidden" x="0" y="0" width="100%" height="100%" fill="url(#vzb-bc-pattern-lines)" pointer-events='none'></rect>
             </svg>
-
             <g class="vzb-bc-axis-y-subtitle"></g>
             <g class="vzb-bc-axis-x-subtitle"></g>
             <g class="vzb-bc-axis-s-title"></g>
