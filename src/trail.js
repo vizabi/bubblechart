@@ -66,7 +66,7 @@ const Trail = Vizabi.Class.extend({
 
       _trails.exit().remove();
       _trails.enter()
-        .insert("g", function(d) {
+        .insert("custom:g", function(d) {
           return this.querySelector(".bubble-" + cssEscape(d[KEY]));
         })
         .attr("class", d => "vzb-bc-entity entity-trail trail-" + d[KEY])
@@ -76,62 +76,66 @@ const Trail = Vizabi.Class.extend({
           const trail = this;
           promises.push(new Promise((resolve, reject) => {
             const trailSegmentData = timePoints.map(m => ({
+              entityData: d,
               t: m,
               key: d[KEY]
             }));
-            const entityTrails = d3.select(trail).selectAll("g")
+            const entityTrails = d3.select(trail).selectAll("trail")
               .data(trailSegmentData)
-              .classed("vzb-invisible", true);
+              .attr("vzb-invisible", true);
 
             entityTrails.exit().remove();
 
-            _this.entityTrails[d[KEY]] = entityTrails.enter().append("g")
+            _this.entityTrails[d[KEY]] = entityTrails.enter().append("custom:trail")
               .attr("class", "vzb-bc-trailsegment vzb-invisible")
-              .on("mouseover", function(segment, index) {
-                if (utils.isTouchDevice()) return;
-                if (_context._labels.dragging) return;
+              // .on("mouseover", function(segment, index) {
+              //   if (utils.isTouchDevice()) return;
+              //   if (_context._labels.dragging) return;
 
-                const pointer = {};
-                pointer[KEY] = segment.key;
-                pointer[TIMEDIM] = segment.t;
+              //   const pointer = {};
+              //   pointer[KEY] = segment.key;
+              //   pointer[TIMEDIM] = segment.t;
 
-                _context._axisProjections(pointer);
-                _context._labels.highlight(d, true);
-                const text = _context.model.time.formatDate(segment.t);
-                const selectedData = utils.find(_context.model.marker.select, f => utils.getKey(f, KEYS) == d[KEY]);
-                _context.model.marker.getFrame(pointer[TIMEDIM], values => {
-                  const x = _context.xScale(values.axis_x[utils.getKey(d, dataKeys.axis_x)]);
-                  const y = _context.yScale(values.axis_y[utils.getKey(d, dataKeys.axis_y)]);
-                  const s = utils.areaToRadius(_context.sScale(values.size[utils.getKey(d, dataKeys.size)]));
-                  const c = values.color[utils.getKey(d, dataKeys.color)] != null ? _context.cScale(values.color[utils.getKey(d, dataKeys.color)]) : _context.COLOR_WHITEISH;
-                  if (text !== selectedData.trailStartTime) {
-                    _context._setTooltip(text, x, y, s + 3, c);
-                  }
-                  _context._setBubbleCrown(x, y, s, c);
-                  _context.model.marker.getModelObject("highlight").trigger("change", {
-                    "size": values.size[utils.getKey(d, dataKeys.size)],
-                    "color": values.color[utils.getKey(d, dataKeys.color)]
-                  });
-                });
-                //change opacity to OPACITY_HIGHLT = 1.0;
-                d3.select(this).style("opacity", 1.0);
-              })
-              .on("mouseout", function(segment, index) {
-                if (utils.isTouchDevice()) return;
-                if (_context._labels.dragging) return;
+              //   _context._axisProjections(pointer);
+              //   _context._labels.highlight(d, true);
+              //   const text = _context.model.time.formatDate(segment.t);
+              //   const selectedData = utils.find(_context.model.marker.select, f => utils.getKey(f, KEYS) == d[KEY]);
+              //   _context.model.marker.getFrame(pointer[TIMEDIM], values => {
+              //     const x = _context.xScale(values.axis_x[utils.getKey(d, dataKeys.axis_x)]);
+              //     const y = _context.yScale(values.axis_y[utils.getKey(d, dataKeys.axis_y)]);
+              //     const s = utils.areaToRadius(_context.sScale(values.size[utils.getKey(d, dataKeys.size)]));
+              //     const c = values.color[utils.getKey(d, dataKeys.color)] != null ? _context.cScale(values.color[utils.getKey(d, dataKeys.color)]) : _context.COLOR_WHITEISH;
+              //     if (text !== selectedData.trailStartTime) {
+              //       _context._setTooltip(text, x, y, s + 3, c);
+              //     }
+              //     _context._setBubbleCrown(x, y, s, c);
+              //     _context.model.marker.getModelObject("highlight").trigger("change", {
+              //       "size": values.size[utils.getKey(d, dataKeys.size)],
+              //       "color": values.color[utils.getKey(d, dataKeys.color)]
+              //     });
+              //   });
+              //   //change opacity to OPACITY_HIGHLT = 1.0;
+              //   d3.select(this).style("opacity", 1.0);
+              // })
+              // .on("mouseout", function(segment, index) {
+              //   if (utils.isTouchDevice()) return;
+              //   if (_context._labels.dragging) return;
 
-                _context._axisProjections();
-                _context._setTooltip();
-                _context._setBubbleCrown();
-                _context._labels.highlight(null, false);
-                _context.model.marker.getModelObject("highlight").trigger("change", null);
-                d3.select(this).style("opacity", _context.model.marker.opacityRegular);
-              })
+              //   _context._axisProjections();
+              //   _context._setTooltip();
+              //   _context._setBubbleCrown();
+              //   _context._labels.highlight(null, false);
+              //   _context.model.marker.getModelObject("highlight").trigger("change", null);
+              //   d3.select(this).style("opacity", _context.model.marker.opacityRegular);
+              // })
               .each(function(segment, index) {
                 const view = d3.select(this);
                 view.append("circle");
                 view.append("line");
               })
+              .attr("vzb-invisible", true)
+              //.on("mouseover", _this._trailInteract().mouseover(d, i))
+              //.on("mouseout", _this._trailInteract().mouseout(d, i))
               .merge(entityTrails);
             resolve();
           }));
@@ -284,17 +288,18 @@ const Trail = Vizabi.Class.extend({
 
       const view = d3.select(this);
       if (duration) {
-        view.select("circle")
-          .transition().duration(duration).ease(d3.easeLinear)
+        view//.select("circle")
+          .transition("circle").duration(duration).ease(d3.easeLinear)
           .attr("cy", _context.yScale(segment.valueY))
           .attr("cx", _context.xScale(segment.valueX))
           .attr("r", utils.areaToRadius(_context.sScale(segment.valueS)));
       } else {
-        view.select("circle").interrupt()
+        view//.select("circle")
+          .interrupt("circle")
           .attr("cy", _context.yScale(segment.valueY))
           .attr("cx", _context.xScale(segment.valueX))
           .attr("r", utils.areaToRadius(_context.sScale(segment.valueS)))
-          .transition();
+          .transition("circle");
       }
 
       if (!updateLabel && !segment.transparent) {
@@ -312,8 +317,8 @@ const Trail = Vizabi.Class.extend({
         Math.pow(_context.yScale(segment.valueY) - _context.yScale(next.valueY), 2)
       );
       if (duration) {
-        view.select("line")
-          .transition().duration(duration).ease(d3.easeLinear)
+        view//.select("line")
+          .transition("line").duration(duration).ease(d3.easeLinear)
           .attr("x1", _context.xScale(next.valueX))
           .attr("y1", _context.yScale(next.valueY))
           .attr("x2", _context.xScale(segment.valueX))
@@ -321,14 +326,15 @@ const Trail = Vizabi.Class.extend({
           .attr("stroke-dasharray", lineLength)
           .attr("stroke-dashoffset", utils.areaToRadius(_context.sScale(segment.valueS)));
       } else {
-        view.select("line").interrupt()
+        view//.select("line")
+          .interrupt("line")
           .attr("x1", _context.xScale(next.valueX))
           .attr("y1", _context.yScale(next.valueY))
           .attr("x2", _context.xScale(segment.valueX))
           .attr("y2", _context.yScale(segment.valueY))
           .attr("stroke-dasharray", lineLength)
           .attr("stroke-dashoffset", utils.areaToRadius(_context.sScale(segment.valueS)))
-          .transition();
+          .transition("line");
       }
     });
   },
@@ -350,12 +356,12 @@ const Trail = Vizabi.Class.extend({
         //otherwise use color of the bubble with a fallback to bubble stroke color (blackish)
         (segment.valueC != null ? _context.cScale(segment.valueC) : _context.COLOR_BLACKISH);
 
-      view.select("circle")
+      view//.select("circle")
       //.transition().duration(duration).ease(d3.easeLinear)
-        .style("fill", segment.valueC != null ? _context.cScale(segment.valueC) : _context.COLOR_WHITEISH);
-      view.select("line")
+        .attr("fill", segment.valueC != null ? _context.cScale(segment.valueC) : _context.COLOR_WHITEISH);
+      view//.select("line")
       //.transition().duration(duration).ease(d3.easeLinear)
-        .style("stroke", strokeColor);
+        .attr("stroke", strokeColor);
     });
   },
 
@@ -368,7 +374,7 @@ const Trail = Vizabi.Class.extend({
 
       view
       //.transition().duration(duration).ease(d3.easeLinear)
-        .style("opacity", d.opacity || _context.model.marker.opacityRegular);
+        .attr("opacity", d.opacity || _context.model.marker.opacityRegular);
     });
   },
 
@@ -420,7 +426,7 @@ const Trail = Vizabi.Class.extend({
           // always update nearest 2 points
           if (segmentVisibility != segment.transparent || Math.abs(_context.model.time.formatDate(segment.t) - _context.model.time.formatDate(_context.time)) < 2) segment.visibilityChanged = true; // segment changed, so need to update it
           if (segment.transparent) {
-            d3.select(trail._groups[0][index]).classed("vzb-invisible", segment.transparent);
+            d3.select(trail._groups[0][index]).attr("vzb-invisible", segment.transparent);
           }
         });
         _this.drawingQueue[d[KEY]] = {};
@@ -436,7 +442,8 @@ const Trail = Vizabi.Class.extend({
     const KEY = _context.KEY;
     _this.trailsData.forEach(d => {
       if (_this.trailTransitions[d[KEY]]) {
-        _this.trailTransitions[d[KEY]].select("line").interrupt().transition();
+        _this.trailTransitions[d[KEY]]//.select("line")
+          .interrupt("line").transition("line");
       }
     });
   },
@@ -459,7 +466,7 @@ const Trail = Vizabi.Class.extend({
         //console.log(d[KEY] + " transparent: " + segment.transparent + " vis_changed:" + segment.visibilityChanged);
         if (nextIndex - index == 1) {
           if (segment.transparent) {
-            view.classed("vzb-invisible", segment.transparent);
+            view.attr("vzb-invisible", segment.transparent);
             return resolve();
           } else if (!segment.visibilityChanged) { // pass segment if it is not changed
             return resolve();
@@ -487,14 +494,14 @@ const Trail = Vizabi.Class.extend({
             cache.scaledC0 = segment.valueC != null ? _context.cScale(segment.valueC) : _context.COLOR_WHITEISH;
             _context._updateLabel(d, index, frame, segment.valueX, segment.valueY, segment.valueS, segment.valueC, frame.label[utils.getKey(d, dataKeys.label)], frame.size_label[utils.getKey(d, dataKeys.size_label)], 0, true);
           }
-          view.select("circle")
+          view//.select("circle")
           //.transition().duration(duration).ease(d3.easeLinear)
             .attr("cy", _context.yScale(segment.valueY))
             .attr("cx", _context.xScale(segment.valueX))
             .attr("r", utils.areaToRadius(_context.sScale(segment.valueS)))
-            .style("fill", segment.valueC != null ? _context.cScale(segment.valueC) : _context.COLOR_WHITEISH);
+            .attr("fill", segment.valueC != null ? _context.cScale(segment.valueC) : _context.COLOR_WHITEISH);
 
-          view.select("line")
+          view//.select("line")
             .attr("x2", _context.xScale(segment.valueX))
             .attr("y2", _context.yScale(segment.valueY))
             .attr("x1", _context.xScale(segment.valueX))
@@ -503,9 +510,9 @@ const Trail = Vizabi.Class.extend({
           // last point should have data for line but it is invisible
           if (_context.time - segment.t > 0) {
             segment.visibilityChanged = false;
-            view.classed("vzb-invisible", segment.transparent);
+            view.attr("vzb-invisible", segment.transparent);
           } else {
-            view.classed("vzb-invisible", true);
+            view.attr("vzb-invisible", true);
           }
 
           if (!trail._groups[0][nextIndex] || _context.time.toString() == segment.t.toString()) {
@@ -551,11 +558,11 @@ const Trail = Vizabi.Class.extend({
               Math.pow(_context.xScale(segment.valueX) - _context.xScale(nextSegment.valueX), 2) +
               Math.pow(_context.yScale(segment.valueY) - _context.yScale(nextSegment.valueY), 2)
             );
-            view.select("line")
+            view//.select("line")
               .attr("stroke-dasharray", lineLength)
               .attr("stroke-dashoffset", utils.areaToRadius(_context.sScale(segment.valueS)))
-              .style("stroke", strokeColor)
-              .transition().duration(duration).ease(d3.easeLinear)
+              .attr("stroke", strokeColor)
+              .transition("line").duration(duration).ease(d3.easeLinear)
               .attr("x1", _context.xScale(nextSegment.valueX))
               .attr("y1", _context.yScale(nextSegment.valueY))
               .attr("x2", _context.xScale(segment.valueX))
@@ -621,40 +628,40 @@ const Trail = Vizabi.Class.extend({
             Math.pow(_context.yScale(previousSegment.valueY) - _context.yScale(segment.valueX), 2)
           );
 
-          previous.select("line")
-            .transition().duration(duration).ease(d3.easeLinear)
+          previous//.select("line")
+            .transition("line").duration(duration).ease(d3.easeLinear)
             .attr("x1", _context.xScale(segment.valueX))
             .attr("y1", _context.yScale(segment.valueY))
             .attr("x2", _context.xScale(previousSegment.valueX))
             .attr("y2", _context.yScale(previousSegment.valueY))
             .attr("stroke-dasharray", firstLineLength)
             .attr("stroke-dashoffset", utils.areaToRadius(_context.sScale(previousSegment.valueS)))
-            .style("stroke", strokeColor);
+            .attr("stroke", strokeColor);
 
-          view.classed("vzb-invisible", segment.transparent);
+          view.attr("vzb-invisible", segment.transparent);
 
           if (!segment.transparent) {
-            view.select("circle")
+            view//.select("circle")
             //.transition().duration(duration).ease(d3.easeLinear)
               .attr("cy", _context.yScale(segment.valueY))
               .attr("cx", _context.xScale(segment.valueX))
               .attr("r", utils.areaToRadius(_context.sScale(segment.valueS)))
-              .style("fill", segment.valueC != null ? _context.cScale(segment.valueC) : _context.COLOR_WHITEISH);
+              .attr("fill", segment.valueC != null ? _context.cScale(segment.valueC) : _context.COLOR_WHITEISH);
 
             const secondLineLength = Math.sqrt(
               Math.pow(_context.xScale(segment.valueX) - _context.xScale(nextSegment.valueX), 2) +
               Math.pow(_context.yScale(segment.valueY) - _context.yScale(nextSegment.valueY), 2)
             );
 
-            view.select("line")
-              .transition().duration(duration).ease(d3.easeLinear)
+            view//.select("line")
+              .transition("line").duration(duration).ease(d3.easeLinear)
               .attr("x1", _context.xScale(nextSegment.valueX))
               .attr("y1", _context.yScale(nextSegment.valueY))
               .attr("x2", _context.xScale(segment.valueX))
               .attr("y2", _context.yScale(segment.valueY))
               .attr("stroke-dasharray", secondLineLength)
               .attr("stroke-dashoffset", utils.areaToRadius(_context.sScale(segment.valueS)))
-              .style("stroke", strokeColor);
+              .attr("stroke", strokeColor);
           }
           addNewIntervals(previousIndex, index, nextIndex);
           resolve();
@@ -752,6 +759,7 @@ const Trail = Vizabi.Class.extend({
        */
       const processPointsBetween = function() {
         processPoints().then(() => {
+          _context._canvasRedraw(_context.duration);
           if (Object.keys(_this.delayedIterations[d[KEY]]).length == 0) {
             return resolve();
           }
@@ -774,7 +782,8 @@ const Trail = Vizabi.Class.extend({
 
         _this.delayedIterations[d[KEY]] = {};
         for (let i = 0; i < trailKeys.length - 1; i++) {
-          segments.push(generateTrailSegment(trail, trailKeys[i], trailKeys[i + 1], 1));
+          segments.push(generateTrailSegment(trail, trailKeys[i], trailKeys[i + 1], 1)
+            .then(() => _context._canvasRedraw(_context.duration)));
         }
         Promise.all(segments).then(() => {
           if (Object.keys(_this.delayedIterations[d[KEY]]).length == 0) {
@@ -789,7 +798,64 @@ const Trail = Vizabi.Class.extend({
         });
       }
     });
+  },
+
+  _trailInteract() {
+    const _this = this;
+    const _context = this.context;
+    const KEYS = _context.KEYS;
+    const KEY = _context.KEY;
+    const TIMEDIM = _context.TIMEDIM;
+    const dataKeys = _context.dataKeys;
+
+    return {
+      mouseover(segment, index) {
+        if (utils.isTouchDevice()) return;
+
+        const d = segment.entityData;
+        const pointer = {};
+        pointer[KEY] = segment.key;
+        pointer[TIMEDIM] = segment.t;
+
+        _context._axisProjections(pointer);
+        _context._labels.highlight(d, true);
+        const text = _context.model.time.formatDate(segment.t);
+        const selectedData = utils.find(_context.model.marker.select, f => utils.getKey(f, KEYS) == d[KEY]);
+        _context.model.marker.getFrame(pointer[TIMEDIM], values => {
+          const x = _context.xScale(values.axis_x[utils.getKey(d, dataKeys.axis_x)]);
+          const y = _context.yScale(values.axis_y[utils.getKey(d, dataKeys.axis_y)]);
+          const s = utils.areaToRadius(_context.sScale(values.size[utils.getKey(d, dataKeys.size)]));
+          const c = values.color[utils.getKey(d, dataKeys.color)] != null ? _context.cScale(values.color[utils.getKey(d, dataKeys.color)]) : _context.COLOR_WHITEISH;
+          if (text !== selectedData.trailStartTime) {
+            _context._setTooltip(text, x, y, s + 3, c);
+          }
+          _context._setBubbleCrown(x, y, s, c);
+          _context.model.marker.getModelObject("highlight").trigger("change", {
+            "size": values.size[utils.getKey(d, dataKeys.size)],
+            "color": values.color[utils.getKey(d, dataKeys.color)]
+          });
+        });
+        //change opacity to OPACITY_HIGHLT = 1.0;
+        d3.select(this).attr("opacity", 1.0);
+      },
+
+      mouseout(segment, index) {
+        if (utils.isTouchDevice()) return;
+        _context._axisProjections();
+        _context._setTooltip();
+        _context._setBubbleCrown();
+        _context._labels.highlight(null, false);
+        _context.model.marker.getModelObject("highlight").trigger("change", null);
+        d3.select(this).attr("opacity", _context.model.marker.opacityRegular);
+      }
+      // .each(function(segment, index) {
+      //   const view = d3.select(this);
+      //   view.append("custom:circle");
+      //   view.append("custom:line");
+      // })
+    }
   }
+
 });
 
 export default Trail;
