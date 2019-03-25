@@ -311,7 +311,7 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
     });
 
     d3.namespaces.custom = "https://d3js.org/namespace/custom";
-    this._drawAnimate = this._drawAnimate.bind(this);
+    // this._drawAnimate = this._drawAnimate.bind(this);
     this._drawFunc = this._drawFunc.bind(this);
   },
 
@@ -363,12 +363,17 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
 
     ////canvas try
 
+    this.circleMark = this.createCircle();
+
     this.bubbleContainer = d3.create("custom:bubbles");
     this.canvases = this.element.select(".vzb-bc-canvases");
     this.mainCanvas = this.canvases.select(".vzb-bc-main-canvas");
     this.hiddenCanvas = this.canvases.select(".vzb-bc-hidden-canvas");
     this._nextCol = 1;
     this._colorToNode = {};
+
+    this.offscreenCanvas = d3.create("canvas");
+    //this.bubbleCanvas = d3.create("canvas");
     
     this._lastHoverTrail = null;
     this.mainCanvas.on('mousemove', function() {
@@ -428,10 +433,10 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
       if (!d.t) _this._bubblesInteract().click(d);
     });
 
-    this.yAxisElContainer = this.backstageGraph.select(".vzb-bc-axis-y");
+    this.yAxisElContainer = this.graphBack.select(".vzb-bc-axis-y");
     this.yAxisEl = this.yAxisElContainer.select("g");
 
-    this.xAxisElContainer = this.backstageGraph.select(".vzb-bc-axis-x");
+    this.xAxisElContainer = this.graphBack.select(".vzb-bc-axis-x");
     this.xAxisEl = this.xAxisElContainer.select("g");
 
     this.ySubTitleEl = this.graph.select(".vzb-bc-axis-y-subtitle");
@@ -575,11 +580,17 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
       _this.frame = frame;
       _this.updateSize();
       _this.updateMarkerSizeLimits();
+
+      // _this.bubbleMaxSide = Math.ceil(utils.areaToRadius(_this.sScale.range()[1]) * 2);
+      // _this.bubbleCanvas
+      //   .attr("width", _this.bubbleMaxSide)
+      //   .attr("height", _this.bubbleMaxSide);
+
       _this.updateEntities();
       _this._labels.ready();
       _this.selectDataPoints();
-      _this.updateBubbleOpacity();
       _this.redrawDataPoints();
+      _this.updateBubbleOpacity();
       _this._updateDoubtOpacity();
       _this.zoomToMarkerMaxMin(); // includes redraw data points and trail resize
       if (!_this.model.time.splash) {
@@ -1041,11 +1052,17 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
     //graph group is shifted according to margins (while svg element is at 100 by 100%)
     this.graphAll
       .attr("transform", "translate(" + (margin.left * this.activeProfile.leftMarginRatio) + "," + margin.top + ")");
-    this.backstageGraph
-      .attr("transform", "translate(" + (margin.left * this.activeProfile.leftMarginRatio) + "," + margin.top + ")");
+
     this.canvases
       .style("transform", "translate(" + (margin.left * this.activeProfile.leftMarginRatio) + "px," + margin.top + "px)");
     this.mainCanvas
+      .attr("width", this.width)
+      .attr("height", Math.max(0, this.height));
+    this.platform = Stardust.platform("webgl-2d", this.offscreenCanvas.node(), this.width, Math.max(0, this.height));
+    this.platform.pixelRatio = window.devicePixelRatio || 1;
+    this.createMarks(this.platform);
+
+    this.offscreenCanvas
       .attr("width", this.width)
       .attr("height", Math.max(0, this.height));
     this.hiddenCanvas
@@ -1568,12 +1585,12 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
     
     let showhide = false;
 
-    const valueY = values.axis_y[utils.getKey(d, dataKeys.axis_y)];
-    const valueX = values.axis_x[utils.getKey(d, dataKeys.axis_x)];
-    const valueS = values.size[utils.getKey(d, dataKeys.size)];
-    const valueL = values.label[utils.getKey(d, dataKeys.label)];
-    const valueC = values.color[utils.getKey(d, dataKeys.color)];
-    const valueLST = values.size_label[utils.getKey(d, dataKeys.size_label)];
+    const valueY = d.valueY = values.axis_y[utils.getKey(d, dataKeys.axis_y)];
+    const valueX = d.valueX = values.axis_x[utils.getKey(d, dataKeys.axis_x)];
+    const valueS = d.valueS = values.size[utils.getKey(d, dataKeys.size)];
+    const valueL = d.valueL = values.label[utils.getKey(d, dataKeys.label)];
+    const valueC = d.valueC = values.color[utils.getKey(d, dataKeys.color)];
+    const valueLST = d.valueLST = values.size_label[utils.getKey(d, dataKeys.size_label)];
 
     // check if fetching data succeeded
     if (!valueY && valueY !== 0 || !valueX && valueX !== 0 || !valueS && valueS !== 0) {
@@ -2002,25 +2019,40 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
     this._canvasRedraw(duration);
   },
 
-  _drawFunc() {
+  _drawFunc(data) {
     this._drawPending = false;
-    this.draw(this.bubbleContainer.selectAll("*"), this.mainCanvas.node(), false);
+    this.draw(data, this.offscreenCanvas.node(), false);
+    this._drawOnscreen(this.mainCanvas.node(), this.offscreenCanvas.node(), 0, 0, this.width, this.height);
   },
 
-  _drawAnimate() {
-    this._drawFunc();
-    this.drawAnimFrame = requestAnimationFrame(this._drawAnimate);
+  _drawOnscreen(canvas, offCanvas, x, y, width, height) {
+    const ctx = canvas.getContext("2d");
+    ctx.clearRect(x, y, width, height);
+    ctx.drawImage(offCanvas, x, y);
   },
+
 
   _canvasRedraw(duration) {
+//    this.createScales();
+    const data = this.bubbleContainer.selectAll("*").nodes()
+      .filter(elem => elem.tagName !== "g" && elem.getAttribute("vzb-invisible") !== "true")
+
+    const _drawAnimate = drawAnimate.bind(this);
+    const _drawFunc = this._drawFunc.bind(this, data);
+
+    function drawAnimate() {
+      _drawFunc();
+      this.drawAnimFrame = requestAnimationFrame(_drawAnimate);
+    }
+
     if (duration) {
-      !this.drawAnimFrame && (this.drawAnimFrame = requestAnimationFrame(this._drawAnimate));
+      !this.drawAnimFrame && (this.drawAnimFrame = requestAnimationFrame(_drawAnimate));
     } else {
       this.drawAnimFrame && cancelAnimationFrame(this.drawAnimFrame);
       this.drawAnimFrame = null;
       if (!this._drawPending) {
         this._drawPending = true;
-        requestAnimationFrame(this._drawFunc);
+        requestAnimationFrame(_drawFunc);
       }
     }
   },
@@ -2037,8 +2069,18 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
     return "rgb(" + ret.join(',') + ")";
   },
 
-  draw(data, canvas, hidden) {
+  draw(data) {
+    this.platform.clear([1, 1, 1, 0]);
+    this.sPositions.data(data);
+    this.sColors.data(data);
+    this.snodes
+      .data(data)
+      .render();
+  },
+
+  _draw(data, canvas, hidden) {
     const _this = this;
+    //const spriteCtx = _this.bubbleCanvas.node().getContext("2d", { alpha: false });
     const ctx = hidden ? canvas.getContext("2d", { alpha: false }) : canvas.getContext("2d");
     ctx.clearRect(0, 0, this.width, this.height);
 
@@ -2052,7 +2094,7 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
         _this.drawHiddenBubble(ctx, this);
       }   
       else
-        _this.drawBubble(ctx, this);
+        _this.drawBubble(ctx, this);//, spriteCtx);
     })
   },
 
@@ -2075,7 +2117,7 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
     }
   },
 
-  drawBubble(ctx, elem) {
+  drawBubble(ctx, elem) {//}, spriteCtx) {
     let color;
     if (elem.getAttribute("vzb-invisible") === "true") return;
     ctx.beginPath();
@@ -2087,6 +2129,10 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
         ctx.fill();
         ctx.strokeStyle = "#000";
         ctx.stroke();
+        // const r = Math.ceil(elem.getAttribute("r")) + 1;
+        // const d = r * 2;
+        // this.drawBubbleSprite(spriteCtx, this.bubbleMaxSide, elem, r);
+        // ctx.drawImage(spriteCtx.canvas, 0, 0, d, d, Math.ceil(elem.getAttribute("cx")) - r, Math.ceil(elem.getAttribute("cy")) - r, d, d);
         break;
       }
       case "trail": {
@@ -2096,31 +2142,120 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
         ctx.fill();
         ctx.strokeStyle = "#000";
         ctx.stroke();
+        // const r = Math.ceil(elem.getAttribute("r")) + 1;
+        // const d = r * 2;
+        // this.drawBubbleSprite(spriteCtx, this.bubbleMaxSide, elem, r);
+        // ctx.drawImage(spriteCtx.canvas, 0, 0, d, d, Math.ceil(elem.getAttribute("cx")) - r, Math.ceil(elem.getAttribute("cy")) - r, d, d);
+
         //line
         ctx.beginPath();
+        ctx.setLineDash([elem.getAttribute("stroke-dasharray")]);
+        ctx.lineDashOffset = elem.getAttribute("stroke-dashoffset");
         ctx.moveTo(elem.getAttribute("x1"),elem.getAttribute("y1"));
         ctx.lineTo(elem.getAttribute("x2"),elem.getAttribute("y2"));
         ctx.strokeStyle = elem.getAttribute("stroke");
-        ctx.stroke();        
-        break;
-      }
-      case "line": {
-        ctx.globalAlpha = elem.getAttribute("opacity") || 1;
-        ctx.beginPath();
-        ctx.moveTo(elem.getAttribute("x1"),elem.getAttribute("y1"));
-        ctx.lineTo(elem.getAttribute("x2"),elem.getAttribute("y2"));
-        ctx.strokeStyle = elem.getAttribute("stroke");
-        ctx.stroke();        
+        ctx.stroke();
+        ctx.setLineDash([]);
         break;
       }
     }
   },
 
+//   drawBubbleSprite(ctx, side, elem, r) {
+//     ctx.clearRect(0, 0, side, side);
+// //    ctx.globalAlpha = elem.getAttribute("opacity") || 1;
+//     ctx.beginPath();
+//     ctx.arc(r, r, r, 0, 2 * Math.PI);
+//     ctx.fillStyle = elem.getAttribute("fill");
+//     ctx.fill();
+//     ctx.strokeStyle = "#000";
+//     ctx.stroke();
+//   },
+
   trackCanvasObject(x, y) {
-    this.draw(this.bubbleContainer.selectAll("*"), this.hiddenCanvas.node(), true);
-    const col = this.hiddenCanvas.node().getContext('2d').getImageData(x, y, 1, 1).data;
-    //console.log('rgb(' + col[0] + ',' + col[1] + ',' + col[2] + ')');
-    return this._colorToNode['rgb(' + col[0] + ',' + col[1] + ',' + col[2] + ')'];
+    // this.draw(this.bubbleContainer.selectAll("*"), this.hiddenCanvas.node(), true);
+    // const col = this.hiddenCanvas.node().getContext('2d').getImageData(x, y, 1, 1).data;
+    // //console.log('rgb(' + col[0] + ',' + col[1] + ',' + col[2] + ')');
+    // return this._colorToNode['rgb(' + col[0] + ',' + col[1] + ',' + col[2] + ')'];
+  },
+
+  createMarks(platform) {
+    this.sPositions = Stardust.array("Vector3")
+      .value(elem => [elem.getAttribute("cx"), elem.getAttribute("cy"), elem.getAttribute("r")]);
+    this.positionScale = Stardust.scale.custom("array(pos, value)")
+      .attr("pos", "Vector2Array", this.sPositions)
+    this.radiusScale = Stardust.scale.custom("(array(pos, value)).z")
+      .attr("pos", "Vector3Array", this.sPositions);
+    this.sColors = Stardust.array("Color")
+      .value(elem => {
+        const color = +("0x" + elem.getAttribute("fill").slice(1));
+        return [((color & 0xff0000) >> 16) / 255, ((color & 0xff00) >> 8) / 255, (color & 0xff) / 255, +elem.getAttribute("opacity")]
+      });
+    this.colorScale = Stardust.scale.custom("array(pos, value)")
+      .attr("pos", "Vector4Array", this.sColors);
+
+    //this.snodes = Stardust.mark.create(Stardust.mark.circle(8), platform)
+    this.snodes = Stardust.mark.create(this.circleMark, platform)
+      .attr("color", this.colorScale((d,i) => i))
+      .attr("radius", this.radiusScale((d,i) => i))
+      .attr("center", this.positionScale((d,i) => i))
+      .attr("stroke", [0, 0, 0, 1])
+      .attr("strokeWidth", 1);
+  },
+
+  createCircle() {
+    const spec = Stardust.mark.compile(`
+      // Import predefined marks
+
+      mark Circle(
+        center: Vector2 = [ 0, 0 ],
+        radius: float = 1,
+        color: Color = [ 0, 0, 0, 1 ]
+      ) {
+        //let rs = radius * 1.4142135624;
+        emit [
+          { position: Vector4(center.x, center.y, 0.0, 1.0), PointSize: radius * 2, color: color },
+          { position: Vector4(center.x, center.y, 0.0, 1.0), PointSize: radius * 2, color: color },
+          { position: Vector4(center.x, center.y, 0.0, 1.0), PointSize: radius * 2, color: color }
+        ];
+      }
+      shader CircleShader(
+        color: Color,
+        offset: Vector2
+      ) {
+        let dist = dot(offset, offset);
+        if(dist > 1.0) {
+          discard;
+        } else {
+          emit { color: color };
+        }
+      }
+      mark StrokedCircle(
+        center: Vector2 = [ 0, 0 ],
+        radius: float = 1,
+        strokeWidth: float,
+        color: Color = [ 1, 1, 1, 1 ],
+        stroke: Color = [ 0, 0, 0, 1 ]
+      ) {
+        Circle(center, radius + strokeWidth, stroke);
+        Circle(center, radius, color);
+      }
+    `);
+    //spec.StrokedCircle.shader = spec.CircleShader;
+
+    return spec.StrokedCircle;
+  },
+
+  createScales() {
+    this.xSDScale = Stardust.scale.linear()
+      .domain(this.xScale.domain())
+      .range(this.xScale.range())
+    this.ySDScale = Stardust.scale.linear()
+      .domain(this.yScale.domain())
+      .range(this.yScale.range())
+    this.snodes.attr("center", Stardust.scale.Vector2(
+        this.xSDScale(d => d.valueX), this.ySDScale(d => d.valueY)))
+
   }
 });
 

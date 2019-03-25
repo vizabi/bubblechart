@@ -54,7 +54,8 @@ const Trail = Vizabi.Class.extend({
         const r = {
           status: "created",
           selectedEntityData: d,
-          isSelected: true
+          isSelected: true,
+          __group: true
         };
         KEYS.forEach(key => r[key] = d[key]);
         r[KEY] = utils.getKey(d, KEYS);
@@ -78,7 +79,8 @@ const Trail = Vizabi.Class.extend({
             const trailSegmentData = timePoints.map(m => ({
               entityData: d,
               t: m,
-              key: d[KEY]
+              key: d[KEY],
+              hidden: true
             }));
             const entityTrails = d3.select(trail).selectAll("trail")
               .data(trailSegmentData)
@@ -128,11 +130,12 @@ const Trail = Vizabi.Class.extend({
               //   _context.model.marker.getModelObject("highlight").trigger("change", null);
               //   d3.select(this).style("opacity", _context.model.marker.opacityRegular);
               // })
-              .each(function(segment, index) {
-                const view = d3.select(this);
-                view.append("circle");
-                view.append("line");
-              })
+              // .each(function(segment, index) {
+              //   const view = d3.select(this);
+              //   view.append("circle");
+              //   view.append("line");
+              // })
+              .attr("class", "vzb-bc-trailsegment")
               .attr("vzb-invisible", true)
               //.on("mouseover", _this._trailInteract().mouseover(d, i))
               //.on("mouseout", _this._trailInteract().mouseout(d, i))
@@ -302,7 +305,7 @@ const Trail = Vizabi.Class.extend({
           .transition("circle");
       }
 
-      if (!updateLabel && !segment.transparent) {
+      if (!updateLabel && !segment.hidden) {
         updateLabel = true;
         _context._labels.updateLabelOnlyPosition(d, null, { "scaledS0": utils.areaToRadius(_context.sScale(segment.valueS)) });
       }
@@ -420,13 +423,13 @@ const Trail = Vizabi.Class.extend({
           _context._updateLabel(d, 0, _context.frame, cache.labelX0, cache.labelY0, valueS, valueC, _context.frame.label[utils.getKey(d, dataKeys.label)], _context.frame.size_label[utils.getKey(d, dataKeys.size_label)], 0, true);
         }
         trail.each((segment, index) => {
-          const segmentVisibility = segment.transparent;
-          // segment is transparent if it is after current time or before trail StartTime
-          segment.transparent = (segment.t - _context.time > 0) || (trailStartTime - segment.t > 0)
+          const segmentVisibility = segment.hidden;
+          // segment is hidden if it is after current time or before trail StartTime
+          segment.hidden = (segment.t - _context.time > 0) || (trailStartTime - segment.t > 0)
           // always update nearest 2 points
-          if (segmentVisibility != segment.transparent || Math.abs(_context.model.time.formatDate(segment.t) - _context.model.time.formatDate(_context.time)) < 2) segment.visibilityChanged = true; // segment changed, so need to update it
-          if (segment.transparent) {
-            d3.select(trail._groups[0][index]).attr("vzb-invisible", segment.transparent);
+          if (segmentVisibility != segment.hidden || Math.abs(_context.model.time.formatDate(segment.t) - _context.model.time.formatDate(_context.time)) < 2) segment.visibilityChanged = true; // segment changed, so need to update it
+          if (segment.hidden) {
+            d3.select(trail._groups[0][index]).attr("vzb-invisible", segment.hidden);
           }
         });
         _this.drawingQueue[d[KEY]] = {};
@@ -463,10 +466,10 @@ const Trail = Vizabi.Class.extend({
 
         const segment = view.datum();
 
-        //console.log(d[KEY] + " transparent: " + segment.transparent + " vis_changed:" + segment.visibilityChanged);
+        //console.log(d[KEY] + " hidden: " + segment.hidden + " vis_changed:" + segment.visibilityChanged);
         if (nextIndex - index == 1) {
-          if (segment.transparent) {
-            view.attr("vzb-invisible", segment.transparent);
+          if (segment.hidden) {
+            view.attr("vzb-invisible", segment.hidden);
             return resolve();
           } else if (!segment.visibilityChanged) { // pass segment if it is not changed
             return resolve();
@@ -510,9 +513,9 @@ const Trail = Vizabi.Class.extend({
           // last point should have data for line but it is invisible
           if (_context.time - segment.t > 0) {
             segment.visibilityChanged = false;
-            view.attr("vzb-invisible", segment.transparent);
+            view.attr("vzb-invisible", segment.hidden);
           } else {
-            view.attr("vzb-invisible", true);
+            view.attr("vzb-invisible", segment.hidden = true);
           }
 
           if (!trail._groups[0][nextIndex] || _context.time.toString() == segment.t.toString()) {
@@ -638,9 +641,9 @@ const Trail = Vizabi.Class.extend({
             .attr("stroke-dashoffset", utils.areaToRadius(_context.sScale(previousSegment.valueS)))
             .attr("stroke", strokeColor);
 
-          view.attr("vzb-invisible", segment.transparent);
+          view.attr("vzb-invisible", segment.hidden);
 
-          if (!segment.transparent) {
+          if (!segment.hidden) {
             view//.select("circle")
             //.transition().duration(duration).ease(d3.easeLinear)
               .attr("cy", _context.yScale(segment.valueY))
