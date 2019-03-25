@@ -365,7 +365,8 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
     this.hiddenCanvas = this.canvases.select(".vzb-bc-hidden-canvas");
     this._nextCol = 1;
     this._colorToNode = {};
-    
+
+    this.offscreenCanvas = d3.create("canvas");
     this._lastHoverTrail = null;
     this.mainCanvas.on('mousemove', function() {
       const node = _this.trackCanvasObject(d3.event.offsetX, d3.event.offsetY);
@@ -632,17 +633,18 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
 
   frameChanged(frame, time) {
 //    if (time.toString() != this.model.time.value.toString()) return; // frame is outdated
+    const prevTime = this.time;
     this.frame = frame;
     this.updateTime();
 
     this._updateDoubtOpacity();
-    this._trails.run("findVisible");
+    this._trails.run("findVisible", null, null, [+prevTime, +time]);
     if (this.model.ui.adaptMinMaxZoom) {
       this._panZoom.expandCanvas();
     } else {
       this.redrawDataPoints();
     }
-    this._trails.run("reveal", null, this.duration);
+    this._trails.run("reveal", null, this.duration, [+prevTime, +time]);
     this.tooltipMobile.classed("vzb-hidden", true);
     this._reorderEntities();
   },
@@ -915,7 +917,7 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
 
       click(d, i) {
         if (_this.draggingNow) return;
-        const isSelected = _this.model.marker.isSelected(d);
+        const isSelected = d.isSelected;
         _this.model.marker.selectMarker(d);
         //return to highlighted state
         if (!utils.isTouchDevice()) {
@@ -1038,6 +1040,9 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
     this.canvases
       .style("transform", "translate(" + (margin.left * this.activeProfile.leftMarginRatio) + "px," + margin.top + "px)");
     this.mainCanvas
+      .attr("width", this.width)
+      .attr("height", Math.max(0, this.height));
+    this.offscreenCanvas
       .attr("width", this.width)
       .attr("height", Math.max(0, this.height));
     this.hiddenCanvas
@@ -1420,7 +1425,7 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
       valuesNow = _this.frame;
       _this.entityBubbles.each(function(d, index) {
 
-        const selected = _this.model.marker.isSelected(d);
+        const selected = d.isSelected;
 
         const valueC = selected ? valuesNow.color[utils.getKey(d, dataKeys.color)] : valuesLocked.color[utils.getKey(d, dataKeys.color)];
 
@@ -1479,7 +1484,7 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
       valuesNow = _this.frame;
       _this.entityBubbles.each(function(d, index) {
 
-        const selected = _this.model.marker.isSelected(d);
+        const selected = d.isSelected;
 
         const valueS = selected ? valuesNow.size[utils.getKey(d, dataKeys.size)] : valuesLocked.size[utils.getKey(d, dataKeys.size)];
         if (valueS == null) return;
@@ -1535,7 +1540,7 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
 
         // each bubble
         _this.entityBubbles.each(function(d, index) {
-          const frame = _this.model.marker.isSelected(d) ? _this.frame : lockedFrame;
+          const frame = d.isSelected ? _this.frame : lockedFrame;
           _this._updateBubble(d, frame, index, d3.select(this), duration);
         });
 
@@ -1652,7 +1657,7 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
     const KEY = this.KEY;
     
     // only for selected markers
-    if (_this.model.marker.isSelected(d)) {
+    if (d.isSelected) {
 
       const cache = {};
 
@@ -1773,6 +1778,10 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
       _this._setBubbleCrown();
     }
 
+    utils.forEach(_this.entityBubbles.data(), d => {
+      d.isSelected = _this.model.marker.isSelected(d);
+    });
+
     _this.someSelected = (_this.model.marker.select.length > 0);
     _this.nonSelectedOpacityZero = false;
   },
@@ -1872,8 +1881,9 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
     if (this.model.marker.highlight.length === 1) {
       const d = utils.clone(this.model.marker.highlight[0]);
       d[KEY] = utils.getKey(d, KEYS);
+      d.isSelected = _this.model.marker.isSelected(d);
 
-      if (_this.model.ui.chart.lockNonSelected && _this.someSelected && !_this.model.marker.isSelected(d)) {
+      if (_this.model.ui.chart.lockNonSelected && _this.someSelected && !d.isSelected) {
         d[TIMEDIM] = _this.model.time.parse("" + _this.model.ui.chart.lockNonSelected);
       } else {
         d[TIMEDIM] = _this.model.time.parse("" + d.trailStartTime) || _this.time;
@@ -1896,18 +1906,18 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
         //show tooltip
         let text = "";
         let hoverTrail = false;
-        if (_this.model.marker.isSelected(d) && _this.model.ui.chart.trails) {
+        if (d.isSelected && _this.model.ui.chart.trails) {
           text = _this.model.time.formatDate(_this.time);
           const selectedData = utils.find(_this.model.marker.select, f => utils.getKey(f, KEYS) == d[KEY]);
           hoverTrail = text !== selectedData.trailStartTime && !d3.select(d3.event.target).classed("bubble-" + d[KEY]);
           text = text !== selectedData.trailStartTime && _this.time === d[TIMEDIM] ? text : "";
         } else {
-          text = _this.model.marker.isSelected(d) ? "" : _this._getLabelText(values, d);
+          text = d.isSelected ? "" : _this._getLabelText(values, d);
         }
 
         _this._labels.highlight(null, false);
         _this._labels.highlight(d, true);
-        if (_this.model.marker.isSelected(d)) {
+        if (d.isSelected) {
           const skipCrownInnerFill = !d.trailStartTime || d.trailStartTime == _this.model.time.formatDate(_this.time);
           _this._setBubbleCrown(x, y, s, c, skipCrownInnerFill);
         }
@@ -1967,7 +1977,7 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
 
         if (_this.someSelected) {
           //selected or non-selected
-          return _this.model.marker.isSelected(d) ? OPACITY_SELECT : OPACITY_SELECT_DIM;
+          return d.isSelected ? OPACITY_SELECT : OPACITY_SELECT_DIM;
         }
 
         if (_this.someHighlighted) return OPACITY_HIGHLT_DIM;
@@ -1980,7 +1990,7 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
 
     // when pointer events need update...
     if (nonSelectedOpacityZero != this.nonSelectedOpacityZero) {
-      this.entityBubbles.style("pointer-events", d => (!_this.someSelected || !nonSelectedOpacityZero || _this.model.marker.isSelected(d)) ?
+      this.entityBubbles.style("pointer-events", d => (!_this.someSelected || !nonSelectedOpacityZero || d.isSelected) ?
         "visible" : "none");
     }
 
@@ -1991,7 +2001,14 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
 
   _drawFunc() {
     this._drawPending = false;
-    this.draw(this.bubbleContainer.selectAll("*"), this.mainCanvas.node(), false);
+    this.draw(this.bubbleContainer.selectAll("*"), this.offscreenCanvas.node(), false);
+    this._drawOnscreen(this.mainCanvas.node(), this.offscreenCanvas.node(), 0, 0, this.width, this.height);
+  },
+
+  _drawOnscreen(canvas, offCanvas, x, y, width, height) {
+    const ctx = canvas.getContext("2d");
+    ctx.clearRect(x, y, width, height);
+    ctx.drawImage(offCanvas, x, y);
   },
 
   _drawAnimate() {
@@ -2063,7 +2080,6 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
   },
 
   drawBubble(ctx, elem) {
-    let color;
     if (elem.getAttribute("vzb-invisible") === "true") return;
     ctx.beginPath();
     switch (elem.tagName) {
@@ -2085,19 +2101,13 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
         ctx.stroke();
         //line
         ctx.beginPath();
+        ctx.setLineDash([elem.getAttribute("stroke-dasharray")]);
+        ctx.lineDashOffset = elem.getAttribute("stroke-dashoffset");
         ctx.moveTo(elem.getAttribute("x1"),elem.getAttribute("y1"));
         ctx.lineTo(elem.getAttribute("x2"),elem.getAttribute("y2"));
         ctx.strokeStyle = elem.getAttribute("stroke");
-        ctx.stroke();        
-        break;
-      }
-      case "line": {
-        ctx.globalAlpha = elem.getAttribute("opacity") || 1;
-        ctx.beginPath();
-        ctx.moveTo(elem.getAttribute("x1"),elem.getAttribute("y1"));
-        ctx.lineTo(elem.getAttribute("x2"),elem.getAttribute("y2"));
-        ctx.strokeStyle = elem.getAttribute("stroke");
-        ctx.stroke();        
+        ctx.stroke();
+        ctx.setLineDash([]);
         break;
       }
     }

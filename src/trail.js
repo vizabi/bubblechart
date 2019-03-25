@@ -31,6 +31,7 @@ const Trail = Vizabi.Class.extend({
         delete d.trailStartTime;
       });
     }
+    _context._labels._clearInitialFontSize();
   },
 
   create(selection) {
@@ -53,7 +54,8 @@ const Trail = Vizabi.Class.extend({
       _this.trailsData = _context.model.marker.select.map(d => {
         const r = {
           status: "created",
-          selectedEntityData: d
+          selectedEntityData: d,
+          isSelected: true
         };
         KEYS.forEach(key => r[key] = d[key]);
         r[KEY] = utils.getKey(d, KEYS);
@@ -86,7 +88,7 @@ const Trail = Vizabi.Class.extend({
             entityTrails.exit().remove();
 
             _this.entityTrails[d[KEY]] = entityTrails.enter().append("custom:trail")
-              .attr("class", "vzb-bc-trailsegment vzb-invisible")
+              .attr("class", "vzb-bc-trailsegment")
               .attr("vzb-invisible", true)
               //.on("mouseover", _this._trailInteract().mouseover(d, i))
               //.on("mouseout", _this._trailInteract().mouseout(d, i))
@@ -147,7 +149,7 @@ const Trail = Vizabi.Class.extend({
     return this.actionsQueue[key].shift();
   },
 
-  run(actions, selection, duration) {
+  run(actions, selection, duration, timeRange) {
     const _context = this.context;
     const _this = this;
     const KEY = _context.KEY;
@@ -159,6 +161,16 @@ const Trail = Vizabi.Class.extend({
       if ((!_context.model.ui.chart.trails || !_context.model.marker.select.length) && actions != "remove") return;
 
       if (!duration) duration = 0;
+
+      let firstTimeIndex, secondTimeIndex;
+      if (timeRange) {
+      const firstTime = d3.min(timeRange);
+      const secondTime = d3.max(timeRange);
+
+      const timeSteps = _context.model.time.getAllSteps().map(d => +d);
+        firstTimeIndex = d3.bisect(timeSteps, firstTime) - 1;
+        secondTimeIndex = d3.bisectLeft(timeSteps, secondTime, firstTimeIndex) + 1;
+      }
 
       //work with marker.select (all selected entities), if no particular selection is specified
       selection = selection == null ? _context.model.marker.select : [selection];
@@ -181,7 +193,7 @@ const Trail = Vizabi.Class.extend({
           _this.drawingQueue[d[KEY]] = {};
           _this.delayedIterations[d[KEY]] = {};
         }
-        const trail = _this.entityTrails[d[KEY]];
+        const trail = timeRange ? d3.selectAll(_this.entityTrails[d[KEY]].nodes().slice(firstTimeIndex, secondTimeIndex)): _this.entityTrails[d[KEY]];
         //do all the actions over "trail"
         const executeSequential = function(index) { // some function can be async, but we should run next when previous completed
           const action = _this._getNextAction(d[KEY]);
