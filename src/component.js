@@ -151,6 +151,7 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
       "change:marker.select": function(evt, path) {
         if (!_this._readyOnce || !_this.entityBubbles) return;
         //console.log("EVENT change:marker:select");
+        if (path.indexOf("select.labelOffset") !== -1) return;
 
         //disable trails if too many items get selected at once
         //otherwise it's too much waiting time
@@ -240,7 +241,7 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
         _this._trails.run("opacityHandler");
       },
       "change:ui.cursorMode": function() {
-        const svg = _this.chartSvg;
+        const svg = _this.chartSvgAll;
         if (_this.model.ui.cursorMode === "plus") {
           svg.classed("vzb-zoomin", true);
           svg.classed("vzb-zoomout", false);
@@ -305,7 +306,7 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
     this._labels.config({
       CSS_PREFIX: "vzb-bc",
       LABELS_CONTAINER_CLASS: "vzb-bc-labels",
-      LINES_CONTAINER_CLASS: "vzb-bc-bubbles",
+      LINES_CONTAINER_CLASS: "vzb-bc-lines",
       LINES_CONTAINER_SELECTOR_PREFIX: "bubble-"
     });
   },
@@ -347,12 +348,18 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
     this.element = d3.select(this.element);
 
     // reference elements
-    this.chartSvg = this.element.select("svg");
-    this.graph = this.element.select(".vzb-bc-graph");
-    this.yAxisElContainer = this.graph.select(".vzb-bc-axis-y");
+    this.chartSvg = this.element.select("svg.vzb-bubblechart-svg-main");
+    this.chartSvgFront = this.element.select("svg.vzb-bubblechart-svg-front");
+    this.chartSvgBack = this.element.select("svg.vzb-bubblechart-svg-back");
+    this.chartSvgAll = this.element.selectAll("svg.vzb-bubblechart-svg");
+    this.graph = this.chartSvg.select(".vzb-bc-graph");
+    this.graphFront = this.chartSvgFront.select(".vzb-bc-graph");
+    this.graphBack = this.chartSvgBack.select(".vzb-bc-graph");
+    this.graphAll = this.chartSvgAll.select(".vzb-bc-graph");
+    this.yAxisElContainer = this.graphBack.select(".vzb-bc-axis-y");
     this.yAxisEl = this.yAxisElContainer.select("g");
 
-    this.xAxisElContainer = this.graph.select(".vzb-bc-axis-x");
+    this.xAxisElContainer = this.graphBack.select(".vzb-bc-axis-x");
     this.xAxisEl = this.xAxisElContainer.select("g");
 
     this.ySubTitleEl = this.graph.select(".vzb-bc-axis-y-subtitle");
@@ -361,7 +368,7 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
     this.xTitleEl = this.graph.select(".vzb-bc-axis-x-title");
     this.sTitleEl = this.graph.select(".vzb-bc-axis-s-title");
     this.cTitleEl = this.graph.select(".vzb-bc-axis-c-title");
-    this.yearEl = this.graph.select(".vzb-bc-year");
+    this.yearEl = this.graphBack.select(".vzb-bc-year");
 
     this.year = new DynamicBackground(this.yearEl);
 
@@ -369,25 +376,26 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
     this.xInfoEl = this.graph.select(".vzb-bc-axis-x-info");
     this.dataWarningEl = this.graph.select(".vzb-data-warning");
 
-    this.projectionX = this.graph.select(".vzb-bc-projection-x");
-    this.projectionY = this.graph.select(".vzb-bc-projection-y");
-    this.decorationsEl = this.graph.select(".vzb-bc-decorations");
+    this.projectionX = this.graphBack.select(".vzb-bc-projection-x");
+    this.projectionY = this.graphBack.select(".vzb-bc-projection-y");
+    this.decorationsEl = this.graphBack.select(".vzb-bc-decorations");
     this.lineEqualXY = this.decorationsEl.select(".vzb-bc-line-equal-xy");
     this.xAxisGroupsEl = this.decorationsEl.select(".vzb-bc-x-axis-groups");
 
     this.trailsContainer = this.graph.select(".vzb-bc-trails");
     this.bubbleContainerCrop = this.graph.select(".vzb-bc-bubbles-crop");
+    this.bubbleContainerCropAll = this.element.selectAll(".vzb-bc-bubbles-crop");
     this.zoomSelection = this.graph.select(".vzb-zoom-selection");
-    this.labelsContainerCrop = this.graph.select(".vzb-bc-labels-crop");
+    this.labelsContainerCrop = this.chartSvgFront.select(".vzb-bc-labels-crop");
     this.bubbleContainer = this.graph.select(".vzb-bc-bubbles");
-    this.labelsContainer = this.graph.select(".vzb-bc-labels");
-    this.linesContainer = this.graph.select(".vzb-bc-lines");
+    this.labelsContainer = this.labelsContainerCrop.select(".vzb-bc-labels");
+    this.linesContainer = this.graphFront.select(".vzb-bc-lines");
     this.zoomRect = this.element.select(".vzb-bc-zoom-rect");
     this.eventArea = this.element.select(".vzb-bc-eventarea");
     this.forecastOverlay = this.element.select(".vzb-bc-forecastoverlay");
 
     this.entityBubbles = null;
-    this.bubbleCrown = this.element.select(".vzb-bc-bubble-crown");
+    this.bubbleCrown = this.graphFront.select(".vzb-bc-bubble-crown");
     //set filter
     this.bubbleCrown.selectAll(".vzb-crown-glow")
       .attr("filter", "url(" + location.pathname + "#vzb-glow-filter)");
@@ -414,17 +422,17 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
     d3.select("body")
       .on("keydown", () => {
         if (_this.model.ui.cursorMode !== "arrow" && _this.model.ui.cursorMode !== "hand") return;
-        if (d3.event.metaKey || d3.event.ctrlKey) _this.element.select("svg").classed("vzb-zoomin", true);
+        if (d3.event.metaKey || d3.event.ctrlKey) _this.chartSvgAll.classed("vzb-zoomin", true);
       })
       .on("keyup", () => {
         if (_this.model.ui.cursorMode !== "arrow" && _this.model.ui.cursorMode !== "hand") return;
-        if (!d3.event.metaKey && !d3.event.ctrlKey) _this.element.select("svg").classed("vzb-zoomin", false);
+        if (!d3.event.metaKey && !d3.event.ctrlKey) _this.chartSvgAll.classed("vzb-zoomin", false);
       })
       //this is for the case when user would press ctrl and move away from the browser tab or window
       //keyup event would happen somewhere else and won't be captured, so zoomin class would get stuck
       .on("mouseenter", () => {
         if (_this.model.ui.cursorMode !== "arrow" && _this.model.ui.cursorMode !== "hand") return;
-        if (!d3.event.metaKey && !d3.event.ctrlKey) _this.element.select("svg").classed("vzb-zoomin", false);
+        if (!d3.event.metaKey && !d3.event.ctrlKey) _this.chartSvgAll.classed("vzb-zoomin", false);
       });
 
     this.root.on("resetZoom", () => {
@@ -763,10 +771,12 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
       .attr("class", d => "vzb-bc-entity " + "bubble-" + d[KEY])
       .on("mouseover", (d, i) => {
         if (utils.isTouchDevice() || (_this.model.ui.cursorMode !== "arrow" && _this.model.ui.cursorMode !== "hand")) return;
+        if (_this._labels.dragging) return;
         _this._bubblesInteract().mouseover(d, i);
       })
       .on("mouseout", (d, i) => {
         if (utils.isTouchDevice() || (_this.model.ui.cursorMode !== "arrow" && _this.model.ui.cursorMode !== "hand")) return;
+        if (_this._labels.dragging) return;
 
         _this._bubblesInteract().mouseout(d, i);
       })
@@ -957,7 +967,7 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
     }
 
     //graph group is shifted according to margins (while svg element is at 100 by 100%)
-    this.graph
+    this.graphAll
       .attr("transform", "translate(" + (margin.left * this.activeProfile.leftMarginRatio) + "," + margin.top + ")");
 
     this.year.resize(this.width, this.height);
@@ -1006,7 +1016,7 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
       });
 
 
-    this.bubbleContainerCrop
+    this.bubbleContainerCropAll
       .attr("width", this.width)
       .attr("height", Math.max(0, this.height));
 
@@ -1203,9 +1213,9 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
         if (isLast) x = xAxisGroups_calcs[i-1].boundaryMaxX_px + Math.max(xAxisGroups_calcs[i-1].marginX_px, minMargin);
         
         const text = view.select("text.vzb-bc-x-axis-group-text")
+          .style("text-anchor", isFirst ? "end" : isLast ? "start" : "middle")
           .transition()
           .duration(duration || 0)
-          .style("text-anchor", isFirst ? "end" : isLast ? "start" : "middle")
           .attr("dy", "-0.2em")
           .attr("y", calcs.textHeight)
           .attr("x", x);
