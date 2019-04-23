@@ -311,8 +311,6 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
     });
 
     d3.namespaces.custom = "https://d3js.org/namespace/custom";
-    // this._drawAnimate = this._drawAnimate.bind(this);
-    this._drawFunc = this._drawFunc.bind(this);
   },
 
   _rangeBump(arg, undo) {
@@ -363,7 +361,6 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
 
     ////canvas try
 
-    this.circleMark = this.createCircle();
 
     this.bubbleContainer = d3.create("custom:bubbles");
     this.canvases = this.element.select(".vzb-bc-canvases");
@@ -372,8 +369,7 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
     this._nextCol = 1;
     this._colorToNode = {};
 
-    this.offscreenCanvas = d3.create("canvas");
-    //this.bubbleCanvas = d3.create("canvas");
+    //this.offscreenCanvas = d3.create("canvas");
     
     this._lastHoverTrail = null;
     this.mainCanvas.on('mousemove', function() {
@@ -432,6 +428,13 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
       const d = d3.select(node).datum();
       if (!d.t) _this._bubblesInteract().click(d);
     });
+
+    //gl 
+    this.gl = this.mainCanvas.node().getContext("webgl") || this.mainCanvas.node().getContext("experimental-webgl");
+    this.glInit(this.gl);
+    //picking gl 
+    this.pickingGl = this.hiddenCanvas.node().getContext("webgl", {alpha:false}) || this.hiddenCanvas.node().getContext("experimental-webgl", {alpha:false});
+    this.pickingGlInit(this.pickingGl);
 
     this.yAxisElContainer = this.graphBack.select(".vzb-bc-axis-y");
     this.yAxisEl = this.yAxisElContainer.select("g");
@@ -1058,16 +1061,16 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
     this.mainCanvas
       .attr("width", this.width)
       .attr("height", Math.max(0, this.height));
-    this.platform = Stardust.platform("webgl-2d", this.offscreenCanvas.node(), this.width, Math.max(0, this.height));
-    this.platform.pixelRatio = window.devicePixelRatio || 1;
-    this.createMarks(this.platform);
+    this.initCanvas(this.gl, this.prog, this.width, Math.max(0, this.height));
 
-    this.offscreenCanvas
-      .attr("width", this.width)
-      .attr("height", Math.max(0, this.height));
     this.hiddenCanvas
       .attr("width", this.width)
       .attr("height", Math.max(0, this.height));
+    this.initCanvas(this.pickingGl, this.pickingProg, this.width, Math.max(0, this.height));
+
+    // this.offscreenCanvas
+    //   .attr("width", this.width)
+    //   .attr("height", Math.max(0, this.height));
 
     this.year.resize(this.width, this.height);
     this.eventArea
@@ -2019,10 +2022,11 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
     this._canvasRedraw(duration);
   },
 
-  _drawFunc(data) {
+  _drawFunc() {
     this._drawPending = false;
-    this.draw(data, this.offscreenCanvas.node(), false);
-    this._drawOnscreen(this.mainCanvas.node(), this.offscreenCanvas.node(), 0, 0, this.width, this.height);
+    const data = this.bubbleContainer.selectAll("*").nodes()
+      .filter(elem => elem.tagName !== "g" && elem.getAttribute("vzb-invisible") !== "true")
+    this.draw(data, this.mainCanvas.node(), false);
   },
 
   _drawOnscreen(canvas, offCanvas, x, y, width, height) {
@@ -2032,18 +2036,12 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
   },
 
 
-  _canvasRedraw(duration) {
-//    this.createScales();
-    const data = this.bubbleContainer.selectAll("*").nodes()
+  _canvasRedraw(duration, force) {
+    const data = this.visibleBubblesSelection = this.bubbleContainer.selectAll("*").nodes()
       .filter(elem => elem.tagName !== "g" && elem.getAttribute("vzb-invisible") !== "true")
 
     const _drawAnimate = drawAnimate.bind(this);
     const _drawFunc = this._drawFunc.bind(this, data);
-
-    function drawAnimate() {
-      _drawFunc();
-      this.drawAnimFrame = requestAnimationFrame(_drawAnimate);
-    }
 
     if (duration) {
       !this.drawAnimFrame && (this.drawAnimFrame = requestAnimationFrame(_drawAnimate));
@@ -2055,6 +2053,11 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
         requestAnimationFrame(_drawFunc);
       }
     }
+
+    function drawAnimate() {
+      _drawFunc();
+      this.drawAnimFrame = requestAnimationFrame(_drawAnimate);
+    }
   },
 
   genColor() { 
@@ -2064,199 +2067,524 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
       ret.push(_nextCol & 0xff); // R 
       ret.push((_nextCol & 0xff00) >> 8); // G 
       ret.push((_nextCol & 0xff0000) >> 16); // B
-      this._nextCol += 100; 
+      this._nextCol += 99; 
     }
-    return "rgb(" + ret.join(',') + ")";
+    return ret;
   },
-
-  draw(data) {
-    this.platform.clear([1, 1, 1, 0]);
-    this.sPositions.data(data);
-    this.sColors.data(data);
-    this.snodes
-      .data(data)
-      .render();
-  },
-
-  _draw(data, canvas, hidden) {
-    const _this = this;
-    //const spriteCtx = _this.bubbleCanvas.node().getContext("2d", { alpha: false });
-    const ctx = hidden ? canvas.getContext("2d", { alpha: false }) : canvas.getContext("2d");
-    ctx.clearRect(0, 0, this.width, this.height);
-
-    data.each(function(d) {
-      if (hidden) {
-        if (d.__pickColor === undefined) {
-          d.__pickColor = _this.genColor();
-          _this._colorToNode[d.__pickColor] = this;
-        }
-        ctx.fillStyle = d.__pickColor;
-        _this.drawHiddenBubble(ctx, this);
-      }   
-      else
-        _this.drawBubble(ctx, this);//, spriteCtx);
-    })
-  },
-
-  drawHiddenBubble(ctx, elem) {
-    ctx.imageSmoothingEnabled = false;
-    ctx.msImageSmoothingEnabled = false;
-    if (elem.getAttribute("vzb-invisible") === "true") return;
-    ctx.beginPath();
-    switch (elem.tagName) {
-      case "circle": {
-        ctx.arc(elem.getAttribute("cx"), elem.getAttribute("cy"), Math.ceil(elem.getAttribute("r")) + 1, 0, 2 * Math.PI);
-        ctx.fill();
-        break;
-      }
-      case "trail": {
-        ctx.arc(elem.getAttribute("cx"), elem.getAttribute("cy"), Math.ceil(elem.getAttribute("r")) + 1, 0, 2 * Math.PI);
-        ctx.fill();
-        break;
-      }
-    }
-  },
-
-  drawBubble(ctx, elem) {//}, spriteCtx) {
-    let color;
-    if (elem.getAttribute("vzb-invisible") === "true") return;
-    ctx.beginPath();
-    switch (elem.tagName) {
-      case "circle": {
-        ctx.globalAlpha = elem.getAttribute("opacity") || 1;
-        ctx.arc(elem.getAttribute("cx"), elem.getAttribute("cy"), elem.getAttribute("r"), 0, 2 * Math.PI);
-        ctx.fillStyle = elem.getAttribute("fill");
-        ctx.fill();
-        ctx.strokeStyle = "#000";
-        ctx.stroke();
-        // const r = Math.ceil(elem.getAttribute("r")) + 1;
-        // const d = r * 2;
-        // this.drawBubbleSprite(spriteCtx, this.bubbleMaxSide, elem, r);
-        // ctx.drawImage(spriteCtx.canvas, 0, 0, d, d, Math.ceil(elem.getAttribute("cx")) - r, Math.ceil(elem.getAttribute("cy")) - r, d, d);
-        break;
-      }
-      case "trail": {
-        ctx.globalAlpha = elem.getAttribute("opacity") || 1;
-        ctx.arc(elem.getAttribute("cx"), elem.getAttribute("cy"), elem.getAttribute("r"), 0, 2 * Math.PI);
-        ctx.fillStyle = elem.getAttribute("fill");
-        ctx.fill();
-        ctx.strokeStyle = "#000";
-        ctx.stroke();
-        // const r = Math.ceil(elem.getAttribute("r")) + 1;
-        // const d = r * 2;
-        // this.drawBubbleSprite(spriteCtx, this.bubbleMaxSide, elem, r);
-        // ctx.drawImage(spriteCtx.canvas, 0, 0, d, d, Math.ceil(elem.getAttribute("cx")) - r, Math.ceil(elem.getAttribute("cy")) - r, d, d);
-
-        //line
-        ctx.beginPath();
-        ctx.setLineDash([elem.getAttribute("stroke-dasharray")]);
-        ctx.lineDashOffset = elem.getAttribute("stroke-dashoffset");
-        ctx.moveTo(elem.getAttribute("x1"),elem.getAttribute("y1"));
-        ctx.lineTo(elem.getAttribute("x2"),elem.getAttribute("y2"));
-        ctx.strokeStyle = elem.getAttribute("stroke");
-        ctx.stroke();
-        ctx.setLineDash([]);
-        break;
-      }
-    }
-  },
-
-//   drawBubbleSprite(ctx, side, elem, r) {
-//     ctx.clearRect(0, 0, side, side);
-// //    ctx.globalAlpha = elem.getAttribute("opacity") || 1;
-//     ctx.beginPath();
-//     ctx.arc(r, r, r, 0, 2 * Math.PI);
-//     ctx.fillStyle = elem.getAttribute("fill");
-//     ctx.fill();
-//     ctx.strokeStyle = "#000";
-//     ctx.stroke();
-//   },
 
   trackCanvasObject(x, y) {
-    // this.draw(this.bubbleContainer.selectAll("*"), this.hiddenCanvas.node(), true);
-    // const col = this.hiddenCanvas.node().getContext('2d').getImageData(x, y, 1, 1).data;
-    // //console.log('rgb(' + col[0] + ',' + col[1] + ',' + col[2] + ')');
-    // return this._colorToNode['rgb(' + col[0] + ',' + col[1] + ',' + col[2] + ')'];
+    this.pickingDraw(d3.selectAll(this.visibleBubblesSelection), this.visibleBubblesSelection);
+    const gl = this.pickingGl;
+    const pixels = new Uint8Array(4);
+    gl.readPixels(x, gl.drawingBufferHeight - y, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
+    console.log(x,y,pixels);
+    return this._colorToNode[pixels[0] + "," + pixels[1] + "," + pixels[2]];
   },
 
-  createMarks(platform) {
-    this.sPositions = Stardust.array("Vector3")
-      .value(elem => [elem.getAttribute("cx"), elem.getAttribute("cy"), elem.getAttribute("r")]);
-    this.positionScale = Stardust.scale.custom("array(pos, value)")
-      .attr("pos", "Vector2Array", this.sPositions)
-    this.radiusScale = Stardust.scale.custom("(array(pos, value)).z")
-      .attr("pos", "Vector3Array", this.sPositions);
-    this.sColors = Stardust.array("Color")
-      .value(elem => {
-        const color = +("0x" + elem.getAttribute("fill").slice(1));
-        return [((color & 0xff0000) >> 16) / 255, ((color & 0xff00) >> 8) / 255, (color & 0xff) / 255, +elem.getAttribute("opacity")]
-      });
-    this.colorScale = Stardust.scale.custom("array(pos, value)")
-      .attr("pos", "Vector4Array", this.sColors);
+  initCanvas(gl, prog, width, height) {
+    gl.viewport(0, 0, width, height);
 
-    //this.snodes = Stardust.mark.create(Stardust.mark.circle(8), platform)
-    this.snodes = Stardust.mark.create(this.circleMark, platform)
-      .attr("color", this.colorScale((d,i) => i))
-      .attr("radius", this.radiusScale((d,i) => i))
-      .attr("center", this.positionScale((d,i) => i))
-      .attr("stroke", [0, 0, 0, 1])
-      .attr("strokeWidth", 1);
+    // Initialise uTransformToClipSpace
+    gl.uniformMatrix3fv(gl.getUniformLocation(prog, "uTransformToClipSpace"), false, [
+      2 / gl.drawingBufferWidth, 0, 0,
+      0, - 2 / gl.drawingBufferHeight, 0,
+      -1, 1, 1
+    ]);
+
+    gl.uniform1f(gl.getUniformLocation(prog, "uHeight"), gl.drawingBufferHeight);
+
   },
 
-  createCircle() {
-    const spec = Stardust.mark.compile(`
-      // Import predefined marks
+  glInit(gl) {
+    gl.getExtension('GL_OES_standard_derivatives');
+    gl.getExtension('OES_standard_derivatives');
+    gl.getExtension('OES_element_index_uint');
+    // Load and compile the shaders
+    const fragmentShader = this.createShader(gl, this.fragmentShader(), gl.FRAGMENT_SHADER);
+    const vertexShader = this.createShader(gl, this.vertexShader(), gl.VERTEX_SHADER);
 
-      mark Circle(
-        center: Vector2 = [ 0, 0 ],
-        radius: float = 1,
-        color: Color = [ 0, 0, 0, 1 ]
-      ) {
-        //let rs = radius * 1.4142135624;
-        emit [
-          { position: Vector4(center.x, center.y, 0.0, 1.0), PointSize: radius * 2, color: color },
-          { position: Vector4(center.x, center.y, 0.0, 1.0), PointSize: radius * 2, color: color },
-          { position: Vector4(center.x, center.y, 0.0, 1.0), PointSize: radius * 2, color: color }
+    // Create the WebGL program
+    const prog = this.prog = gl.createProgram();
+    gl.attachShader(prog, vertexShader);
+    gl.attachShader(prog, fragmentShader);
+    gl.linkProgram(prog);
+    gl.useProgram(prog);
+
+    // Global WebGL configuration
+    gl.disable(gl.DEPTH_TEST);
+    gl.enable(gl.BLEND);
+    gl.blendFuncSeparate(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA, gl.ONE, gl.ONE_MINUS_SRC_ALPHA);
+
+    // Enable the attributes
+    gl.enableVertexAttribArray(gl.getAttribLocation(prog, "aPosition"));
+    gl.enableVertexAttribArray(gl.getAttribLocation(prog, "aCenter"));
+    gl.enableVertexAttribArray(gl.getAttribLocation(prog, "aRadius"));
+    gl.enableVertexAttribArray(gl.getAttribLocation(prog, "aNorm"));
+    gl.enableVertexAttribArray(gl.getAttribLocation(prog, "aColor"));
+
+    gl.uniform3fv(gl.getUniformLocation(prog, "uStrokeColor"), [0.0, 0.0, 0.0]);
+    gl.uniform1f(gl.getUniformLocation(prog, "uStrokeWidth"), 1.0);
+  },
+
+  pickingGlInit(gl) {
+    // Load and compile the shaders
+    const fragmentShader = this.createShader(gl, this.pickingFragmentShader(), gl.FRAGMENT_SHADER);
+    const vertexShader = this.createShader(gl, this.pickingVertexShader(), gl.VERTEX_SHADER);
+
+    // Create the WebGL program
+    const prog = this.pickingProg = gl.createProgram();
+    gl.attachShader(prog, vertexShader);
+    gl.attachShader(prog, fragmentShader);
+    gl.linkProgram(prog);
+    gl.useProgram(prog);
+
+    // Global WebGL configuration
+    gl.disable(gl.DEPTH_TEST);
+    gl.disable(gl.BLEND);
+
+    // Enable the attributes
+    gl.enableVertexAttribArray(gl.getAttribLocation(prog, "aPosition"));
+    gl.enableVertexAttribArray(gl.getAttribLocation(prog, "aCenter"));
+    gl.enableVertexAttribArray(gl.getAttribLocation(prog, "aRadius"));
+    gl.enableVertexAttribArray(gl.getAttribLocation(prog, "aColor"));
+
+  },
+
+  attrib(gl, prog, attrib_name, size, offset, stride) {
+    gl.vertexAttribPointer(gl.getAttribLocation(prog, attrib_name),
+      size, gl.FLOAT, false, stride, offset);
+  },
+
+  draw(nodes) {
+    const gl = this.gl;
+    const prog = this.prog;
+
+    gl.clearColor(0,0,0,0);
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+    const data = this.loadData(nodes, 7, 4);
+    gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
+    gl.bufferData(gl.ARRAY_BUFFER, data.posData, gl.STATIC_DRAW);
+    data.posData = null;
+
+    this.attrib(gl, prog, "aPosition", 2, 0, 28);
+    this.attrib(gl, prog, "aCenter", 2, 8, 28);
+    this.attrib(gl, prog, "aRadius", 1, 16, 28);
+    this.attrib(gl, prog, "aNorm", 2, 20, 28);
+
+    gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
+    gl.bufferData(gl.ARRAY_BUFFER, data.colorData, gl.STATIC_DRAW);
+    data.colorData = null;
+
+    this.attrib(gl, prog, "aColor", 4, 0, 16);
+
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, gl.createBuffer());
+    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, data.indexData, gl.STATIC_DRAW);
+    data.indexData = null;
+
+    const offset = 0;
+    const type = gl.UNSIGNED_INT;
+    gl.drawElements(gl.TRIANGLES, data.vertexCount, type, offset);
+  },
+
+  pickingDraw(nodesSel, nodes) {
+    const gl = this.pickingGl;
+    const prog = this.pickingProg;
+
+    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+    const data = this.pickingLoadData(nodesSel, nodes, 5, 4);
+    gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
+    gl.bufferData(gl.ARRAY_BUFFER, data.posData, gl.STATIC_DRAW);
+    data.posData = null;
+
+    this.attrib(gl, prog, "aPosition", 2, 0, 20);
+    this.attrib(gl, prog, "aCenter", 2, 8, 20);
+    this.attrib(gl, prog, "aRadius", 1, 16, 20);
+
+    gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
+    gl.bufferData(gl.ARRAY_BUFFER, data.colorData, gl.STATIC_DRAW);
+    data.colorData = null;
+
+    this.attrib(gl, prog, "aColor", 4, 0, 16);
+
+    const offset = 0;
+    gl.drawArrays(gl.TRIANGLES, offset, data.vertexCount);
+  },
+  
+  loadData(nodes, pos_floats_per_bubble, color_floats_per_bubble) {
+    const posData = new Float32Array(nodes.length * 9 * pos_floats_per_bubble);
+    const colorData = new Float32Array(nodes.length * 9 * color_floats_per_bubble);
+    const indexData = new Uint32Array(nodes.length * 9);
+    const koeff = (1 + Math.sqrt(2));
+    //fill data for primitives - 1 triangle(3 vertexes) for bubble circle(trail circle),
+    //2 triangle(6 vertexes) for trail's line
+    let baseIndex = 0;
+    for (let i = 0, j = nodes.length, baseIndexPos = 0, baseIndexColor = 0, elemIndex = 0, x, y, x2, y2, dx, dy, rd, _x, _y, _rd, color, r, g, b, a; i < j; i++) {
+      const elem = nodes[i];
+      const trail = elem.tagName === "trail";
+      //x,y,r
+      x = +elem.getAttribute("cx");
+      y = +elem.getAttribute("cy");
+      rd = +elem.getAttribute("r") + 1;
+      _x = x - rd;
+      _y = y - rd;
+      _rd = koeff * rd;
+
+      posData[baseIndexPos++] = _x;
+      posData[baseIndexPos++] = _y;
+      posData[baseIndexPos++] = x;
+      posData[baseIndexPos++] = y;
+      posData[baseIndexPos++] = rd;
+      posData[baseIndexPos++] = 0.0;
+      posData[baseIndexPos++] = 0.0;
+
+      posData[baseIndexPos++] = x + _rd;
+      posData[baseIndexPos++] = _y;
+      posData[baseIndexPos++] = x;
+      posData[baseIndexPos++] = y;
+      posData[baseIndexPos++] = rd;
+      posData[baseIndexPos++] = 0.0;
+      posData[baseIndexPos++] = 0.0;
+
+      posData[baseIndexPos++] = _x;
+      posData[baseIndexPos++] = y + _rd;
+      posData[baseIndexPos++] = x;
+      posData[baseIndexPos++] = y;
+      posData[baseIndexPos++] = rd;
+      posData[baseIndexPos++] = 0.0;
+      posData[baseIndexPos++] = 0.0;
+
+      if (trail) {
+        x = +elem.getAttribute("x1");
+        y = +elem.getAttribute("y1");
+        x2 = +elem.getAttribute("x2");
+        y2 = +elem.getAttribute("y2");
+        dx = x2 - x;
+        dy = y2 - y;
+        _x = normal(dx, dy);
+        _y = normal(dy, -dx);
+        posData[baseIndexPos] =
+        posData[baseIndexPos + 2] = 
+        posData[baseIndexPos + 7] = 
+        posData[baseIndexPos + 9] = x;
+
+        posData[baseIndexPos + 5] = 
+        posData[baseIndexPos + 19] = _x;
+
+        posData[baseIndexPos + 1] = 
+        posData[baseIndexPos + 3] = 
+        posData[baseIndexPos + 8] = 
+        posData[baseIndexPos + 10] = y;
+
+        posData[baseIndexPos + 6] = 
+        posData[baseIndexPos + 20] = _y;
+
+        posData[baseIndexPos + 14] = 
+        posData[baseIndexPos + 16] = 
+        posData[baseIndexPos + 21] = 
+        posData[baseIndexPos + 23] = x2;
+
+        posData[baseIndexPos + 12] = 
+        posData[baseIndexPos + 26] = -_x;
+
+        posData[baseIndexPos + 15] = 
+        posData[baseIndexPos + 17] = 
+        posData[baseIndexPos + 22] = 
+        posData[baseIndexPos + 24] = y2;
+
+        posData[baseIndexPos + 13] = 
+        posData[baseIndexPos + 27] = -_y;
+
+        posData[baseIndexPos + 4] = 
+        posData[baseIndexPos + 11] = 
+        posData[baseIndexPos + 18] =
+        posData[baseIndexPos + 25] = rd;
+
+        baseIndexPos += 4 * pos_floats_per_bubble;
+      }
+
+      //color r,g,b,a
+      color = getColor(elem.getAttribute("fill"));
+      colorData[baseIndexColor] = 
+      colorData[baseIndexColor + 4] = 
+      colorData[baseIndexColor + 8] = 
+      r = +color[0] / 255;
+
+      colorData[baseIndexColor + 1] = 
+      colorData[baseIndexColor + 5] = 
+      colorData[baseIndexColor + 9] = 
+      g = +color[1] / 255;
+
+      colorData[baseIndexColor + 2] = 
+      colorData[baseIndexColor + 6] = 
+      colorData[baseIndexColor + 10] = 
+      b = +color[2] / 255;
+
+      colorData[baseIndexColor + 3] = 
+      colorData[baseIndexColor + 7] = 
+      colorData[baseIndexColor + 11] = 
+      a = +elem.getAttribute("opacity");
+
+      baseIndexColor += 3 * color_floats_per_bubble;
+
+      if (trail) {
+        colorData[baseIndexColor] = 
+        colorData[baseIndexColor + 4] = 
+        colorData[baseIndexColor + 8] =
+        colorData[baseIndexColor + 12] = r;
+  
+        colorData[baseIndexColor + 1] = 
+        colorData[baseIndexColor + 5] = 
+        colorData[baseIndexColor + 9] =
+        colorData[baseIndexColor + 13] = g;
+  
+        colorData[baseIndexColor + 2] = 
+        colorData[baseIndexColor + 6] = 
+        colorData[baseIndexColor + 10] =
+        colorData[baseIndexColor + 14] = b;
+  
+        colorData[baseIndexColor + 3] = 
+        colorData[baseIndexColor + 7] = 
+        colorData[baseIndexColor + 11] =
+        colorData[baseIndexColor + 15] = a;
+  
+        baseIndexColor += 4 * color_floats_per_bubble;
+      }
+      //index data
+      indexData[baseIndex] = elemIndex++;
+      indexData[baseIndex + 1] = elemIndex++;
+      indexData[baseIndex + 2] = elemIndex++;
+      
+      baseIndex += 3;
+
+      if (trail) {
+        indexData[baseIndex] = elemIndex;
+        indexData[baseIndex + 1] = elemIndex + 1;
+        indexData[baseIndex + 2] = elemIndex + 2;
+        indexData[baseIndex + 3] = elemIndex + 1;          
+        indexData[baseIndex + 4] = elemIndex + 2;
+        indexData[baseIndex + 5] = elemIndex + 3;          
+
+        baseIndex += 6;
+        elemIndex += 4;
+      }
+    }
+
+    return {
+      posData,
+      colorData,
+      indexData,
+      vertexCount: baseIndex
+    };
+
+    function getColor(color) {
+      let c;
+      if (color[0] === "#") {
+        c = +("0x" + color.slice(1));
+        return [
+          (c & 0xff0000) >> 16,
+          (c & 0xff00) >> 8,
+          c & 0xff
         ];
+      } else if (color.slice(0, 3) === "rgb") {
+        return color.slice(4, -1).split(",");
       }
-      shader CircleShader(
-        color: Color,
-        offset: Vector2
-      ) {
-        let dist = dot(offset, offset);
-        if(dist > 1.0) {
-          discard;
-        } else {
-          emit { color: color };
-        }
-      }
-      mark StrokedCircle(
-        center: Vector2 = [ 0, 0 ],
-        radius: float = 1,
-        strokeWidth: float,
-        color: Color = [ 1, 1, 1, 1 ],
-        stroke: Color = [ 0, 0, 0, 1 ]
-      ) {
-        Circle(center, radius + strokeWidth, stroke);
-        Circle(center, radius, color);
-      }
-    `);
-    //spec.StrokedCircle.shader = spec.CircleShader;
+      return [0,0,0];
+    }
 
-    return spec.StrokedCircle;
+    function normal(dx, dy) {
+      return dy && 1.0 / Math.sqrt(1.0 + Math.pow(dx / dy, 2));
+    }
   },
 
-  createScales() {
-    this.xSDScale = Stardust.scale.linear()
-      .domain(this.xScale.domain())
-      .range(this.xScale.range())
-    this.ySDScale = Stardust.scale.linear()
-      .domain(this.yScale.domain())
-      .range(this.yScale.range())
-    this.snodes.attr("center", Stardust.scale.Vector2(
-        this.xSDScale(d => d.valueX), this.ySDScale(d => d.valueY)))
+  pickingLoadData(nodesSel, nodes, pos_floats_per_bubble, color_floats_per_bubble) {
+    const _this = this;
+    const posData = new Float32Array(nodes.length * 3 * pos_floats_per_bubble);
+    const colorData = new Float32Array(nodes.length * 3 * color_floats_per_bubble);
+    const koeff = (1 + Math.sqrt(2));
+    //fill data for primitives - 1 triangle(3 vertexes) for bubble circle(trail circle)
+    let baseIndexPos = 0, baseIndexColor = 0, x, y, rd, _x, _y, _rd, color;
+    nodesSel.each(function(d) {
+    //for (let i = 0, j = nodes.length, baseIndexPos = 0, baseIndexColor = 0, x, y, rd, _x, _y, _rd, color; i < j; i++) {
+      const elem = this;
+      //x,y,r
+      x = +elem.getAttribute("cx");
+      y = +elem.getAttribute("cy");
+      rd = +elem.getAttribute("r") + 1;
+      _x = x - rd;
+      _y = y - rd;
+      _rd = koeff * rd;
 
-  }
+      posData[baseIndexPos++] = _x;
+      posData[baseIndexPos++] = _y;
+      posData[baseIndexPos++] = x;
+      posData[baseIndexPos++] = y;
+      posData[baseIndexPos++] = rd;
+
+      posData[baseIndexPos++] = x + _rd;
+      posData[baseIndexPos++] = _y;
+      posData[baseIndexPos++] = x;
+      posData[baseIndexPos++] = y;
+      posData[baseIndexPos++] = rd;
+
+      posData[baseIndexPos++] = _x;
+      posData[baseIndexPos++] = y + _rd;
+      posData[baseIndexPos++] = x;
+      posData[baseIndexPos++] = y;
+      posData[baseIndexPos++] = rd;
+
+      //color r,g,b,a
+      if (d.__pickColor === undefined) {
+        d.__pickColor = _this.genColor();
+        _this._colorToNode[d.__pickColor.join(",")] = this;
+      }
+      color = d.__pickColor;
+
+      colorData[baseIndexColor] = 
+      colorData[baseIndexColor + 4] = 
+      colorData[baseIndexColor + 8] = color[0] / 255;
+
+      colorData[baseIndexColor + 1] = 
+      colorData[baseIndexColor + 5] = 
+      colorData[baseIndexColor + 9] = color[1] / 255;
+
+      colorData[baseIndexColor + 2] = 
+      colorData[baseIndexColor + 6] = 
+      colorData[baseIndexColor + 10] = color[2] / 255;
+
+      colorData[baseIndexColor + 3] = 
+      colorData[baseIndexColor + 7] = 
+      colorData[baseIndexColor + 11] = 1.0;
+
+      baseIndexColor += 3 * color_floats_per_bubble;
+    });
+
+    return {
+      posData,
+      colorData,
+      vertexCount: baseIndexPos / pos_floats_per_bubble
+    };
+    
+  },
+
+  createShader (gl, sourceCode, type) {
+    // Compiles either a shader of type gl.VERTEX_SHADER or gl.FRAGMENT_SHADER
+    var shader = gl.createShader( type );
+    gl.shaderSource( shader, sourceCode );
+    gl.compileShader( shader );
+  
+    if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+      var info = gl.getShaderInfoLog( shader );
+      throw 'Could not compile WebGL program. \n\n' + info;
+    }
+    return shader;
+  },
+
+  pickingVertexShader() { return `
+    uniform mat3 uTransformToClipSpace;
+
+    attribute vec2 aPosition;
+    attribute vec2 aCenter;
+    attribute float aRadius;
+    attribute vec4 aColor;
+
+    varying vec3 vColor;
+    varying vec2 vCenter;
+    varying float vOpacity;
+    varying float vRadius;    
+
+    void main(void) {
+      vec2 pos = (uTransformToClipSpace * vec3(aPosition, 1.0)).xy;
+
+      vCenter = aCenter;
+      vColor = (aColor).xyz;
+      vOpacity = aColor.w;
+      vRadius = aRadius;
+
+      gl_Position = vec4(pos, 0.0, 1.0);
+    }  
+  `},
+
+  pickingFragmentShader() { return `
+    //precision mediump float;
+    uniform mediump float uHeight;
+
+    varying mediump vec3 vColor;
+    varying mediump vec2 vCenter;
+    varying mediump float vOpacity;
+    varying mediump float vRadius;    
+
+    void main(void) {
+      mediump float delta = 0.0, alpha = 1.0, stroke = 1.0;
+      lowp vec2 pos = vec2(gl_FragCoord.x, uHeight - gl_FragCoord.y);
+      lowp float distance = distance(vCenter, pos);
+      
+      if (distance > vRadius) discard;
+
+      gl_FragColor = vec4(vColor,vOpacity);
+    }  
+  `},
+  
+  vertexShader() { return `
+    uniform mat3 uTransformToClipSpace;
+    uniform mediump float uStrokeWidth;
+
+    attribute vec2 aPosition;
+    attribute vec2 aCenter;
+    attribute float aRadius;
+    attribute vec2 aNorm;
+    attribute vec4 aColor;
+
+    varying vec3 vColor;
+    varying vec2 vCenter;
+    varying float vOpacity;
+    varying float vRadius;    
+
+    void main(void) {
+      vec2 pos = (uTransformToClipSpace * vec3(aPosition + aNorm * (uStrokeWidth * 0.5), 1.0)).xy;
+
+      vCenter = aCenter;
+      vColor = (aColor).xyz;
+      vOpacity = aColor.w;
+      vRadius = aRadius - 1.0;
+
+      gl_Position = vec4(pos, 0.0, 1.0);
+    }
+  `},
+
+  fragmentShader() { return `
+    #ifdef GL_OES_standard_derivatives
+    #extension GL_OES_standard_derivatives : enable
+    #endif
+
+    //precision mediump float;
+    uniform mediump vec3 uStrokeColor;
+    uniform mediump float uStrokeWidth;
+    uniform mediump float uHeight;
+
+    varying mediump vec3 vColor;
+    varying mediump vec2 vCenter;
+    varying mediump float vOpacity;
+    varying mediump float vRadius;    
+
+    void main(void) {
+      mediump float delta = 0.0, alpha = 1.0, stroke = 1.0;
+      lowp vec2 pos = vec2(gl_FragCoord.x, uHeight - gl_FragCoord.y);
+      lowp float distance = distance(vCenter, pos);
+      lowp float outerEdge = vRadius - uStrokeWidth * 0.5;
+      
+      #ifdef GL_OES_standard_derivatives
+        delta = fwidth(distance);
+        alpha = 1.0 - smoothstep(vRadius - delta, vRadius + delta, distance);
+        stroke = 1.0 - smoothstep(outerEdge - delta, outerEdge + delta, distance);
+      #endif
+      gl_FragColor = vec4(mix(uStrokeColor, vColor, stroke), vOpacity) * alpha;
+
+      //gl_FragColor = vec4(vColor,vOpacity);
+    }
+  `}
+
 });
 
 export default BubbleChart;

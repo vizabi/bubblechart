@@ -40,6 +40,10 @@
 
     .vzb-bc-main-canvas, .vzb-bc-hidden-canvas {
       position: absolute;
+      image-rendering: -moz-crisp-edges;
+      image-rendering: -webkit-crisp-edges;
+      image-rendering: pixelated;
+      image-rendering: crisp-edges;
     }
     
     .vzb-bc-hidden-canvas {
@@ -58,6 +62,7 @@
       @extend %vzb-chart-svg;
       transform: translateZ(0);
       overflow: visible;
+      pointer-events: none;
       
       .vzb-bc-bubbles-crop {
         touch-action: none;
