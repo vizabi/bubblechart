@@ -31,6 +31,7 @@ const Trail = Vizabi.Class.extend({
         delete d.trailStartTime;
       });
     }
+    _context._labels._clearInitialFontSize();
   },
 
   create(selection) {
@@ -88,6 +89,7 @@ const Trail = Vizabi.Class.extend({
               .attr("class", "vzb-bc-trailsegment vzb-invisible")
               .on("mouseover", function(segment, index) {
                 if (utils.isTouchDevice()) return;
+                if (_context._labels.dragging) return;
 
                 const pointer = {};
                 pointer[KEY] = segment.key;
@@ -116,6 +118,8 @@ const Trail = Vizabi.Class.extend({
               })
               .on("mouseout", function(segment, index) {
                 if (utils.isTouchDevice()) return;
+                if (_context._labels.dragging) return;
+
                 _context._axisProjections();
                 _context._setTooltip();
                 _context._setBubbleCrown();

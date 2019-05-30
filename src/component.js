@@ -151,6 +151,7 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
       "change:marker.select": function(evt, path) {
         if (!_this._readyOnce || !_this.entityBubbles) return;
         //console.log("EVENT change:marker:select");
+        if (path.indexOf("select.labelOffset") !== -1) return;
 
         //disable trails if too many items get selected at once
         //otherwise it's too much waiting time
@@ -762,10 +763,13 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
       .attr("class", d => "vzb-bc-entity " + "bubble-" + d[KEY])
       .on("mouseover", (d, i) => {
         if (utils.isTouchDevice() || (_this.model.ui.cursorMode !== "arrow" && _this.model.ui.cursorMode !== "hand")) return;
+        if (_this._labels.dragging) return;
+
         _this._bubblesInteract().mouseover(d, i);
       })
       .on("mouseout", (d, i) => {
         if (utils.isTouchDevice() || (_this.model.ui.cursorMode !== "arrow" && _this.model.ui.cursorMode !== "hand")) return;
+        if (_this._labels.dragging) return;
 
         _this._bubblesInteract().mouseout(d, i);
       })
