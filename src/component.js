@@ -1491,6 +1491,10 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
               //to avoid transition from null state add class with a delay
               view.classed("vzb-invisible", d.hidden);
               view.style("opacity", opacity);
+            })
+            .on("interrupt", () => {
+              view.classed("vzb-invisible", d.hidden);
+              view.style("opacity", opacity);
             });
         } else {
           //immediately hide the bubble
@@ -1518,7 +1522,10 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
             .attr("cx", _this.xScale(valueX))
             .attr("r", scaledS)
             .transition().duration(duration).ease(d3.easeExp)
-            .style("opacity", opacity);
+            .style("opacity", opacity)
+            .on("interrupt", () => {
+              view.style("opacity", opacity);
+            });
         } else {
           view.transition().duration(duration).ease(d3.easeLinear)
             .attr("cy", _this.yScale(valueY))
