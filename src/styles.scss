@@ -38,8 +38,13 @@
       cursor: url('assets/cursors/grabbing.cur'), auto;
     }
 
+    .vzb-bubblechart-svg-front {
+      pointer-events: none;
+    }
+
     .vzb-bubblechart-svg {
       @extend %vzb-chart-svg;
+      transform: translateZ(0);
       overflow: visible;
       
       .vzb-bc-bubbles-crop {

@@ -1,34 +1,32 @@
 <!-- Bubble Chart Component -->
 <div class="vzb-bubblechart">
-    <svg class="vzb-bubblechart-svg vzb-export">
+    <svg class="vzb-bubblechart-svg vzb-bubblechart-svg-back vzb-export">
         <g class="vzb-bc-graph">
             <g class="vzb-bc-year"></g>
-
-            <g class="vzb-bc-axis-x-title"></g>
-            <g class="vzb-bc-axis-x-info vzb-noexport"></g>
             <svg class="vzb-bc-axis-x"><g></g></svg>
-
-            <g class="vzb-bc-axis-y-title"></g>
-            <g class="vzb-bc-axis-y-info vzb-noexport"></g>
             <svg class="vzb-bc-axis-y"><g></g></svg>
-
             <line class="vzb-bc-projection-x"></line>
             <line class="vzb-bc-projection-y"></line>
-
             <svg class="vzb-bc-bubbles-crop">
-                <g class="vzb-zoom-selection"></g>
-                <rect class="vzb-bc-eventarea"></rect>
                 <g class="vzb-bc-decorations">
                     <line class="vzb-bc-line-equal-xy vzb-invisible"></line>
                     <g class="vzb-bc-x-axis-groups"></g>
-                </g>
+                </g>    
+            </svg>
+        </g>
+    </svg>
+    <svg class="vzb-bubblechart-svg vzb-bubblechart-svg-main vzb-export">
+        <g class="vzb-bc-graph">
+            <g class="vzb-bc-axis-x-title"></g>
+            <g class="vzb-bc-axis-x-info vzb-noexport"></g>
+
+            <g class="vzb-bc-axis-y-title"></g>
+            <g class="vzb-bc-axis-y-info vzb-noexport"></g>
+            <svg class="vzb-bc-bubbles-crop">
+                <g class="vzb-zoom-selection"></g>
+                <rect class="vzb-bc-eventarea"></rect>
                 <g class="vzb-bc-trails"></g>
                 <g class="vzb-bc-bubbles"></g>
-                <g class="vzb-bc-lines"></g>
-                <g class="vzb-bc-bubble-crown vzb-hidden">
-                    <circle class="vzb-crown-glow"></circle>
-                    <circle class="vzb-crown"></circle>
-                </g>
                 <rect class="vzb-bc-forecastoverlay vzb-hidden" x="0" y="0" width="100%" height="100%" fill="url(#vzb-bc-pattern-lines)" pointer-events='none'></rect>
             </svg>
 
@@ -37,16 +35,26 @@
             <g class="vzb-bc-axis-s-title"></g>
             <g class="vzb-bc-axis-c-title"></g>
 
-            <svg class="vzb-bc-labels-crop">
-                <g class="vzb-bc-labels"></g>
-            </svg>
-
             <g class="vzb-data-warning vzb-noexport">
                 <svg></svg>
                 <text></text>
             </g>
 
             <rect class="vzb-bc-zoom-rect"></rect>
+        </g>
+    </svg>
+    <svg class="vzb-bubblechart-svg vzb-bubblechart-svg-front vzb-export">
+        <g class="vzb-bc-graph">
+            <svg class="vzb-bc-bubbles-crop">
+                <g class="vzb-bc-lines"></g>
+                <g class="vzb-bc-bubble-crown vzb-hidden">
+                    <circle class="vzb-crown-glow"></circle>
+                    <circle class="vzb-crown"></circle>
+                </g>        
+            </svg>
+            <svg class="vzb-bc-labels-crop">
+                <g class="vzb-bc-labels"></g>
+            </svg>
         </g>
     </svg>
     <svg>
