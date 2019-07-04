@@ -478,7 +478,7 @@ const Trail = Vizabi.Class.extend({
           }
 
           // fix label position if it not in correct place
-          if (trailStartTime && trailStartTime.toString() == segment.t.toString()) {
+          if (!duration && !segment.transparent && trailStartTime && trailStartTime.toString() == segment.t.toString()) {
             const cache = _context._labels.cached[d[KEY]];
             cache.labelX0 = segment.valueX;
             cache.labelY0 = segment.valueY;
