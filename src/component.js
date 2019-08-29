@@ -85,6 +85,18 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
         _this._trails.toggle(_this.model.ui.chart.trails);
         _this.redrawDataPoints();
       },
+      "change:ui.chart.timeInBackground": function(evt) {
+        if (!_this._readyOnce) return;
+        _this.trigger("resize");
+      },
+      "change:ui.chart.timeInTrails": function(evt) {
+        if (!_this._readyOnce) return;
+        _this.trigger("resize");
+      },
+      "change:ui.numberFormatSIPrefix": function(evt) {
+        if (!_this._readyOnce) return;
+        _this.trigger("resize");
+      },
       "change:ui.chart.lockNonSelected": function(evt) {
         if (!_this._readyOnce) return;
         //console.log("EVENT change:time:lockNonSelected");
@@ -559,8 +571,8 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
     this.cScale = this.model.marker.color.getScale();
     this._labels.setScales(this.xScale, this.yScale);
 
-    this.yAxis.tickFormat(_this.model.marker.axis_y.getTickFormatter());
-    this.xAxis.tickFormat(_this.model.marker.axis_x.getTickFormatter());
+    this.yAxis.tickFormat(_this.model.marker.axis_y.getTickFormatter(!_this.model.ui.numberFormatSIPrefix));
+    this.xAxis.tickFormat(_this.model.marker.axis_x.getTickFormatter(!_this.model.ui.numberFormatSIPrefix));
   },
 
   frameChanged(frame, time) {
@@ -668,12 +680,10 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
       .text(this.translator("hints/dataWarning"));
 
     utils.setIcon(this.yInfoEl, iconQuestion)
-      .select("svg").attr("width", "0px").attr("height", "0px")
-      .style('opacity', Number(Boolean(conceptPropsY.description || conceptPropsY.sourceLink)));
+      .select("svg").attr("width", "0px").attr("height", "0px");
 
     utils.setIcon(this.xInfoEl, iconQuestion)
-      .select("svg").attr("width", "0px").attr("height", "0px")
-      .style('opacity', Number(Boolean(conceptPropsX.description || conceptPropsX.sourceLink)));
+      .select("svg").attr("width", "0px").attr("height", "0px");
 
 
     //TODO: move away from UI strings, maybe to ready or ready once
@@ -888,6 +898,9 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
     const svgHeight = utils.px2num(chartSvg.style("height"));
     const marginScaleH = (marginMin, ratio = 0) => marginMin + svgHeight * ratio;
     const marginScaleW = (marginMin, ratio = 0) => marginMin + svgWidth * ratio;
+    
+    const conceptPropsX = this.model.marker.axis_x.getConceptprops();
+    const conceptPropsY = this.model.marker.axis_y.getConceptprops();
 
     const profiles = {
       small: {
@@ -970,6 +983,7 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
     this.graphAll
       .attr("transform", "translate(" + (margin.left * this.activeProfile.leftMarginRatio) + "," + margin.top + ")");
 
+    this.yearEl.classed("vzb-hidden", !this.model.ui.chart.timeInBackground);
     this.year.resize(this.width, this.height);
     this.eventArea
       .attr("width", this.width)
@@ -999,7 +1013,7 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
         limitMaxTickNumber: 6,
         bump: this.activeProfile.maxRadiusPx / 2,
         viewportLength: this.height,
-        formatter: this.model.marker.axis_y.getTickFormatter()
+        formatter: this.model.marker.axis_y.getTickFormatter(!this.model.ui.numberFormatSIPrefix)
       });
 
     this.xAxis.scale(this.xScale)
@@ -1012,7 +1026,7 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
         toolMargin: margin,
         bump: this.activeProfile.maxRadiusPx / 2,
         viewportLength: this.width,
-        formatter: this.model.marker.axis_x.getTickFormatter()
+        formatter: this.model.marker.axis_x.getTickFormatter(!this.model.ui.numberFormatSIPrefix)
       });
 
 
@@ -1105,7 +1119,9 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
       const hTranslate = isRTL ? (titleBBox.x + t.translateX - infoElHeight * 1.4) : (titleBBox.x + t.translateX + titleBBox.width + infoElHeight * 0.4);
       const vTranslate = isRTL ? (t.translateY + infoElHeight * 1.4 + titleBBox.width * 0.5) : (t.translateY - infoElHeight * 0.4 - titleBBox.width * 0.5);
 
-      this.yInfoEl.select("svg")
+      this.yInfoEl
+        .classed('vzb-hidden', !conceptPropsY.description && !conceptPropsY.sourceLink || this.model.ui.presentation)
+        .select("svg")
         .attr("width", infoElHeight + "px")
         .attr("height", infoElHeight + "px");
       this.yInfoEl.attr("transform", layoutProfile !== "small" ?
@@ -1119,7 +1135,9 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
       const t = utils.transform(this.xTitleEl.node());
       const hTranslate = isRTL ? (titleBBox.x + t.translateX - infoElHeight * 1.4) : (titleBBox.x + t.translateX + titleBBox.width + infoElHeight * 0.4);
 
-      this.xInfoEl.select("svg")
+      this.xInfoEl
+        .classed('vzb-hidden', !conceptPropsX.description && !conceptPropsX.sourceLink || this.model.ui.presentation)
+        .select("svg")
         .attr("width", infoElHeight + "px")
         .attr("height", infoElHeight + "px");
       this.xInfoEl.attr("transform", "translate("
@@ -1301,6 +1319,7 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
       .attr("y", -warnBB.height * 0.65);
 
     this.dataWarningEl
+      .classed("vzb-hidden", this.model.ui.presentation)
       .attr("transform", "translate("
         + (this.model.locale.isRTL() ? warnBB.width + warnBB.height : this.width) + ","
         + (this.height + this.activeProfile.margin.bottom - this.activeProfile.xAxisTitleBottomMargin)
@@ -1603,7 +1622,7 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
 
   _getLabelText(values, d, time) {
     return this.model.marker.getCompoundLabelText(d, values)
-      + (time && (this.model.time.start - this.model.time.end !== 0) ? " " + time : "");
+      + (this.model.ui.chart.timeInTrails && time && (this.model.time.start - this.model.time.end !== 0) ? " " + time : "");
   },
   
   _updateForecastOverlay() {
@@ -1641,8 +1660,8 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
     const unitS = this.strings.unit.S;
     const unitC = this.strings.unit.C;
 
-    const formatterS = this.model.marker.size.getTickFormatter();
-    const formatterC = this.model.marker.color.getTickFormatter();
+    const formatterS = this.model.marker.size.getTickFormatter(!this.model.ui.numberFormatSIPrefix);
+    const formatterC = this.model.marker.color.getTickFormatter(!this.model.ui.numberFormatSIPrefix);
 
     //resolve labels for colors via the color legend
     if (this.model.marker.color.isDiscrete() && this.model.marker.color.use !== "constant" && titleC && this.model.marker.color.getColorlegendMarker()) {

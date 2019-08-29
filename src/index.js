@@ -152,6 +152,8 @@ export default Vizabi.Tool.extend("BubbleChart", {
     locale: {},
     ui: {
       chart: {
+        timeInBackground: true,
+        timeInTrails: true,
         decorations: {
           enabled: true,
           xAxisGroups: null
@@ -178,6 +180,7 @@ export default Vizabi.Tool.extend("BubbleChart", {
         doubtDomain: [],
         doubtRange: []
       },
+      numberFormatSIPrefix: true,
       show_ticks: true,
       presentation: false,
       panWithArrow: false,
