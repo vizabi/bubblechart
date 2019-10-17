@@ -166,6 +166,7 @@ export default Vizabi.Tool.extend("BubbleChart", {
           higlightValueY: true
         },
         labels: {
+          enabled: true,
           dragging: true,
           removeLabelBox: false
         },
