@@ -1,9 +1,88 @@
 import "./styles.scss";
-import component from "./component";
+import { 
+  BaseComponent,
+  TimeSlider,
+  DataNotes,
+  LocaleService,
+  LayoutService,
+  TreeMenu,
+  SteppedSlider,
+  ButtonList 
+} from "VizabiSharedComponents";
+import VizabiBubbleChart from "./component.js";
 
 const VERSION_INFO = { version: __VERSION, build: __BUILD };
 
-export default Vizabi.Tool.extend("BubbleChart", {
+export default class BubbleChart extends BaseComponent {
+
+  constructor(config){
+    const marker = config.model.stores.markers.get("bubble");
+
+    config.subcomponents = [{
+      type: VizabiBubbleChart,
+      placeholder: ".vzb-bubblechart",
+      model: marker,
+      name: "chart"
+    },{
+      type: TimeSlider,
+      placeholder: ".vzb-timeslider",
+      model: marker,
+      name: "time-slider"
+    },{
+      type: SteppedSlider,
+      placeholder: ".vzb-speedslider",
+      model: marker,
+      name: "speed-slider"
+    },{
+      type: TreeMenu,
+      placeholder: ".vzb-treemenu",
+      model: marker,
+      name: "tree-menu"
+    },{
+      type: DataNotes,
+      placeholder: ".vzb-datanotes",
+      model: marker
+    },{
+      type: ButtonList,
+      placeholder: ".vzb-buttonlist",
+      model: marker,
+      name: "buttons"
+    }];
+
+    config.template = `
+      <div class="vzb-bubblechart"></div>
+      <div class="vzb-animationcontrols">
+        <div class="vzb-timeslider"></div>
+        <div class="vzb-speedslider"></div>
+      </div>
+      <div class="vzb-sidebar">
+        <div class="vzb-buttonlist"></div>
+      </div>
+      <div class="vzb-treemenu"></div>
+      <div class="vzb-datanotes"></div>
+    `;
+
+    config.services = {
+      locale: new LocaleService(),
+      layout: new LayoutService(config)
+    };
+
+    //register locale service in the marker model
+    config.model.config.markers.bubble.data.locale = config.services.locale;
+
+    super(config);
+  }
+}
+
+
+
+
+
+
+
+
+//export default 
+const _BubbleChart = {
 
   /**
    * Initializes the tool (Bubble Chart Tool).
@@ -198,4 +277,4 @@ export default Vizabi.Tool.extend("BubbleChart", {
   },
 
   versionInfo: VERSION_INFO
-});
+};

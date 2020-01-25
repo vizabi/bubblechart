@@ -1,21 +1,17 @@
 {
-  "main": "build/bubblechart.js",
+  "name": "vizabi-bubblechart",
+  "version": "3.0.0",
+  "description": "Gapminder's bubble chart data visualisation tool. See it in action on gapminder.org/tools",
   "scripts": {
-    "link": "npm link ../vizabi",
-    "build": "cross-env NODE_ENV=production webpack --progress",
+    "link": "npm link ../vizabi-shared-components",
+    "start": "rollup -c",
+    "build": "cross-env NODE_ENV=production rollup -c",
     "deploy": "tool-deploy"
   },
+  "main": "build/bubblechart.js",
   "files": [
     "build"
   ],
-  "devDependencies": {
-    "cross-env": "^5.0.0",
-    "css.escape": "^1.5.1",
-    "vizabi": "latest",
-    "vizabi-tool-bundler": "github:vizabi/vizabi-tool-bundler"
-  },
-  "name": "vizabi-bubblechart",
-  "version": "2.5.1",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/vizabi/vizabi-bubblechart.git"
@@ -27,5 +23,10 @@
     "url": "https://github.com/vizabi/vizabi-bubblechart/issues"
   },
   "homepage": "https://github.com/vizabi/vizabi-bubblechart#readme",
-  "description": "Gapminder's bubble chart data visualisation tool. See it in action on gapminder.org/tools"
+  "devDependencies": {
+    "cross-env": "^5.0.0",
+    "css.escape": "^1.5.1",
+    "vizabi-shared-components": "../vizabi-shared-components",
+    "vizabi-tool-bundler": "github:vizabi/vizabi-tool-bundler#switch_to_rollup"
+  }
 }

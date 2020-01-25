@@ -1,23 +1,1677 @@
-const { utils } = Vizabi;
+import {
+  BaseComponent,
+  Icons,
+  LegacyUtils as utils,
+  axisSmart,
+  Labels,
+  DynamicBackground,
+  Exporter as svgexport,
+} from "VizabiSharedComponents";
+import PanZoom from "./panzoom";
 
-const {
-  svgexport: Exporter,
-  labels: Labels,
-  'd3.axisWithLabelPicker': axisSmart,
-  'd3.dynamicBackground': DynamicBackground
-} = Vizabi.helpers;
+import {
+  runInAction
+} from "mobx";
 
-const {
-  warn: iconWarn,
-  question: iconQuestion
-} = Vizabi.iconset;
+const {ICON_WARN, ICON_QUESTION} = Icons;
 
-import Trail from './trail';
-import PanZoom from './panzoom';
+const marginScaleH = (marginMin, ratio = 0) => height => marginMin + height * ratio;
+const marginScaleW = (marginMin, ratio = 0) => width => marginMin + width * ratio;
+
+const PROFILE_CONSTANTS = (width, height, options) => ({
+  SMALL: {
+    margin: { top: 30, bottom: 35, left: 30, right: 10},
+    leftMarginRatio: 1,
+    padding: 2,
+    minRadiusPx: 0.5,
+    maxRadiusEm: options.ui.maxRadiusEm || 0.05,
+    infoElHeight: 16,
+    yAxisTitleBottomMargin: 6,
+    xAxisTitleBottomMargin: 4
+  },
+  MEDIUM: {
+    margin: { top: 15, bottom: 40, left: 40, right: 15},
+    leftMarginRatio: 1.6,
+    padding: 2,
+    minRadiusPx: 1,
+    maxRadiusEm: options.ui.maxRadiusEm || 0.05,
+    infoElHeight: 20,
+    yAxisTitleBottomMargin: 3,
+    xAxisTitleBottomMargin: 4
+  },
+  LARGE: {
+    margin: { top: 15, bottom: marginScaleH(30, 0.03)(height), left: marginScaleW(31, 0.015)(width), right: 20},
+    leftMarginRatio: 1.8,
+    padding: 2,
+    minRadiusPx: 1,
+    maxRadiusEm: options.ui.maxRadiusEm || 0.05,
+    infoElHeight: 22,
+    yAxisTitleBottomMargin: 3,//marginScaleH(4, 0.01)(height),
+    xAxisTitleBottomMargin: marginScaleH(0, 0.01)(height),
+    hideSTitle: true
+  }
+});
+
+const PROFILE_CONSTANTS_FOR_PROJECTOR = (width, height, options) => ({
+  MEDIUM: {
+    margin: { top: 20, bottom: 55, left: 50, right: 20 },
+    yAxisTitleBottomMargin: 3,
+    xAxisTitleBottomMargin: 4,
+    infoElHeight: 26,
+  },
+  LARGE: {
+    margin: { top: 30, bottom: marginScaleH(45, 0.03)(height), left: marginScaleW(35, 0.025)(width), right: 30 },
+    yAxisTitleBottomMargin: 3,//marginScaleH(4, 0.01)(height),
+    xAxisTitleBottomMargin: marginScaleH(-10, 0.01)(height),
+    infoElHeight: 32,
+    hideSTitle: true
+  }
+});
+
+// BUBBLE CHART COMPONENT
+export default class VizabiBubbleChart extends BaseComponent {
+
+  constructor(config) {
+    config.subcomponents = [{
+      type: Labels,
+      placeholder: ".vzb-bc-labels",      
+      options: {
+        CSS_PREFIX: "vzb-bc",
+        LABELS_CONTAINER_CLASS: "vzb-bc-labels",
+        LINES_CONTAINER_CLASS: "vzb-bc-lines",
+        SUPPRESS_HIGHLIGHT_DURING_PLAY: false
+      },
+      name: "labels"
+    },{
+      type: DynamicBackground,
+      placeholder: ".vzb-bc-year"
+    }];
+
+    config.template = `
+      <svg class="vzb-bubblechart-svg vzb-bubblechart-svg-back vzb-export">
+          <g class="vzb-bc-graph">
+              <g class="vzb-bc-year"></g>
+              <svg class="vzb-bc-axis-x"><g></g></svg>
+              <svg class="vzb-bc-axis-y"><g></g></svg>
+              <line class="vzb-bc-projection-x"></line>
+              <line class="vzb-bc-projection-y"></line>
+              <svg class="vzb-bc-bubbles-crop">
+                  <g class="vzb-bc-decorations">
+                      <line class="vzb-bc-line-equal-xy vzb-invisible"></line>
+                      <g class="vzb-bc-x-axis-groups"></g>
+                  </g>    
+              </svg>
+          </g>
+      </svg>
+      <svg class="vzb-bubblechart-svg vzb-bubblechart-svg-main vzb-export">
+          <g class="vzb-bc-graph">
+              <g class="vzb-bc-axis-x-title"></g>
+              <g class="vzb-bc-axis-x-info vzb-noexport"></g>
+
+              <g class="vzb-bc-axis-y-title"></g>
+              <g class="vzb-bc-axis-y-info vzb-noexport"></g>
+              <svg class="vzb-bc-bubbles-crop">
+                  <g class="vzb-zoom-selection"></g>
+                  <rect class="vzb-bc-eventarea"></rect>
+                  <g class="vzb-bc-trails"></g>
+                  <g class="vzb-bc-bubbles"></g>
+                  <rect class="vzb-bc-forecastoverlay vzb-hidden" x="0" y="0" width="100%" height="100%" fill="url(#vzb-bc-pattern-lines)" pointer-events='none'></rect>
+              </svg>
+
+              <g class="vzb-bc-axis-y-subtitle"></g>
+              <g class="vzb-bc-axis-x-subtitle"></g>
+              <g class="vzb-bc-axis-s-title"></g>
+              <g class="vzb-bc-axis-c-title"></g>
+
+              <g class="vzb-data-warning vzb-noexport">
+                  <svg></svg>
+                  <text></text>
+              </g>
+
+              <rect class="vzb-bc-zoom-rect"></rect>
+          </g>
+      </svg>
+      <svg class="vzb-bubblechart-svg vzb-bubblechart-svg-front vzb-export">
+          <g class="vzb-bc-graph">
+              <svg class="vzb-bc-bubbles-crop">
+                  <g class="vzb-bc-lines"></g>
+                  <g class="vzb-bc-bubble-crown vzb-hidden">
+                      <circle class="vzb-crown-glow"></circle>
+                      <circle class="vzb-crown"></circle>
+                  </g>        
+              </svg>
+              <svg class="vzb-bc-labels-crop">
+                  <g class="vzb-bc-labels"></g>
+              </svg>
+          </g>
+      </svg>
+      <svg>
+          <defs>
+              <filter id="vzb-glow-filter" x="-50%" y="-50%" width="200%" height="200%">
+                  <feGaussianBlur in="SourceGraphic" stdDeviation="2"></feGaussianBlur>
+              </filter>
+            <pattern id="vzb-bc-pattern-lines" x="0" y="0" patternUnits="userSpaceOnUse" width="50" height="50" viewBox="0 0 10 10"> 
+                <path d='M-1,1 l2,-2M0,10 l10,-10M9,11 l2,-2' stroke='black' stroke-width='3' opacity='0.08'/>
+              </pattern> 
+          </defs>
+      </svg>
+      <!-- This could possibly be another component -->
+      <div class="vzb-tooltip vzb-hidden vzb-tooltip-mobile"></div>
+    `;
+    super(config);
+  }
+
+  setup() {
+    this.state = {
+    }
+
+    // reference elements
+    this.DOM = {
+      element: this.element,
+      chartSvg: this.element.select("svg.vzb-bubblechart-svg-main"),
+      chartSvgFront: this.element.select("svg.vzb-bubblechart-svg-front"),
+      chartSvgBack: this.element.select("svg.vzb-bubblechart-svg-back"),
+      chartSvgAll: this.element.selectAll("svg.vzb-bubblechart-svg"),
+      graphAll: this.element.selectAll(".vzb-bc-graph"),
+      bubbleContainerCropAll: this.element.selectAll(".vzb-bc-bubbles-crop"),
+      zoomRect: this.element.select(".vzb-bc-zoom-rect"),
+      eventArea: this.element.select(".vzb-bc-eventarea"),
+      forecastOverlay: this.element.select(".vzb-bc-forecastoverlay"),
+      tooltipMobile: this.element.select(".vzb-tooltip-mobile")
+    }
+    this.DOM.chartSvg.select(".vzb-bc-graph").call(graph => 
+      Object.assign(this.DOM, {
+        graph: graph,
+        ySubTitleEl: graph.select(".vzb-bc-axis-y-subtitle"),
+        xSubTitleEl: graph.select(".vzb-bc-axis-x-subtitle"),
+        yTitleEl: graph.select(".vzb-bc-axis-y-title"),
+        xTitleEl: graph.select(".vzb-bc-axis-x-title"),
+        sTitleEl: graph.select(".vzb-bc-axis-s-title"),
+        cTitleEl: graph.select(".vzb-bc-axis-c-title"),
+        yInfoEl: graph.select(".vzb-bc-axis-y-info"),
+        xInfoEl: graph.select(".vzb-bc-axis-x-info"),
+        dataWarningEl: graph.select(".vzb-data-warning"),
+        trailsContainer: graph.select(".vzb-bc-trails"),
+        bubbleContainer: graph.select(".vzb-bc-bubbles"),
+        bubbleContainerCrop: graph.select(".vzb-bc-bubbles-crop"),
+        zoomSelection: graph.select(".vzb-zoom-selection"),
+      })
+    )
+    this.DOM.chartSvgFront.select(".vzb-bc-graph").call(graphFront => 
+      Object.assign(this.DOM, {
+        graphFront: graphFront,
+        labelsContainer: graphFront.select(".vzb-bc-labels"),
+        labelsContainerCrop: graphFront.select(".vzb-bc-labels-crop"),
+        linesContainer: graphFront.select(".vzb-bc-lines"),
+        bubbleCrown: graphFront.select(".vzb-bc-bubble-crown")
+      })
+    )
+    this.DOM.chartSvgBack.select(".vzb-bc-graph").call(graphBack => {
+      Object.assign(this.DOM, {
+        yAxisElContainer: graphBack.select(".vzb-bc-axis-y"),
+        xAxisElContainer: graphBack.select(".vzb-bc-axis-x"),
+        yearEl: graphBack.select(".vzb-bc-year"),
+        projectionX: graphBack.select(".vzb-bc-projection-x"),
+        projectionY: graphBack.select(".vzb-bc-projection-y"),
+        decorationsEl: graphBack.select(".vzb-bc-decorations"),
+      })
+      this.DOM.yAxisEl = this.DOM.yAxisElContainer.select("g");
+      this.DOM.xAxisEl = this.DOM.xAxisElContainer.select("g");
+      this.DOM.lineEqualXY = this.DOM.decorationsEl.select(".vzb-bc-line-equal-xy");
+      this.DOM.xAxisGroupsEl = this.DOM.decorationsEl.select(".vzb-bc-x-axis-groups");
+      })
+
+    //set filter
+    this.DOM.bubbleCrown.selectAll(".vzb-crown-glow")
+      .attr("filter", "url(" + location.pathname + "#vzb-glow-filter)");
+
+    this._year = this.findChild({type: "DynamicBackground"});
+    this._labels = this.findChild({type: "Labels"});
+    this._panZoom = new PanZoom(this);
+  
+    this.scrollableAncestor = utils.findScrollableAncestor(this.element);
+
+    this.xAxis = axisSmart("bottom");
+    this.yAxis = axisSmart("left");
+
+    this.COLOR_BLACKISH = "#333";
+    this.COLOR_WHITEISH = "#fdfdfd";
+
+    this.isCanvasPreviouslyExpanded = false;
+    this.draggingNow = null;
+
+    this.wScale = d3.scaleLinear()
+      .domain(this.ui.datawarning.doubtDomain)
+      .range(this.ui.datawarning.doubtRange);
+
+    this.hoverBubble = false;
+
+    const _this = this;
+    //keyboard listeners
+    d3.select("body")
+      .on("keydown", () => {
+        if (_this.ui.cursorMode !== "arrow" && _this.ui.cursorMode !== "hand") return;
+        if (d3.event.metaKey || d3.event.ctrlKey) _this.DOM.chartSvgAll.classed("vzb-zoomin", true);
+      })
+      .on("keyup", () => {
+        if (_this.ui.cursorMode !== "arrow" && _this.ui.cursorMode !== "hand") return;
+        if (!d3.event.metaKey && !d3.event.ctrlKey) _this.DOM.chartSvgAll.classed("vzb-zoomin", false);
+      })
+      //this is for the case when user would press ctrl and move away from the browser tab or window
+      //keyup event would happen somewhere else and won't be captured, so zoomin class would get stuck
+      .on("mouseenter", () => {
+        if (_this.ui.cursorMode !== "arrow" && _this.ui.cursorMode !== "hand") return;
+        if (!d3.event.metaKey && !d3.event.ctrlKey) _this.DOM.chartSvgAll.classed("vzb-zoomin", false);
+      });
+  
+    // this.root.on("resetZoom", () => {
+    //   _this._panZoom.reset(null, 500);
+    // });
+
+    this._panZoom.zoomSelection(this.DOM.bubbleContainerCrop);
+    this.DOM.bubbleContainerCrop
+      .call(this._panZoom.dragRectangle)
+      .call(this._panZoom.zoomer)
+      .on("dblclick.zoom", null)
+      .on("mouseup", () => {
+        _this.draggingNow = false;
+      })
+      .on("click", () => {
+        const cursor = _this.ui.cursorMode;
+        if (!d3.event.defaultPrevented && cursor !== "arrow" && cursor !== "hand") {
+          _this._panZoom.zoomByIncrement(cursor, 500);
+        }
+      });
+
+  }
+
+  draw() {
+    this.MDL = {
+      frame: this.model.encoding.get("frame"),
+      selected: this.model.encoding.get("selected"),
+      highlighted: this.model.encoding.get("highlighted"),
+      y: this.model.encoding.get("y"),
+      x: this.model.encoding.get("x"),
+      size: this.model.encoding.get("size"),
+      color: this.model.encoding.get("color"),
+      label: this.model.encoding.get("label"),
+      trail: this.model.encoding.get("trail")
+    }
+    this.localise = this.services.locale.auto();
+
+    //this.MDL.trail.config.show = false;
+    //this.ui.cursorMode = "plus";
+
+    this.TIMEDIM = this.MDL.frame.data.concept;
+    this.KEYS = this.model.data.space.filter(dim => dim !== this.TIMEDIM);
+
+    if (this._updateLayoutProfile()) return; //return if exists with error
+    this.addReaction(this._updateIndicators);
+    this.addReaction(this._updateUIStrings);
+    this.addReaction(this._updateSize);
+    this.addReaction(this._updateMarkerSizeLimits);
+    this.addReaction(this._resetZoomMinMaxXReaction, this._resetZoomMinMaxX);
+    this.addReaction(this._resetZoomMinMaxYReaction, this._resetZoomMinMaxY);
+    this.addReaction(this._zoomToMarkerMaxMin);
+    this.addReaction(this._updateOpacity);
+    this.addReaction(this._updateYear);
+    this.addReaction(this._drawData);
+    this.addReaction(this._redrawDataReaction, this._redrawDataSideEffect, { delay: 1 });
+    this.addReaction(this._selectDataPoints);
+    this.addReaction(this._highlightDataPoints);
+    this.addReaction(this._updateDoubtOpacity);
+  }
+
+  _updateYear() {
+    const duration = this._getDuration();
+    this._year.setText(this.localise(this.MDL.frame.value), duration);    
+  }
+
+  _drawDataReaction() {
+    return { value: this.MDL.frame.value }
+  }
+
+  _drawData() {
+    const {
+      frame,
+      trail: trailMdl
+    } = this.MDL;
+
+    if (trailMdl.show) trailMdl.updateTrailStart(frame.stepsAround(frame.value)[1]);
+
+    this._processFrameData();
+    this._createAndDeleteBubbles();
+
+    if (!this.bubbles) return utils.warn("redrawDataPoints(): no entityBubbles defined. likely a premature call, fix it!");
+  }
+
+  _createAndDeleteBubbles() {
+    const _this = this;
+    const duration = this._getDuration();
+    const transition = this._getTransition(duration);
+    const data = this.__dataProcessed;
+
+    this.bubbles = this.DOM.bubbleContainer.selectAll(".vzb-bc-entity")
+      .data(this.__dataProcessed, d => d[Symbol.for("key")])
+      .join(
+        enter => enter
+          .append(d => {
+            if (d[Symbol.for("trailHeadKey")]) {
+              const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
+              g.appendChild(document.createElementNS("http://www.w3.org/2000/svg", "circle"));
+              g.appendChild(document.createElementNS("http://www.w3.org/2000/svg", "line"));
+              return g;
+            }
+            return document.createElementNS("http://www.w3.org/2000/svg", "circle");
+          })
+          .attr("class", "vzb-bc-entity")
+          .attr("id", d => `vzb-bc-bubble-${d[Symbol.for("key")]}-${this.id}`)
+          .style("opacity", d => d[Symbol.for("opacity")] = this._getBubbleOpacity(d))
+          .call(selection => {
+            if(!utils.isTouchDevice()){
+              selection
+                .on("mouseover", this._bubblesInteract().mouseover)
+                .on("mouseout", this._bubblesInteract().mouseout)
+                .on("click", this._bubblesInteract().click);
+            } else {
+              selection
+                .on("tap", this._bubblesInteract().tap);
+            }
+          })
+          .each(function(d, index) {
+            const dataNext = data[index + 1] || {};
+            const trail = d[Symbol.for("trailHeadKey")];
+            const headTrail = trail && !dataNext[Symbol.for("trailHeadKey")];
+            const node = trail ? this.children[0] : this;
+            console.log("enter", d, headTrail)
+      
+            const valueX = d.x;
+            const valueY = d.y;
+            const valueS = d.size;
+            const valueC = d.color;
+            const valueL = d.label;
+      
+            //d.hidden = (!valueS && valueS !== 0) || valueX == null || valueY == null;
+      
+            //view.classed("vzb-hidden", d.hidden);
+            d.r = utils.areaToRadius(_this.sScale(valueS || 0));
+            d.scaledX = _this.xScale(valueX);
+            d.scaledY = _this.yScale(valueY);
+            d.scaledC = valueC != null ? _this.cScale(valueC) : COLOR_WHITEISH;
+      
+            if (trail) {
+              d.x0 = dataNext.x;
+              d.y0 = dataNext.y;
+            }
+      
+            const view = d3.select(node);
+            if (!duration || !headTrail) {
+              view
+                .attr("r", d.r)
+                .attr("fill", d.scaledC)
+                .attr("cy", d.scaledY)
+                .attr("cx", d.scaledX)
+                //.transition(transition)
+      
+              //trail line
+              if (trail) {
+                const lineView = d3.select(node.nextSibling);
+
+                const scaledX0 = _this.xScale(d.x0);
+                const scaledY0 = _this.yScale(d.y0);
+                
+                lineView
+                  .attr("x1", d.scaledX)
+                  .attr("y1", d.scaledY)
+                  .attr("x2", scaledX0)
+                  .attr("y2", scaledY0)
+                  .style("stroke", d.scaledC)
+                  .attr("stroke-dasharray", Math.abs(d.scaledX - scaledX0) + Math.abs(d.scaledY - scaledY0))
+                  .attr("stroke-dashoffset", -d.r);
+              }
+            }
+      
+            if (duration && !trail) {
+              view
+                .style("opacity", 0)
+                .transition().duration(duration*0.9)
+                .style("opacity", d[Symbol.for("opacity")])
+            }
+      
+            if (!trail) {
+              _this._updateLabel(d, duration, true, false);
+            }
+          }),
+
+        update => update
+          .each(function(d, index) {
+            const trail = d[Symbol.for("trailHeadKey")];
+            const dataNext = data[index + 1] || {};
+            const dataNext2 = data[index + 2] || {};
+            const headTrail = trail && !dataNext[Symbol.for("trailHeadKey")];
+            const headTrail2 = trail && !dataNext2[Symbol.for("trailHeadKey")];
+      
+            if (trail) {
+              d.x0 = dataNext.x;
+              d.y0 = dataNext.y;
+            }
+      
+            const valueX = d.x;
+            const valueY = d.y;
+            const valueS = d.size;
+            const valueC = d.color;
+            const valueL = d.label;
+      
+            //d.hidden = (!valueS && valueS !== 0) || valueX == null || valueY == null;
+      
+            //view.classed("vzb-hidden", d.hidden);
+            d.r = utils.areaToRadius(_this.sScale(valueS || 0));
+            d.scaledX = _this.xScale(valueX);
+            d.scaledY = _this.yScale(valueY);
+            d.scaledC = valueC != null ? _this.cScale(valueC) : COLOR_WHITEISH;
+      
+            if (trail && !headTrail && !headTrail2) return;
+            if (!duration || !headTrail) {
+              const node = trail ? this.children[0] : this;
+              const view = duration && !trail ?
+                d3.select(node).transition(transition)
+                :
+                d3.select(node).interrupt();
+          
+              view
+                .attr("r", d.r)
+                .attr("fill", d.scaledC)
+                .attr("cy", d.scaledY)
+                .attr("cx", d.scaledX)
+            
+              //trail line
+              if (trail) {
+                const lineView = d3.select(node.nextSibling);
+
+                const scaledX0 = _this.xScale(d.x0);
+                const scaledY0 = _this.yScale(d.y0);
+                
+                lineView
+                  .attr("x1", d.scaledX)
+                  .attr("y1", d.scaledY)
+                if (duration && !data[index + 2][Symbol.for("trailHeadKey")]) {
+                  lineView
+                    .attr("x2", d.scaledX)
+                    .attr("y2", d.scaledY)
+                    .transition(transition)
+                    .attr("x2", scaledX0)
+                    .attr("y2", scaledY0)
+                } else {
+                  lineView.interrupt()
+                    .attr("x2", scaledX0)
+                    .attr("y2", scaledY0)
+                }
+      
+                lineView
+                  .style("stroke", d.scaledC)
+                  .attr("stroke-dasharray", Math.abs(d.scaledX - scaledX0) + Math.abs(d.scaledY - scaledY0))
+                  .attr("stroke-dashoffset", -d.r);
+              }
+            }
+            
+            if (!trail)
+              _this._updateLabel(d, duration, false, false);    
+          }),    
+
+        exit => exit
+          .each(function(d, index) {
+            const trail = d[Symbol.for("trailHeadKey")];
+            const node = this;
+            console.log("exit", d)
+            
+            const view = duration && !trail ?
+              d3.select(node).transition(transition)
+                .duration(duration*0.9)
+                .style("opacity", 0)
+              :
+              d3.select(node).interrupt();
+      
+            view
+              .remove();
+            
+            if (!trail) 
+              _this._updateLabel(d, duration, true, true);
+          })
+      )
+      .order();
+
+  }
+
+  _redrawDataReaction() {
+    return {
+      //size: this.services.layout.size,
+      // typeX: this.MDL.x.scale.type,
+      // typeY: this.MDL.y.scale.type,
+      // typeColor: this.MDL.color.scale.type,
+      show: this.MDL.trail.show
+    }
+  }
+
+  _redrawDataSideEffect() {
+    this._redrawData();
+  }
+
+  _redrawData(duration) {
+    console.log("redraw")
+    this.services.layout.size;
+    this.MDL.x.scale.type;
+    this.MDL.y.scale.type;
+    this.MDL.color.scale.type;
+
+    const _this = this;
+
+    if (this.bubbles) this.bubbles.each(function(d, index, group) {
+      const trail = d[Symbol.for("trailHeadKey")];
+      const node = trail ? this.children[0] : this;
+
+      const valueX = d.x;
+      const valueY = d.y;
+      const valueS = d.size;
+      const valueC = d.color;
+      const valueL = d.label;
+
+      d.r = utils.areaToRadius(_this.sScale(valueS || 0));
+      d.scaledX = _this.xScale(valueX);
+      d.scaledY = _this.yScale(valueY);
+      d.scaledC = valueC != null ? _this.cScale(valueC) : COLOR_WHITEISH;
+
+      const view = duration ? 
+        d3.select(node)
+          .transition()
+          .duration(duration)
+        : d3.select(node).interrupt();
+      view
+        .attr("r", d.r)
+        .attr("fill", d.scaledC)
+        .attr("cy", d.scaledY)
+        .attr("cx", d.scaledX)
+
+      if (trail) {
+        const lineView = duration ? d3.select(node.nextSibling)
+            .transition()
+            .duration(duration)
+          : d3.select(node.nextSibling).interrupt();
+
+        const scaledX0 = _this.xScale(d.x0);
+        const scaledY0 = _this.yScale(d.y0);        
+
+        lineView
+          .attr("x1", d.scaledX)
+          .attr("y1", d.scaledY)
+          .attr("x2", scaledX0)
+          .attr("y2", scaledY0)
+          .style("stroke", d.scaledC)
+          .attr("stroke-dasharray", Math.abs(d.scaledX - scaledX0) + Math.abs(d.scaledY - scaledY0))
+          .attr("stroke-dashoffset", -d.r);
+      }
+    });
+
+    _this._updateLabels();
+  }
+
+  __getZoomed(type, values, domain) {
+    const zoomed = values[`zoomed${type}`];
+    return zoomed !== null ? zoomed : d3[type.toLowerCase()](domain);
+  }
+
+  __getZoomedMin(values, domain) {
+    return this.__getZoomed("Min", values, domain);
+  }
+
+  __getZoomedMax(values, domain) {
+    return this.__getZoomed("Max", values, domain);
+  }
+
+  /*
+   * Zoom to the min and max values given in the URL axes markers.
+   */
+  _zoomToMarkerMaxMin() {
+    this.services.layout.size;
+    typeX: this.MDL.x.scale.type;
+    typeY: this.MDL.y.scale.type;
+    typeColor: this.MDL.color.scale.type;
+
+    const panzoom = this.ui.panzoom;
+    
+    const xDomain = this.MDL.x.data.domain;
+    const yDomain = this.MDL.y.data.domain;
+
+    if (this.draggingNow) return;
+
+    /*
+     * Reset just the zoom values without triggering a zoom event. This ensures
+     * a clean zoom state for the subsequent zoom event.
+     */
+    this._panZoom.resetZoomState();
+
+    this.yScale.range(this._rangeBump([this.height, 0]));
+    this.xScale.range(this._rangeBump([0, this.width]));
+   
+    /*
+     * The axes may return null when there is no value given for the zoomed
+     * min and max values. In that case, fall back to the axes' domain values.
+     */
+    const zoomedMinX = this.__getZoomedMin(panzoom.x, xDomain);
+    const zoomedMaxX = this.__getZoomedMax(panzoom.x, xDomain);
+    const zoomedMinY = this.__getZoomedMin(panzoom.y, yDomain);
+    const zoomedMaxY = this.__getZoomedMax(panzoom.y, yDomain);
+
+    //by default this will apply no transition and feed values back to state
+    runInAction(() => {
+      this._panZoom.zoomToMaxMin(zoomedMinX, zoomedMaxX, zoomedMinY, zoomedMaxY, 0, "don't feed these zoom values back to state");
+    });
+  }
+
+  _resetZoomMinMaxXReaction() {
+    return { concept: this.MDL.x.data.concept };
+  }
+
+  _resetZoomMinMaxX() {
+    this.ui.panzoom.x = {zoomedMin: null, zoomedMax: null};
+  }
+
+  _resetZoomMinMaxYReaction() {
+    return { concept: this.MDL.y.data.concept };
+  }
+
+  _resetZoomMinMaxY() {
+    this.ui.panzoom.y = {zoomedMin: null, zoomedMax: null};
+  }
+
+  _drawForecastOverlay() {
+    this.DOM.forecastOverlay.classed("vzb-hidden", 
+      !this.MDL.frame.endBeforeForecast || 
+      !this.state.showForecastOverlay || 
+      (this.MDL.frame.value <= this.MDL.frame.endBeforeForecast)
+    );
+  }
+
+  _updateLayoutProfile(){
+    this.services.layout.size;
+
+    this.elementHeight = (this.element.node().clientHeight) || 0;
+    this.elementWidth = (this.element.node().clientWidth) || 0;
+
+    this.profileConstants = this.services.layout.getProfileConstants(
+      PROFILE_CONSTANTS(this.elementWidth, this.elementHeight, { ui: this.ui }), 
+      PROFILE_CONSTANTS_FOR_PROJECTOR(this.elementWidth, this.elementHeight, { ui: this.ui }));
+
+    if (!this.elementHeight || !this.elementWidth) return utils.warn("Chart _updateProfile() abort: container is too little or has display:none");
+
+  }
+
+  _getDuration() {
+     return this.MDL.frame.playing ? this.MDL.frame.speed || 0 : 0;
+  }
+
+  /*
+   * UPDATE INDICATORS
+   */
+  _updateIndicators() {
+    //scales
+    this.yScale = this.MDL.y.scale.d3Scale;
+    this.xScale = this.MDL.x.scale.d3Scale;
+    this.sScale = this.MDL.size.scale.d3Scale;
+    this.cScale = this.MDL.color.scale.d3Scale;
+    this._labels.setScales(this.xScale, this.yScale);
+
+    this.yAxis.tickFormat(this.localise);
+    this.xAxis.tickFormat(this.localise);
+  }
+
+  _updateUIStrings() {
+    console.log("updateuistrings")
+    const {
+      y, x, size, color
+    } = this.MDL;
+
+    const {
+      xTitleEl,
+      yTitleEl,
+      sTitleEl,
+      xSubTitleEl,
+      ySubTitleEl,
+      dataWarningEl,
+      xInfoEl,
+      yInfoEl
+    } = this.DOM;
+
+    const _this = this;
+
+    const conceptPropsY = y.data.conceptProps;
+    const conceptPropsX = x.data.conceptProps;
+    const conceptPropsS = size.data.conceptProps;
+    const conceptPropsC = color.data.conceptProps;
+
+    this.strings = {
+      title: {
+        Y: conceptPropsY.name,
+        X: conceptPropsX.name,
+        S: conceptPropsS.name,
+        C: conceptPropsC.name
+      },
+      title_short: {
+        Y: conceptPropsY.name_short || conceptPropsY.name,
+        X: conceptPropsX.name_short || conceptPropsX.name,
+        S: conceptPropsS.name_short || conceptPropsS.name,
+        C: conceptPropsC.name_short || conceptPropsC.name       
+      },
+      subtitle: {
+        Y: this._getSubtitle(conceptPropsY.name, conceptPropsY.name_short || conceptPropsY.name),
+        X: this._getSubtitle(conceptPropsX.name, conceptPropsX.name_short || conceptPropsX.name),
+        S: conceptPropsS.name_short,
+        C: conceptPropsC.name_short        
+      },
+      unit: {
+        Y: conceptPropsY.unit || "",
+        X: conceptPropsX.unit || "",
+        S: conceptPropsS.unit || "",
+        C: conceptPropsC.unit || ""
+      }
+    };
+
+    ySubTitleEl.selectAll("text").data([0])
+      .join("text");
+    xSubTitleEl.selectAll("text").data([0])
+      .join("text");
+
+    yTitleEl.selectAll("text").data([0])
+      .join("text")
+    //.attr("y", "-6px")
+      .on("click", () => {
+        this.root.findChild({type: "TreeMenu"})
+          .encoding("y")
+          .alignX(this.services.locale.isRTL() ? "right" : "left")
+          .alignY("top")
+          .updateView()
+          .toggle();
+      });
+
+    xTitleEl.selectAll("text").data([0])
+      .join("text")
+      .on("click", () => {
+        this.root.findChild({type: "TreeMenu"})
+          .encoding("x")
+          .alignX(this.services.locale.isRTL() ? "right" : "left")
+          .alignY("bottom")
+          .updateView()
+          .toggle();
+      });
+
+    sTitleEl.selectAll("text").data([0])
+      .join("text")
+      .attr("text-anchor", "end");
+
+    utils.setIcon(dataWarningEl, ICON_WARN).select("svg").attr("width", "0px").attr("height", "0px");
+    dataWarningEl.append("text")
+      .attr("text-anchor", "end")
+      .text(this.localise("hints/dataWarning"));
+
+    utils.setIcon(yInfoEl, ICON_QUESTION)
+      .select("svg").attr("width", "0px").attr("height", "0px");
+
+    utils.setIcon(xInfoEl, ICON_QUESTION)
+      .select("svg").attr("width", "0px").attr("height", "0px");
+
+
+    //TODO: move away from UI strings, maybe to ready or ready once
+    yInfoEl.on("click", () => {
+      _this.parent.findChildByName("gapminder-datanotes").pin();
+    });
+    yInfoEl.on("mouseover", function() {
+      const rect = this.getBBox();
+      const coord = utils.makeAbsoluteContext(this, this.farthestViewportElement)(rect.x - 10, rect.y + rect.height + 10);
+      const toolRect = _this.root.element.getBoundingClientRect();
+      const chartRect = _this.element.node().getBoundingClientRect();
+      _this.parent.findChildByName("gapminder-datanotes").setHook("y").show().setPos(coord.x + chartRect.left - toolRect.left, coord.y);
+    });
+    yInfoEl.on("mouseout", () => {
+      _this.parent.findChildByName("gapminder-datanotes").hide();
+    });
+    xInfoEl.on("click", () => {
+      _this.parent.findChildByName("gapminder-datanotes").pin();
+    });
+    xInfoEl.on("mouseover", function() {
+      if (_this.model.time.dragging) return;
+      const rect = this.getBBox();
+      const coord = utils.makeAbsoluteContext(this, this.farthestViewportElement)(rect.x - 10, rect.y + rect.height + 10);
+      const toolRect = _this.root.element.getBoundingClientRect();
+      const chartRect = _this.element.node().getBoundingClientRect();
+      _this.parent.findChildByName("gapminder-datanotes").setHook("x").show().setPos(coord.x + chartRect.left - toolRect.left, coord.y);
+    });
+    xInfoEl.on("mouseout", () => {
+      if (_this.model.time.dragging) return;
+      _this.parent.findChildByName("gapminder-datanotes").hide();
+    });
+    dataWarningEl
+      .on("click", () => {
+        _this.parent.findChildByName("gapminder-datawarning").toggle();
+      })
+      .on("mouseover", () => {
+        _this._updateDoubtOpacity(1);
+      })
+      .on("mouseout", () => {
+        _this._updateDoubtOpacity();
+      });
+  }
+
+  _getSubtitle(title, shortTitle) {
+    let subtitle = title.replace(shortTitle,"");
+    if (subtitle[0] === ",") subtitle = subtitle.slice(1);
+    const regexpResult = /^\((.*)\)$|.*/.exec(subtitle.trim());
+    return regexpResult[1] || regexpResult[0] || "";
+  }
+
+  _updateSize() {
+    const containerWH = this.services.layout.size;
+    console.log("updatesize")
+
+    const {
+      x,
+      y,
+      size
+    } = this.MDL;
+    
+    const {
+      graphAll,
+      eventArea,
+      bubbleContainerCropAll,
+      labelsContainerCrop,
+      xAxisElContainer,
+      xAxisEl,
+      yAxisElContainer,
+      yAxisEl,
+      projectionX,
+      projectionY,
+      sTitleEl,
+      xTitleEl,
+      yTitleEl,
+      xSubTitleEl,
+      ySubTitleEl,
+      xAxisGroupsEl,
+      xInfoEl,
+      yInfoEl
+
+    } = this.DOM;
+
+    const _this = this;
+
+    const layoutProfile = this.services.layout.profile;
+    this.profileConstants.maxRadiusPx = Math.max(
+      this.profileConstants.minRadiusPx,
+      this.profileConstants.maxRadiusEm * utils.hypotenuse(this.elementWidth, this.elementHeight)
+    );
+
+    const margin = this.profileConstants.margin;
+    const infoElHeight = this.profileConstants.infoElHeight;
+
+    //labels
+    this._labels.setCloseCrossHeight(_this.profileConstants.infoElHeight * 1.2);
+    this._labels.setTooltipFontSize(_this.profileConstants.infoElHeight + "px");
+    
+    //stage
+    const height = this.height = (this.elementHeight - margin.top - margin.bottom) || 0;
+    const width = this.width = (this.elementWidth - margin.left * this.profileConstants.leftMarginRatio - margin.right) || 0;
+
+    // if (height <= 0 || width <= 0) {
+    //   height = 0;
+    //   width = 0;
+    //   utils.warn("Bubble chart updateSize(): vizabi container is too little or has display:none");
+    // }
+
+    //graph group is shifted according to margins (while svg element is at 100 by 100%)
+    graphAll
+      .attr("transform", "translate(" + (margin.left * this.profileConstants.leftMarginRatio) + "," + margin.top + ")");
+
+    this._year.resizeText(width, height);
+      //this.yearEl.classed("vzb-hidden", !this.ui.timeInBackground);
+    //this.year.resize(width, height);
+    
+    eventArea
+      .attr("width", width)
+      .attr("height", Math.max(0, height));
+
+    //update scales to the new range
+    // // if (this.model.marker.y.scaleType !== "ordinal") {
+    // //   this.yScale.range(this._rangeBump([height, 0]));
+    // // } else {
+    // //   this.yScale.rangePoints([height, 0], _this.profileConstants.padding).range();
+    // // }
+    // // if (this.model.marker.x.scaleType !== "ordinal") {
+    // //   this.xScale.range(this._rangeBump([0, width]));
+    // // } else {
+    // //   this.xScale.rangePoints([0, width], _this.profileConstants.padding).range();
+    // // }
+    this.yScale.range(this._rangeBump([height, 0]));
+    this.xScale.range(this._rangeBump([0, width]));
+
+    //apply scales to axes and redraw
+    this.yAxis.scale(this.yScale)
+      .tickSizeInner(-width)
+      .tickSizeOuter(0)
+      .tickPadding(6)
+      .tickSizeMinor(-width, 0)
+      .labelerOptions({
+        scaleType: y.scale.type,
+        toolMargin: margin,
+        limitMaxTickNumber: 6,
+        bump: this.profileConstants.maxRadiusPx / 2,
+        viewportLength: height,
+        formatter: this.localise
+      });
+
+    this.xAxis.scale(this.xScale)
+      .tickSizeInner(-height)
+      .tickSizeOuter(0)
+      .tickPadding(6)
+      .tickSizeMinor(-height, 0)
+      .labelerOptions({
+        scaleType: x.scale.type,
+        toolMargin: margin,
+        bump: this.profileConstants.maxRadiusPx / 2,
+        viewportLength: width,
+        formatter: this.localise
+      });
+
+
+    bubbleContainerCropAll
+      .attr("width", width)
+      .attr("height", Math.max(0, height));
+
+    labelsContainerCrop
+      .attr("width", width)
+      .attr("height", Math.max(0, height));
+
+    xAxisElContainer
+      .attr("width", width + 1)
+      .attr("height", this.profileConstants.margin.bottom + height)
+      .attr("y", -1)
+      .attr("x", -1);
+    xAxisEl
+      .attr("transform", "translate(1," + (1 + height) + ")");
+
+    yAxisElContainer
+      .attr("width", this.profileConstants.margin.left + width)
+      .attr("height", Math.max(0, height))
+      .attr("x", -this.profileConstants.margin.left);
+    yAxisEl
+      .attr("transform", "translate(" + (this.profileConstants.margin.left - 1) + "," + 0 + ")");
+
+    yAxisEl.call(this.yAxis);
+    xAxisEl.call(this.xAxis);
+
+    projectionX.attr("y1", _this.yScale.range()[0] + this.profileConstants.maxRadiusPx / 2);
+    projectionY.attr("x2", _this.xScale.range()[0] - this.profileConstants.maxRadiusPx / 2);
+
+
+    // reduce font size if the caption doesn't fit
+    this._updateSTitle();
+    sTitleEl
+      .attr("transform", "translate(" + width + "," + 20 + ") rotate(-90)");
+
+    if (layoutProfile !== "SMALL") {
+      ySubTitleEl.select("text").attr("dy", infoElHeight * 0.6).text(this.strings.subtitle.Y);
+      xSubTitleEl.select("text").attr("dy", -infoElHeight * 0.3).text(this.strings.subtitle.X);
+      
+      yTitleEl.select("text").text(this.strings.title_short.Y + " ")
+        .append("tspan")
+        .style("font-size", (infoElHeight * 0.7) + "px")
+        .text("▼");
+      xTitleEl.select("text").text(this.strings.title_short.X + " ")
+        .append("tspan")
+        .style("font-size", (infoElHeight * 0.7) + "px")
+        .text("▼");
+    } else {
+      ySubTitleEl.select("text").text("");
+      xSubTitleEl.select("text").text("");
+
+      const yTitleText = yTitleEl.select("text").text(this.strings.title.Y);
+      if (yTitleText.node().getBBox().width > width) yTitleText.text(this.strings.title_short.Y);
+    
+      const xTitleText = xTitleEl.select("text").text(this.strings.title.X);
+      if (xTitleText.node().getBBox().width > width - 100) xTitleText.text(this.strings.title_short.X);      
+    }
+
+    const isRTL = this.services.locale.isRTL();
+    ySubTitleEl
+      .style("font-size", (infoElHeight * 0.8) + "px")
+      .attr("transform", "translate(" + 0 + "," + 0 + ") rotate(-90)");
+    xSubTitleEl
+      .style("font-size", (infoElHeight * 0.8) + "px")
+      .attr("transform", "translate(" + width + "," + height + ")");
+  
+    yTitleEl
+      .style("font-size", infoElHeight + "px")
+      .attr("transform", layoutProfile !== "SMALL" ?
+        "translate(" + (-margin.left - this.profileConstants.yAxisTitleBottomMargin)  + "," + (height * 0.5) + ") rotate(-90)"
+        : 
+        "translate(" + (isRTL ? width : 10 - this.profileConstants.margin.left) + ", -" + this.profileConstants.yAxisTitleBottomMargin + ")")
+
+    xTitleEl
+      .style("font-size", infoElHeight + "px")
+      .attr("transform", layoutProfile !== "SMALL" ?
+        "translate(" + (width * 0.5) + "," + (height + margin.bottom - this.profileConstants.xAxisTitleBottomMargin) + ")"
+        :
+        "translate(" + (isRTL ? width : 0) + "," + (height + margin.bottom - this.profileConstants.xAxisTitleBottomMargin) + ")");
+    
+    xAxisGroupsEl
+      .style("font-size", infoElHeight * 0.8 + "px");
+
+    if (yInfoEl.select("svg").node()) {
+      const titleBBox = yTitleEl.node().getBBox();
+      const t = utils.transform(yTitleEl.node());
+      const hTranslate = isRTL ? (titleBBox.x + t.translateX - infoElHeight * 1.4) : (titleBBox.x + t.translateX + titleBBox.width + infoElHeight * 0.4);
+      const vTranslate = isRTL ? (t.translateY + infoElHeight * 1.4 + titleBBox.width * 0.5) : (t.translateY - infoElHeight * 0.4 - titleBBox.width * 0.5);
+      const conceptPropsY = y.data.conceptProps;
+
+      yInfoEl
+        .classed('vzb-hidden', !conceptPropsY.description && !conceptPropsY.sourceLink || this.services.layout.projector)
+        .select("svg")
+        .attr("width", infoElHeight + "px")
+        .attr("height", infoElHeight + "px");
+      yInfoEl.attr("transform", layoutProfile !== "SMALL" ?
+        "translate(" + (t.translateX - infoElHeight * 0.8) + "," + vTranslate + ") rotate(-90)"
+        :
+        "translate(" + hTranslate + "," + (t.translateY - infoElHeight * 0.8) + ")");
+    }
+
+    if (xInfoEl.select("svg").node()) {
+      const titleBBox = xTitleEl.node().getBBox();
+      const t = utils.transform(xTitleEl.node());
+      const hTranslate = isRTL ? (titleBBox.x + t.translateX - infoElHeight * 1.4) : (titleBBox.x + t.translateX + titleBBox.width + infoElHeight * 0.4);
+      const conceptPropsX = x.data.conceptProps;
+
+      xInfoEl
+        .classed('vzb-hidden', !conceptPropsX.description && !conceptPropsX.sourceLink || this.services.layout.projector)
+        .select("svg")
+        .attr("width", infoElHeight + "px")
+        .attr("height", infoElHeight + "px");
+      xInfoEl.attr("transform", "translate("
+        + hTranslate + ","
+        + (t.translateY - infoElHeight * 0.8) + ")");
+    }
+
+    this._resizeDataWarning();
+
+    //this.services.layout.setHGrid([this.elementWidth - marginRightAdjusted]);
+    //this.ui.margin.set("left", margin.left * this.profileConstants.leftMarginRatio, false, false);
+
+    // (function(xMin, xMax, yMin, yMax) {
+    //   if ((xMin && xMax && yMin && yMax) === null) return;
+    //   _this._panZoom.zoomer.dontFeedToState = true;
+    //   _this._panZoom.rerun(); // includes redraw data points and trail resize
+    //   _this._panZoom.zoomToMaxMin(xMin, xMax, yMin, yMax, 0, true);
+    // })(_this._zoomedXYMinMax.x.zoomedMin,
+    //   _this._zoomedXYMinMax.x.zoomedMax,
+    //   _this._zoomedXYMinMax.y.zoomedMin,
+    //   _this._zoomedXYMinMax.y.zoomedMax);
+  }
+
+  _rangeBump(arg, undo) {
+    const bump = this.profileConstants.maxRadiusPx / 2;
+    undo = undo ? -1 : 1;
+    if (utils.isArray(arg) && arg.length > 1) {
+      let z1 = arg[0];
+      let z2 = arg[arg.length - 1];
+
+      //the sign of bump depends on the direction of the scale
+      if (z1 < z2) {
+        z1 += bump * undo;
+        z2 -= bump * undo;
+        // if the scale gets inverted because of bump, set it to avg between z1 and z2
+        if (z1 > z2) z1 = z2 = (z1 + z2) / 2;
+      } else if (z1 > z2) {
+        z1 -= bump * undo;
+        z2 += bump * undo;
+        // if the scale gets inverted because of bump, set it to avg between z1 and z2
+        if (z1 < z2) z1 = z2 = (z1 + z2) / 2;
+      } else {
+        // rangeBump error: the input scale range has 0 length. that sucks but we keep cool
+      }
+      return [z1, z2];
+    }
+    utils.warn("rangeBump error: input is not an array or empty");
+  }
+
+  _updateSTitle(titleS, titleC) {
+    const { sTitleEl } = this.DOM;
+    const {
+      size,
+      color
+    } = this.MDL;
+    // vertical text about size and color
+    if (this.profileConstants.hideSTitle
+      && this.root.ui.dialogs.sidebar.indexOf("colors") > -1
+      && this.root.ui.dialogs.sidebar.indexOf("size") > -1) {
+      sTitleEl.classed("vzb-invisible", true);
+      return;
+    }
+    if (sTitleEl.classed("vzb-invisible")) {
+      sTitleEl.classed("vzb-invisible", false);
+    }
+    const sTitleContentON = !size.data.constant;
+    const cTitleContentON = !color.data.constant;
+    const sTitleText = sTitleEl.select("text")
+    // reset font size to remove jumpy measurement
+      .style("font-size", null)
+      .text(
+        (sTitleContentON ? this.localise("buttons/size") + ": " + (titleS ? titleS : this.strings.title.S) : "") +
+        (sTitleContentON && cTitleContentON ? ", " : "") +
+        (cTitleContentON ? this.localise("buttons/colors") + ": " + (titleC ? titleC : this.strings.title.C) : "")
+      );
+    const sTitleWidth = sTitleText.node().getBBox().width;
+    const remainigHeight = this.height - 30;
+    const font = parseInt(sTitleText.style("font-size")) * remainigHeight / sTitleWidth;
+    sTitleText.style("font-size", sTitleWidth > remainigHeight ? font + "px" : null);
+  }
+
+  _resizeDataWarning() {
+    const {
+      dataWarningEl,
+      xTitleEl
+    } = this.DOM;
+
+    // reset font size to remove jumpy measurement
+    const dataWarningText = dataWarningEl.select("text").style("font-size", null);
+
+    // reduce font size if the caption doesn't fit
+    const dataWarningWidth = dataWarningText.node().getBBox().width + dataWarningText.node().getBBox().height * 3;
+    const remainingWidth = this.elementWidth - xTitleEl.node().getBBox().width - this.profileConstants.infoElHeight;
+    const font = parseInt(dataWarningText.style("font-size")) * remainingWidth / dataWarningWidth;
+    dataWarningText.style("font-size", dataWarningWidth > remainingWidth ? font + "px" : null);
+
+    // position the warning icon
+    const warnBB = dataWarningText.node().getBBox();
+    dataWarningEl.select("svg")
+      .attr("width", warnBB.height * 0.75)
+      .attr("height", warnBB.height * 0.75)
+      .attr("x", -warnBB.width - warnBB.height * 1.2)
+      .attr("y", -warnBB.height * 0.65);
+
+    dataWarningEl
+      .classed("vzb-hidden", this.services.layout.projector)
+      .attr("transform", "translate("
+        + (this.services.locale.isRTL() ? warnBB.width + warnBB.height : this.width) + ","
+        + (this.height + this.profileConstants.margin.bottom - this.profileConstants.xAxisTitleBottomMargin)
+        + ")");
+  }
+
+  getValue(d) {
+    return d;
+  }
+
+  _processFrameData() {
+    return this.__dataProcessed = this.model.dataArray
+      .concat()
+      .map(this.getValue)
+      //.sort((a, b) => b.size - a.size);
+  }
+
+  _getTransition(duration) {
+    return duration ? d3.transition()
+      .duration(duration)
+      .ease(d3.easeLinear) : d3.transition();
+  }  
+
+  _bubblesInteract() {
+    const _this = this;
+
+    return {
+      mouseover(d, i) {
+        _this.hoverBubble = true;
+        _this.MDL.highlighted.data.filter.set(d);
+        _this._labels.showCloseCross(d, true);
+      },
+
+      mouseout(d, i) {
+        _this.hoverBubble = false;
+        _this.MDL.highlighted.data.filter.delete(d);
+        //_this._setTooltip();
+        _this._labels.showCloseCross(d, false);
+      },
+
+      click(d, i) {
+        if (_this.draggingNow) return;
+        // // const isSelected = d.isSelected;
+        if (!d[Symbol.for('trailHeadKey')]) _this.model.toggleSelection(d);
+        //_this.MDL.selected.data.filter.toggle(d);
+        // // //return to highlighted state
+        // // if (!utils.isTouchDevice()) {
+        // //   if (isSelected) _this.model.marker.highlightMarker(d);
+        // //   _this.highlightDataPoints();
+      }
+    };
+  }
+
+  _updateMarkerSizeLimits() {
+    console.log("updatemarketsizelimits");
+    this.services.layout.size;
+    this.MDL.size.scale.domain;
+
+    //if (!this.profileConstants) return utils.warn("updateMarkerSizeLimits() is called before ready(). This can happen if events get unfrozen and getFrame() still didn't return data");
+    const {
+      minRadiusPx,
+      maxRadiusPx
+    } = this.profileConstants;
+    
+    const extent = this.MDL.size.extent || [0, 1];
+    
+    let minArea = utils.radiusToArea(Math.max(maxRadiusPx * extent[0], minRadiusPx));
+    let maxArea = utils.radiusToArea(Math.max(maxRadiusPx * extent[1], minRadiusPx));
+
+    let range = minArea === maxArea? [minArea, maxArea] :
+      d3.range(minArea, maxArea, (maxArea - minArea)/this.sScale.domain().length).concat(maxArea);
+
+    this.sScale.range(range);
+  }
+
+  _setTooltip(tooltipText, x, y, s, c, d) {
+    if (tooltipText) {
+      const labelValues = {};
+      if (d) {
+        labelValues.valueY = d.y;
+        labelValues.valueX = d.x;
+        labelValues.valueS = d.size;
+        labelValues.valueC = d.color;
+        labelValues.valueLST = d.size_label || null;
+        labelValues.labelText = this.__labelWithoutFrame(d, this.localise);
+      }
+
+      const tooltipCache = {};
+      tooltipCache.labelX0 = this.xScale.invert(x);
+      tooltipCache.labelY0 = this.yScale.invert(y);
+      tooltipCache.scaledS0 = s;
+      tooltipCache.scaledC0 = null;
+
+      this._labels.setTooltip(d, tooltipText, tooltipCache, labelValues);
+    } else {
+      this._labels.setTooltip();
+    }
+  }
+
+  _getLabelText(d, time) {
+    return this.KEYS.map(key => d.label[key]).join(",");
+    ////  + (this.model.ui.chart.timeInTrails && time && (this.model.time.start - this.model.time.end !== 0) ? " " + time : "");
+  }
+
+  _updateOpacity(selection) {
+    const _this = this;
+    //this.MDL.frame.value; //listen
+
+    const highlightedFilter = this.MDL.highlighted.data.filter;
+    const selectedFilter = this.MDL.selected.data.filter;
+
+    this.__highlightedMarkers = new Map(highlightedFilter.markers);
+    this.__selectedMarkers = new Map(selectedFilter.markers);
+    this.__someSelected = this.__selectedMarkers.size != 0;
+    this.__someHighlighted = this.__highlightedMarkers.size != 0;
+
+    const _selection = selection || this.bubbles;
+    if (_selection) _selection.style("opacity", d => this._getBubbleOpacity(d, this.ui));
+  }
+
+  _getBubbleOpacity(d) {
+    const ui = this.ui;
+
+    if (this.__highlightedMarkers.has(d[Symbol.for("key")])) return ui.opacityHighlight;
+    if (d[Symbol.for("trailHeadKey")]) return ui.opacityRegular;
+    if (this.__selectedMarkers.has(d[Symbol.for("key")])) return ui.opacitySelect;
+
+    if (this.__someSelected) return ui.opacitySelectDim;
+    if (this.__someHighlighted) return ui.opacityHighlightDim;
+
+    return ui.opacityRegular;
+  }
+
+  _updateDoubtOpacity(opacity) {
+    if (opacity == null) opacity = this.wScale(this.MDL.frame.value.getUTCFullYear());
+    if (this.MDL.selected.data.filter.any) opacity = 1;
+    this.DOM.dataWarningEl.style("opacity", opacity);
+  }
+
+  _setBubbleCrown(x, y, r, glow, skipInnerFill) {
+    const bubbleCrown = this.DOM.bubbleCrown;
+    if (x != null) {
+      bubbleCrown.classed("vzb-hidden", false);
+      bubbleCrown.select(".vzb-crown")
+        .attr("cx", x)
+        .attr("cy", y)
+        .attr("r", r)
+        .attr("fill", skipInnerFill ? "none" : glow);
+      bubbleCrown.selectAll(".vzb-crown-glow")
+        .attr("cx", x)
+        .attr("cy", y)
+        .attr("r", r + 10)
+        .attr("stroke", glow);
+
+    } else {
+      bubbleCrown.classed("vzb-hidden", true);
+    }
+
+  }
+
+    /*
+   * Shows and hides axis projections
+   */
+  _axisProjections(d) {
+    const {
+      projectionX,
+      projectionY,
+      xAxisEl,
+      yAxisEl
+    } = this.DOM;
+
+    if (d != null) {
+
+      const valueY = d.y;
+      const valueX = d.x;
+      const valueS = d.size;
+      const radius = d.r;
+
+      //if (!valueY && valueY !== 0 || !valueX && valueX !== 0 || !valueS && valueS !== 0) return;
+
+      if (this.ui.whenHovering.showProjectionLineX
+        && this.xScale(valueX) > 0 && this.xScale(valueX) < this.width
+        && (this.yScale(valueY) + radius) < this.height) {
+        projectionX
+          .style("opacity", 1)
+          .attr("y2", this.yScale(valueY) + radius)
+          .attr("x1", this.xScale(valueX))
+          .attr("x2", this.xScale(valueX));
+      }
+
+      if (this.ui.whenHovering.showProjectionLineY
+        && this.yScale(valueY) > 0 && this.yScale(valueY) < this.height
+        && (this.xScale(valueX) - radius) > 0) {
+        projectionY
+          .style("opacity", 1)
+          .attr("y1", this.yScale(valueY))
+          .attr("y2", this.yScale(valueY))
+          .attr("x1", this.xScale(valueX) - radius);
+      }
+
+      if (this.ui.whenHovering.higlightValueX) xAxisEl.call(
+        this.xAxis.highlightValue(valueX)
+      );
+
+      if (this.ui.whenHovering.higlightValueY) yAxisEl.call(
+        this.yAxis.highlightValue(valueY)
+      );
+
+
+    } else {
+
+      projectionX.style("opacity", 0);
+      projectionY.style("opacity", 0);
+      xAxisEl.call(this.xAxis.highlightValue("none"));
+      yAxisEl.call(this.yAxis.highlightValue("none"));
+
+    }
+
+  }
+
+  /*
+   * Highlights all hovered bubbles
+   */
+  _highlightDataPoints() {
+    const _this = this;
+    const TIMEDIM = this.TIMEDIM;
+    const dataKeys = this.dataKeys;
+    const KEYS = this.KEYS;
+    const KEY = this.KEY;
+
+    const highlightedFilter = this.MDL.highlighted.data.filter;
+    const selectedFilter = this.MDL.selected.data.filter;
+    this.someHighlighted = highlightedFilter.any();
+
+    //this.updateBubbleOpacity();
+
+    if (highlightedFilter.markers.size === 1) {
+      const highlightedKey = highlightedFilter.markers.keys().next().value;
+      const d = this.model.dataMap.getByObjOrStr(null, highlightedKey);
+      const x = _this.xScale(d.x);
+      const y = _this.yScale(d.y);
+      const s = d.r;
+      const c = d.color != null ? this.cScale(d.color) : this.COLOR_WHITEISH;
+      let entityOutOfView = false;
+
+      ////const titles = _this._formatSTitleValues(values.size[utils.getKey(d, dataKeys.size)], values.color[utils.getKey(d, dataKeys.color)]);
+      ////_this._updateSTitle(titles[0], titles[1]);
+      if (x + s < 0 || x - s > this.width || y + s < 0 || y - s > this.height) {
+        entityOutOfView = true;
+      }
+
+      //show tooltip
+      const selectedKey = d[Symbol.for("trailHeadKey")] || d[Symbol.for("key")];
+      const trailShow = this.MDL.trail.show;
+      const trailStarts = this.MDL.trail.starts;
+      const trailGroupDim = this.MDL.trail.groupDim;
+      const isSelected = selectedFilter.has(selectedKey);
+      const isTailTrail = !(trailStarts[selectedKey] - d[trailGroupDim]);
+      const isBubble = !(d[Symbol.for("trailHeadKey")]);
+
+      let text = "";
+      
+      text = isSelected ? 
+        !trailShow || isTailTrail || (isBubble && !this.hoverBubble) ? "": this.localise(d.label[trailGroupDim])
+        : 
+        this.__labelWithoutFrame(d);
+      
+      _this._labels.highlight(null, false);
+      _this._labels.highlight({ [Symbol.for("key")]: selectedKey }, true);
+      if (isSelected) {
+        const skipCrownInnerFill = isBubble;
+        //!d.trailStartTime || d.trailStartTime == _this.model.time.formatDate(_this.time);
+        _this._setBubbleCrown(x, y, s, c, skipCrownInnerFill);
+      }
+
+      if (!entityOutOfView) {
+        _this._axisProjections(d);
+      }
+
+      //set tooltip and show axis projections
+      if (text && !entityOutOfView) {
+        _this._setTooltip(text, x, y, s + 3, c, d);
+      }
+
+      // // const selectedData = utils.find(_this.model.marker.select, f => utils.getKey(f, KEYS) == d[KEY]);
+      // // if (selectedData) {
+      // //   const clonedSelectedData = utils.clone(selectedData);
+      // //   //change opacity to OPACITY_HIGHLT = 1.0;
+      // //   clonedSelectedData.opacity = 1.0;
+      // //   _this._trails.run(["opacityHandler"], clonedSelectedData);
+      // // }
+    } else {
+      this._axisProjections();
+      ////this._trails.run(["opacityHandler"]);
+      //hide tooltip
+      //this._updateSTitle();
+      this._setTooltip();
+      this._setBubbleCrown();
+      this._labels.highlight(null, false);
+    }
+
+  }
+
+  _selectDataPoints() {
+    const _this = this;
+    const selectedFilter = this.MDL.selected.data.filter;
+    
+    if (utils.isTouchDevice()) {
+      _this.model.marker.clearHighlighted();
+      _this._labels.showCloseCross(null, false);
+    } else {
+      //hide tooltip
+      _this._setTooltip();
+      ////_this._setBubbleCrown();
+    }
+
+    // utils.forEach(_this.bubbles.data(), d => {
+    //   d.isSelected = _this.model.marker.isSelected(d);
+    // });
+
+    _this.someSelected = selectedFilter.any();
+    _this.nonSelectedOpacityZero = false;
+
+  }
+
+  _updateLabel(d, duration, showhide, hidden) {
+    const _this = this;
+    const KEYS = this.KEYS;
+    const KEY = this.KEY;
+    const selectedMarkers = this.MDL.selected.data.filter.markers;
+    const key = d[Symbol.for("key")];
+    // only for selected markers
+    if (selectedMarkers.has(key)) {
+      const trail = this.MDL.trail;
+      const trailDim = this.MDL.trail.groupDim;
+  
+      const cache = {};
+
+      let labelText = "";
+      let data;
+
+      //if (showhide && hidden && trail.show && trailStartTime && (trailStartTime < _this.time)) showhide = false;
+      if (hidden && !trail.show) showhide = true;
+
+      if (trail.show) {
+        const trailStart = trail.starts[key];
+        //console.log("trailstart", trailStart)
+        // if this bubble is trail start bubble
+        if (trailStart >= this.MDL.frame.value || showhide) {
+          const trailData = this.model.getDataMapByFrameValue(trailStart).getByObjOrStr(null, key);
+          
+          cache.labelText = labelText = this.__labelAll(trailData);
+          cache.labelX0 = trailData.x;
+          cache.labelY0 = trailData.y;
+          cache.scaledC0 = trailData.color != null ? this.cScale(trailData.color) : this.COLOR_WHITEISH,
+          cache.scaledS0 = (trailData.size || trailData.size === 0) ? utils.areaToRadius(this.sScale(trailData.size)) : null;
+          cache.valueS0 = trailData.size;
+          trailData.hidden = hidden;
+          this._labels.updateLabel(trailData, cache, trailData.x, trailData.y, trailData.size, trailData.color, labelText, trailData.size_label, duration, showhide);
+        }
+      } else {
+        cache.labelText = labelText = this.__labelWithoutFrame(d);
+        cache.labelX0 = d.x;
+        cache.labelY0 = d.y;
+        cache.scaledC0 = d.color != null ? this.cScale(d.color) : this.COLOR_WHITEISH,
+        cache.scaledS0 = (d.size || d.size === 0) ? utils.areaToRadius(this.sScale(d.size)) : null;
+        cache.valueS0 = d.size;
+        d.hidden = hidden;
+        this._labels.updateLabel(d, cache, d.x, d.y, d.size, d.color, labelText, d.size_label, duration, showhide);
+      }
+    }
+  }
+  
+  _updateLabels() {
+    console.log("updateLabels");
+
+    const selectedFilter = this.MDL.selected.data.filter;
+    const trail = this.MDL.trail;
+
+    for (const key of selectedFilter.markers.keys()) {
+      const cache = this._labels.cached[key];
+
+      const d = (trail.show ? this.model.getDataMapByFrameValue(trail.starts[key]) : this.model.dataMap)
+        .getByObjOrStr(null, key)
+      
+      cache.labelText = this[(trail.show ? "__labelAll" : "__labelWithoutFrame")](d);
+      cache.labelX0 = d.x;
+      cache.labelY0 = d.y;
+      cache.scaledC0 = d.color != null ? this.cScale(d.color) : this.COLOR_WHITEISH,
+      cache.scaledS0 = (d.size || d.size === 0) ? utils.areaToRadius(this.sScale(d.size)) : null;
+      cache.valueS0 = d.size;
+      cache.initTextBBox = null;
+      cache.initFontSize = null;
+      this._labels.updateLabel({ [Symbol.for("key")]: key });  
+    }
+  }
+
+  __labelWithoutFrame(d) {
+    return this.KEYS.map(dim => this.localise(d.label[dim])).join(' ');
+  }
+
+  __labelAll(d) {
+    return this.model.data.space.map(dim => this.localise(d.label[dim])).join(' ');
+  }
+
+}
+
+VizabiBubbleChart.DEFAULT_UI = {
+  showForecastOverlay: false,
+  opacityHighlight: 1.0,
+  opacitySelect: 1.0,
+  opacityHighlightDim: 0.1,
+  opacitySelectDim: 0.3,
+  opacityRegular: 0.5,
+  timeInBackground: true,
+  timeInTrails: true,
+  decorations: {
+    enabled: true,
+    xAxisGroups: null
+  },
+  superhighlightOnMinimapHover: true,
+  whenHovering: {
+    showProjectionLineX: true,
+    showProjectionLineY: true,
+    higlightValueX: true,
+    higlightValueY: true
+  },
+  labels: {
+    // enabled: true,
+    // dragging: true,
+    // removeLabelBox: true
+  },
+  panzoom: {
+    //test
+    // "x":{"zoomedMin":1059.46,"zoomedMax":9806.7},
+    // "y":{"zoomedMin":37.45,"zoomedMax":73.63},
+    x: { zoomedMin: null, zoomedMax: null },
+    y: { zoomedMin: null, zoomedMax: null },
+  },
+  margin: {
+    left: 0,
+    top:0
+  },
+  trails: true,
+  lockNonSelected: 0,
+  datawarning: {
+    doubtDomain: [],
+    doubtRange: []
+  },
+  numberFormatSIPrefix: true,
+  show_ticks: true,
+  presentation: false,
+  panWithArrow: false,
+  adaptMinMaxZoom: false,
+  cursorMode: "arrow",
+  zoomOnScrolling: false,
+}
+
+
+// const {
+  
+//   labels: Labels,
+//   'd3.axisWithLabelPicker': axisSmart,
+//   'd3.dynamicBackground': DynamicBackground
+// } = Vizabi.helpers;
+
+// const {
+//   warn: ICON_WARN,
+//   question: ICON_QUESTION
+// } = Vizabi.iconset;
+
+// import Trail from './trail';
+// import PanZoom from './panzoom';
 
 
 // BUBBLE CHART COMPONENT
-const BubbleChart = Vizabi.Component.extend("bubblechart", {
+const BubbleChart = {
 
   /**
    * Initializes the component (Bubble Chart).
@@ -82,7 +1736,7 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
       "change:ui.chart.trails": function(evt) {
         //console.log("EVENT change:time:trails");
         if (!_this._readyOnce) return;
-        _this._trails.toggle(_this.model.ui.chart.trails);
+        _this._trails.toggle(_this.ui.trails);
         _this.redrawDataPoints();
       },
       "change:ui.chart.timeInBackground": function(evt) {
@@ -167,7 +1821,7 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
 
         //disable trails if too many items get selected at once
         //otherwise it's too much waiting time
-        if ((evt.source._val || []).length - (evt.source._previousVal || []).length > 50) _this.model.ui.chart.trails = false;
+        if ((evt.source._val || []).length - (evt.source._previousVal || []).length > 50) _this.ui.trails = false;
 
         _this.selectDataPoints();
         _this.redrawDataPoints();
@@ -297,14 +1951,6 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
     this.sScale = null;
     this.cScale = null;
 
-    this.xAxis = axisSmart("bottom");
-    this.yAxis = axisSmart("left");
-
-    _this.COLOR_BLACKISH = "#333";
-    _this.COLOR_WHITEISH = "#fdfdfd";
-
-    this.isCanvasPreviouslyExpanded = false;
-    this.draggingNow = null;
 
     this._trails = new Trail(this);
     this._panZoom = new PanZoom(this);
@@ -323,31 +1969,6 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
     });
   },
 
-  _rangeBump(arg, undo) {
-    const bump = this.activeProfile.maxRadiusPx / 2;
-    undo = undo ? -1 : 1;
-    if (utils.isArray(arg) && arg.length > 1) {
-      let z1 = arg[0];
-      let z2 = arg[arg.length - 1];
-
-      //the sign of bump depends on the direction of the scale
-      if (z1 < z2) {
-        z1 += bump * undo;
-        z2 -= bump * undo;
-        // if the scale gets inverted because of bump, set it to avg between z1 and z2
-        if (z1 > z2) z1 = z2 = (z1 + z2) / 2;
-      } else if (z1 > z2) {
-        z1 -= bump * undo;
-        z2 += bump * undo;
-        // if the scale gets inverted because of bump, set it to avg between z1 and z2
-        if (z1 < z2) z1 = z2 = (z1 + z2) / 2;
-      } else {
-        // rangeBump error: the input scale range has 0 length. that sucks but we keep cool
-      }
-      return [z1, z2];
-    }
-    utils.warn("rangeBump error: input is not an array or empty");
-  },
 
 
   /**
@@ -356,62 +1977,13 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
   readyOnce() {
     const _this = this;
     this._readyOnce = false;
-    this.scrollableAncestor = utils.findScrollableAncestor(this.element);
-    this.element = d3.select(this.element);
 
-    // reference elements
-    this.chartSvg = this.element.select("svg.vzb-bubblechart-svg-main");
-    this.chartSvgFront = this.element.select("svg.vzb-bubblechart-svg-front");
-    this.chartSvgBack = this.element.select("svg.vzb-bubblechart-svg-back");
-    this.chartSvgAll = this.element.selectAll("svg.vzb-bubblechart-svg");
-    this.graph = this.chartSvg.select(".vzb-bc-graph");
-    this.graphFront = this.chartSvgFront.select(".vzb-bc-graph");
-    this.graphBack = this.chartSvgBack.select(".vzb-bc-graph");
-    this.graphAll = this.chartSvgAll.select(".vzb-bc-graph");
-    this.yAxisElContainer = this.graphBack.select(".vzb-bc-axis-y");
-    this.yAxisEl = this.yAxisElContainer.select("g");
 
-    this.xAxisElContainer = this.graphBack.select(".vzb-bc-axis-x");
-    this.xAxisEl = this.xAxisElContainer.select("g");
 
-    this.ySubTitleEl = this.graph.select(".vzb-bc-axis-y-subtitle");
-    this.xSubTitleEl = this.graph.select(".vzb-bc-axis-x-subtitle");
-    this.yTitleEl = this.graph.select(".vzb-bc-axis-y-title");
-    this.xTitleEl = this.graph.select(".vzb-bc-axis-x-title");
-    this.sTitleEl = this.graph.select(".vzb-bc-axis-s-title");
-    this.cTitleEl = this.graph.select(".vzb-bc-axis-c-title");
-    this.yearEl = this.graphBack.select(".vzb-bc-year");
 
-    this.year = new DynamicBackground(this.yearEl);
 
-    this.yInfoEl = this.graph.select(".vzb-bc-axis-y-info");
-    this.xInfoEl = this.graph.select(".vzb-bc-axis-x-info");
-    this.dataWarningEl = this.graph.select(".vzb-data-warning");
-
-    this.projectionX = this.graphBack.select(".vzb-bc-projection-x");
-    this.projectionY = this.graphBack.select(".vzb-bc-projection-y");
-    this.decorationsEl = this.graphBack.select(".vzb-bc-decorations");
-    this.lineEqualXY = this.decorationsEl.select(".vzb-bc-line-equal-xy");
-    this.xAxisGroupsEl = this.decorationsEl.select(".vzb-bc-x-axis-groups");
-
-    this.trailsContainer = this.graph.select(".vzb-bc-trails");
-    this.bubbleContainerCrop = this.graph.select(".vzb-bc-bubbles-crop");
-    this.bubbleContainerCropAll = this.element.selectAll(".vzb-bc-bubbles-crop");
-    this.zoomSelection = this.graph.select(".vzb-zoom-selection");
-    this.labelsContainerCrop = this.chartSvgFront.select(".vzb-bc-labels-crop");
-    this.bubbleContainer = this.graph.select(".vzb-bc-bubbles");
-    this.labelsContainer = this.labelsContainerCrop.select(".vzb-bc-labels");
-    this.linesContainer = this.graphFront.select(".vzb-bc-lines");
-    this.zoomRect = this.element.select(".vzb-bc-zoom-rect");
-    this.eventArea = this.element.select(".vzb-bc-eventarea");
-    this.forecastOverlay = this.element.select(".vzb-bc-forecastoverlay");
 
     this.entityBubbles = null;
-    this.bubbleCrown = this.graphFront.select(".vzb-bc-bubble-crown");
-    //set filter
-    this.bubbleCrown.selectAll(".vzb-crown-glow")
-      .attr("filter", "url(" + location.pathname + "#vzb-glow-filter)");
-    this.tooltipMobile = this.element.select(".vzb-tooltip-mobile");
     //component events
     this.on("resize", () => {
       //console.log("EVENT: resize");
@@ -474,8 +2046,8 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
     this.updateUIStrings();
 
     this.wScale = d3.scaleLinear()
-      .domain(this.model.ui.datawarning.doubtDomain)
-      .range(this.model.ui.datawarning.doubtRange);
+      .domain(this.ui.datawarning.doubtDomain)
+      .range(this.ui.datawarning.doubtRange);
 
     this._labels.readyOnce();
 
@@ -558,22 +2130,7 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
     this._panZoom.zoomToMaxMin(zoomedMinX, zoomedMaxX, zoomedMinY, zoomedMaxY, 0, "don't feed these zoom values back to state");
   },
 
-  /*
-   * UPDATE INDICATORS
-   */
-  updateIndicators() {
-    const _this = this;
 
-    //scales
-    this.yScale = this.model.marker.axis_y.getScale();
-    this.xScale = this.model.marker.axis_x.getScale();
-    this.sScale = this.model.marker.size.getScale();
-    this.cScale = this.model.marker.color.getScale();
-    this._labels.setScales(this.xScale, this.yScale);
-
-    this.yAxis.tickFormat(_this.model.marker.axis_y.getTickFormatter(!_this.model.ui.numberFormatSIPrefix));
-    this.xAxis.tickFormat(_this.model.marker.axis_x.getTickFormatter(!_this.model.ui.numberFormatSIPrefix));
-  },
 
   frameChanged(frame, time) {
 //    if (time.toString() != this.model.time.value.toString()) return; // frame is outdated
@@ -583,7 +2140,7 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
 
     this._updateDoubtOpacity();
     this._trails.run("findVisible", null, null, [+prevTime, +time]);
-    if (this.model.ui.adaptMinMaxZoom) {
+    if (this.ui.adaptMinMaxZoom) {
       this._panZoom.expandCanvas();
     } else {
       this.redrawDataPoints();
@@ -593,145 +2150,6 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
     this._reorderEntities();
   },
 
-  _getSubtitle(title, shortTitle) {
-    let subtitle = title.replace(shortTitle,"");
-    if (subtitle[0] === ",") subtitle = subtitle.slice(1);
-    const regexpResult = /^\((.*)\)$|.*/.exec(subtitle.trim());
-    return regexpResult[1] || regexpResult[0] || "";
-  },
-
-  updateUIStrings() {
-    const _this = this;
-    const layoutProfile = this.getLayoutProfile();
-
-    const conceptPropsY = _this.model.marker.axis_y.getConceptprops();
-    const conceptPropsX = _this.model.marker.axis_x.getConceptprops();
-    const conceptPropsS = _this.model.marker.size.getConceptprops();
-    const conceptPropsC = _this.model.marker.color.getConceptprops();
-    this.translator = this.model.locale.getTFunction();
-
-    this.strings = {
-      title: {
-        Y: conceptPropsY.name,
-        X: conceptPropsX.name,
-        S: conceptPropsS.name,
-        C: conceptPropsC.name
-      },
-      title_short: {
-        Y: conceptPropsY.name_short,
-        X: conceptPropsX.name_short,
-        S: conceptPropsS.name_short,
-        C: conceptPropsC.name_short        
-      },
-      subtitle: {
-        Y: this._getSubtitle(conceptPropsY.name, conceptPropsY.name_short),
-        X: this._getSubtitle(conceptPropsX.name, conceptPropsX.name_short),
-        S: conceptPropsS.name_short,
-        C: conceptPropsC.name_short        
-      },
-      unit: {
-        Y: conceptPropsY.unit || "",
-        X: conceptPropsX.unit || "",
-        S: conceptPropsS.unit || "",
-        C: conceptPropsC.unit || ""
-      }
-    };
-
-    const ySubTitle = this.ySubTitleEl.selectAll("text").data([0]);
-    ySubTitle.enter().append("text");
-    const xSubTitle = this.xSubTitleEl.selectAll("text").data([0]);
-    xSubTitle.enter().append("text");
-
-    const yTitle = this.yTitleEl.selectAll("text").data([0]);
-    yTitle.enter().append("text");
-    yTitle
-    //.attr("y", "-6px")
-      .on("click", () => {
-        _this.parent
-          .findChildByName("gapminder-treemenu")
-          .markerID("axis_y")
-          .alignX(_this.model.locale.isRTL() ? "right" : "left")
-          .alignY("top")
-          .updateView()
-          .toggle();
-      });
-
-    const xTitle = this.xTitleEl.selectAll("text").data([0]);
-    xTitle.enter().append("text");
-    xTitle
-      .on("click", () => {
-        _this.parent
-          .findChildByName("gapminder-treemenu")
-          .markerID("axis_x")
-          .alignX(_this.model.locale.isRTL() ? "right" : "left")
-          .alignY("bottom")
-          .updateView()
-          .toggle();
-      });
-
-    const sTitle = this.sTitleEl.selectAll("text").data([0]);
-    sTitle.enter().append("text");
-    sTitle
-      .attr("text-anchor", "end");
-
-    utils.setIcon(this.dataWarningEl, iconWarn).select("svg").attr("width", "0px").attr("height", "0px");
-    this.dataWarningEl.append("text")
-      .attr("text-anchor", "end")
-      .text(this.translator("hints/dataWarning"));
-
-    utils.setIcon(this.yInfoEl, iconQuestion)
-      .select("svg").attr("width", "0px").attr("height", "0px");
-
-    utils.setIcon(this.xInfoEl, iconQuestion)
-      .select("svg").attr("width", "0px").attr("height", "0px");
-
-
-    //TODO: move away from UI strings, maybe to ready or ready once
-    this.yInfoEl.on("click", () => {
-      _this.parent.findChildByName("gapminder-datanotes").pin();
-    });
-    this.yInfoEl.on("mouseover", function() {
-      const rect = this.getBBox();
-      const coord = utils.makeAbsoluteContext(this, this.farthestViewportElement)(rect.x - 10, rect.y + rect.height + 10);
-      const toolRect = _this.root.element.getBoundingClientRect();
-      const chartRect = _this.element.node().getBoundingClientRect();
-      _this.parent.findChildByName("gapminder-datanotes").setHook("axis_y").show().setPos(coord.x + chartRect.left - toolRect.left, coord.y);
-    });
-    this.yInfoEl.on("mouseout", () => {
-      _this.parent.findChildByName("gapminder-datanotes").hide();
-    });
-    this.xInfoEl.on("click", () => {
-      _this.parent.findChildByName("gapminder-datanotes").pin();
-    });
-    this.xInfoEl.on("mouseover", function() {
-      if (_this.model.time.dragging) return;
-      const rect = this.getBBox();
-      const coord = utils.makeAbsoluteContext(this, this.farthestViewportElement)(rect.x - 10, rect.y + rect.height + 10);
-      const toolRect = _this.root.element.getBoundingClientRect();
-      const chartRect = _this.element.node().getBoundingClientRect();
-      _this.parent.findChildByName("gapminder-datanotes").setHook("axis_x").show().setPos(coord.x + chartRect.left - toolRect.left, coord.y);
-    });
-    this.xInfoEl.on("mouseout", () => {
-      if (_this.model.time.dragging) return;
-      _this.parent.findChildByName("gapminder-datanotes").hide();
-    });
-    this.dataWarningEl
-      .on("click", () => {
-        _this.parent.findChildByName("gapminder-datawarning").toggle();
-      })
-      .on("mouseover", () => {
-        _this._updateDoubtOpacity(1);
-      })
-      .on("mouseout", () => {
-        _this._updateDoubtOpacity();
-      });
-  },
-
-  _updateDoubtOpacity(opacity) {
-    if (opacity == null) opacity = this.wScale(+this.model.time.formatDate(this.time));
-    if (this.someSelected) opacity = 1;
-    this.dataWarningEl.style("opacity", opacity);
-  },
 
   /*
    * UPDATE ENTITIES:
@@ -841,36 +2259,7 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
       });
   },
 
-  _bubblesInteract() {
-    const _this = this;
-    const KEY = this.KEY;
-    const TIMEDIM = this.TIMEDIM;
 
-    return {
-      mouseover(d, i) {
-        _this.model.marker.highlightMarker(d);
-
-        _this._labels.showCloseCross(d, true);
-      },
-
-      mouseout(d, i) {
-        _this.model.marker.clearHighlighted();
-
-        _this._labels.showCloseCross(d, false);
-      },
-
-      click(d, i) {
-        if (_this.draggingNow) return;
-        const isSelected = d.isSelected;
-        _this.model.marker.selectMarker(d);
-        //return to highlighted state
-        if (!utils.isTouchDevice()) {
-          if (isSelected) _this.model.marker.highlightMarker(d);
-          _this.highlightDataPoints();
-        }
-      }
-    };
-  },
 
 
   /*
@@ -904,74 +2293,45 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
 
     const profiles = {
       small: {
-        margin: { top: 30, bottom: 35, left: 30, right: 10},
-        leftMarginRatio: 1,
-        padding: 2,
-        minRadiusPx: 0.5,
-        maxRadiusEm: this.model.ui.chart.maxRadiusEm || 0.05,
-        infoElHeight: 16,
-        yAxisTitleBottomMargin: 6,
-        xAxisTitleBottomMargin: 4
+    
       },
       medium: {
-        margin: { top: 15, bottom: 40, left: 40, right: 15},
-        leftMarginRatio: 1.6,
-        padding: 2,
-        minRadiusPx: 1,
-        maxRadiusEm: this.model.ui.chart.maxRadiusEm || 0.05,
-        infoElHeight: 20,
-        yAxisTitleBottomMargin: 3,
-        xAxisTitleBottomMargin: 4
+
       },
       large: {
-        margin: { top: 15, bottom: marginScaleH(30, 0.03), left: marginScaleW(31, 0.015), right: 20},
-        leftMarginRatio: 1.8,
-        padding: 2,
-        minRadiusPx: 1,
-        maxRadiusEm: this.model.ui.chart.maxRadiusEm || 0.05,
-        infoElHeight: 22,
-        yAxisTitleBottomMargin: 3,//marginScaleH(4, 0.01),
-        xAxisTitleBottomMargin: marginScaleH(0, 0.01),
-        hideSTitle: true
+
       }
     };
 
     const presentationProfileChanges = {
       medium: {
-        margin: { top: 20, bottom: 55, left: 50, right: 20 },
-        yAxisTitleBottomMargin: 3,
-        xAxisTitleBottomMargin: 4,
-        infoElHeight: 26,
+
       },
       large: {
-        margin: { top: 30, bottom: marginScaleH(45, 0.03), left: marginScaleW(35, 0.025), right: 30 },
-        yAxisTitleBottomMargin: 3,//marginScaleH(4, 0.01),
-        xAxisTitleBottomMargin: marginScaleH(-10, 0.01),
-        infoElHeight: 32,
-        hideSTitle: true
+
       }
     };
     
     const _this = this;
 
-    this.activeProfile = this.getActiveProfile(profiles, presentationProfileChanges);
+    this.profileConstants = this.getprofileConstants(profiles, presentationProfileChanges);
     const layoutProfile = this.getLayoutProfile();
     const containerWH = this.root.getVizWidthHeight();
-    this.activeProfile.maxRadiusPx = Math.max(
-      this.activeProfile.minRadiusPx,
-      this.activeProfile.maxRadiusEm * utils.hypotenuse(containerWH.width, containerWH.height)
+    this.profileConstants.maxRadiusPx = Math.max(
+      this.profileConstants.minRadiusPx,
+      this.profileConstants.maxRadiusEm * utils.hypotenuse(containerWH.width, containerWH.height)
     );
 
-    const margin = this.activeProfile.margin;
-    const infoElHeight = this.activeProfile.infoElHeight;
+    const margin = this.profileConstants.margin;
+    const infoElHeight = this.profileConstants.infoElHeight;
 
     //labels
-    _this._labels.setCloseCrossHeight(_this.activeProfile.infoElHeight * 1.2);
-    _this._labels.setTooltipFontSize(_this.activeProfile.infoElHeight + "px");
+    _this._labels.setCloseCrossHeight(_this.profileConstants.infoElHeight * 1.2);
+    _this._labels.setTooltipFontSize(_this.profileConstants.infoElHeight + "px");
     
     //stage
     this.height = (parseInt(this.element.style("height"), 10) - margin.top - margin.bottom) || 0;
-    this.width = (parseInt(this.element.style("width"), 10) - margin.left * this.activeProfile.leftMarginRatio - margin.right) || 0;
+    this.width = (parseInt(this.element.style("width"), 10) - margin.left * this.profileConstants.leftMarginRatio - margin.right) || 0;
 
     if (this.height <= 0 || this.width <= 0) {
       this.height = 0;
@@ -981,10 +2341,10 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
 
     //graph group is shifted according to margins (while svg element is at 100 by 100%)
     this.graphAll
-      .attr("transform", "translate(" + (margin.left * this.activeProfile.leftMarginRatio) + "," + margin.top + ")");
+      .attr("transform", "translate(" + (margin.left * this.profileConstants.leftMarginRatio) + "," + margin.top + ")");
 
-    this.yearEl.classed("vzb-hidden", !this.model.ui.chart.timeInBackground);
-    this.year.resize(this.width, this.height);
+    //this.yearEl.classed("vzb-hidden", !this.ui.timeInBackground);
+    //this.year.resize(this.width, this.height);
     this.eventArea
       .attr("width", this.width)
       .attr("height", Math.max(0, this.height));
@@ -993,12 +2353,12 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
     if (this.model.marker.axis_y.scaleType !== "ordinal") {
       this.yScale.range(this._rangeBump([this.height, 0]));
     } else {
-      this.yScale.rangePoints([this.height, 0], _this.activeProfile.padding).range();
+      this.yScale.rangePoints([this.height, 0], _this.profileConstants.padding).range();
     }
     if (this.model.marker.axis_x.scaleType !== "ordinal") {
       this.xScale.range(this._rangeBump([0, this.width]));
     } else {
-      this.xScale.rangePoints([0, this.width], _this.activeProfile.padding).range();
+      this.xScale.rangePoints([0, this.width], _this.profileConstants.padding).range();
     }
 
     //apply scales to axes and redraw
@@ -1011,9 +2371,9 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
         scaleType: this.model.marker.axis_y.scaleType,
         toolMargin: margin,
         limitMaxTickNumber: 6,
-        bump: this.activeProfile.maxRadiusPx / 2,
+        bump: this.profileConstants.maxRadiusPx / 2,
         viewportLength: this.height,
-        formatter: this.model.marker.axis_y.getTickFormatter(!this.model.ui.numberFormatSIPrefix)
+        formatter: this.model.marker.axis_y.getTickFormatter(!this.ui.numberFormatSIPrefix)
       });
 
     this.xAxis.scale(this.xScale)
@@ -1024,9 +2384,9 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
       .labelerOptions({
         scaleType: this.model.marker.axis_x.scaleType,
         toolMargin: margin,
-        bump: this.activeProfile.maxRadiusPx / 2,
+        bump: this.profileConstants.maxRadiusPx / 2,
         viewportLength: this.width,
-        formatter: this.model.marker.axis_x.getTickFormatter(!this.model.ui.numberFormatSIPrefix)
+        formatter: this.model.marker.axis_x.getTickFormatter(!this.ui.numberFormatSIPrefix)
       });
 
 
@@ -1040,24 +2400,24 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
 
     this.xAxisElContainer
       .attr("width", this.width + 1)
-      .attr("height", this.activeProfile.margin.bottom + this.height)
+      .attr("height", this.profileConstants.margin.bottom + this.height)
       .attr("y", -1)
       .attr("x", -1);
     this.xAxisEl
       .attr("transform", "translate(1," + (1 + this.height) + ")");
 
     this.yAxisElContainer
-      .attr("width", this.activeProfile.margin.left + this.width)
+      .attr("width", this.profileConstants.margin.left + this.width)
       .attr("height", Math.max(0, this.height))
-      .attr("x", -this.activeProfile.margin.left);
+      .attr("x", -this.profileConstants.margin.left);
     this.yAxisEl
-      .attr("transform", "translate(" + (this.activeProfile.margin.left - 1) + "," + 0 + ")");
+      .attr("transform", "translate(" + (this.profileConstants.margin.left - 1) + "," + 0 + ")");
 
     this.yAxisEl.call(this.yAxis);
     this.xAxisEl.call(this.xAxis);
 
-    this.projectionX.attr("y1", _this.yScale.range()[0] + this.activeProfile.maxRadiusPx / 2);
-    this.projectionY.attr("x2", _this.xScale.range()[0] - this.activeProfile.maxRadiusPx / 2);
+    this.projectionX.attr("y1", _this.yScale.range()[0] + this.profileConstants.maxRadiusPx / 2);
+    this.projectionY.attr("x2", _this.xScale.range()[0] - this.profileConstants.maxRadiusPx / 2);
 
 
     // reduce font size if the caption doesn't fit
@@ -1065,7 +2425,7 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
     this.sTitleEl
       .attr("transform", "translate(" + this.width + "," + 20 + ") rotate(-90)");
 
-    if (layoutProfile !== "small") {
+    if (layoutProfile !== "SMALL") {
       this.ySubTitleEl.select("text").attr("dy", infoElHeight * 0.6).text(this.strings.subtitle.Y);
       this.xSubTitleEl.select("text").attr("dy", -infoElHeight * 0.3).text(this.strings.subtitle.X);
       
@@ -1098,17 +2458,17 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
   
     this.yTitleEl
       .style("font-size", infoElHeight + "px")
-      .attr("transform", layoutProfile !== "small" ?
-        "translate(" + (-margin.left - this.activeProfile.yAxisTitleBottomMargin)  + "," + (this.height * 0.5) + ") rotate(-90)"
+      .attr("transform", layoutProfile !== "SMALL" ?
+        "translate(" + (-margin.left - this.profileConstants.yAxisTitleBottomMargin)  + "," + (this.height * 0.5) + ") rotate(-90)"
         : 
-        "translate(" + (isRTL ? this.width : 10 - this.activeProfile.margin.left) + ", -" + this.activeProfile.yAxisTitleBottomMargin + ")")
+        "translate(" + (isRTL ? this.width : 10 - this.profileConstants.margin.left) + ", -" + this.profileConstants.yAxisTitleBottomMargin + ")")
 
     this.xTitleEl
       .style("font-size", infoElHeight + "px")
-      .attr("transform", layoutProfile !== "small" ?
-        "translate(" + (this.width * 0.5) + "," + (this.height + margin.bottom - this.activeProfile.xAxisTitleBottomMargin) + ")"
+      .attr("transform", layoutProfile !== "SMALL" ?
+        "translate(" + (this.width * 0.5) + "," + (this.height + margin.bottom - this.profileConstants.xAxisTitleBottomMargin) + ")"
         :
-        "translate(" + (isRTL ? this.width : 0) + "," + (this.height + margin.bottom - this.activeProfile.xAxisTitleBottomMargin) + ")");
+        "translate(" + (isRTL ? this.width : 0) + "," + (this.height + margin.bottom - this.profileConstants.xAxisTitleBottomMargin) + ")");
     
     this.xAxisGroupsEl
       .style("font-size", infoElHeight * 0.8 + "px");
@@ -1120,11 +2480,11 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
       const vTranslate = isRTL ? (t.translateY + infoElHeight * 1.4 + titleBBox.width * 0.5) : (t.translateY - infoElHeight * 0.4 - titleBBox.width * 0.5);
 
       this.yInfoEl
-        .classed('vzb-hidden', !conceptPropsY.description && !conceptPropsY.sourceLink || this.model.ui.presentation)
+        .classed('vzb-hidden', !conceptPropsY.description && !conceptPropsY.sourceLink || this.services.layout.projector)
         .select("svg")
         .attr("width", infoElHeight + "px")
         .attr("height", infoElHeight + "px");
-      this.yInfoEl.attr("transform", layoutProfile !== "small" ?
+      this.yInfoEl.attr("transform", layoutProfile !== "SMALL" ?
         "translate(" + (t.translateX - infoElHeight * 0.8) + "," + vTranslate + ") rotate(-90)"
         :
         "translate(" + hTranslate + "," + (t.translateY - infoElHeight * 0.8) + ")");
@@ -1136,7 +2496,7 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
       const hTranslate = isRTL ? (titleBBox.x + t.translateX - infoElHeight * 1.4) : (titleBBox.x + t.translateX + titleBBox.width + infoElHeight * 0.4);
 
       this.xInfoEl
-        .classed('vzb-hidden', !conceptPropsX.description && !conceptPropsX.sourceLink || this.model.ui.presentation)
+        .classed('vzb-hidden', !conceptPropsX.description && !conceptPropsX.sourceLink || this.services.layout.projector)
         .select("svg")
         .attr("width", infoElHeight + "px")
         .attr("height", infoElHeight + "px");
@@ -1147,7 +2507,7 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
 
     this._resizeDataWarning();
 
-    this.model.ui.chart.margin.set("left", margin.left * this.activeProfile.leftMarginRatio, false, false);
+    this.ui.margin.set("left", margin.left * this.profileConstants.leftMarginRatio, false, false);
   },
 
 
@@ -1155,14 +2515,14 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
     const _this = this;
     
     // x axis groups used for incomes
-    const showxAxisGroups = this.model.ui.chart.decorations.xAxisGroups 
-      && this.model.ui.chart.decorations.xAxisGroups[this.model.marker.axis_x.which] 
-      && this.model.ui.chart.decorations.enabled
-      && this.getLayoutProfile() !== "small";
+    const showxAxisGroups = this.ui.decorations.xAxisGroups 
+      && this.ui.decorations.xAxisGroups[this.model.marker.axis_x.which] 
+      && this.ui.decorations.enabled
+      && this.getLayoutProfile() !== "SMALL";
     
     this.xAxisGroupsEl.classed("vzb-invisible", !showxAxisGroups);
     if (showxAxisGroups) {
-      const axisGroupsData = this.model.ui.chart.decorations.xAxisGroups[this.model.marker.axis_x.which];
+      const axisGroupsData = this.ui.decorations.xAxisGroups[this.model.marker.axis_x.which];
       let xAxisGroups = this.xAxisGroupsEl.selectAll(".vzb-bc-x-axis-group").data(axisGroupsData);
       
       xAxisGroups.exit().remove();
@@ -1182,7 +2542,7 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
         const view = d3.select(this);
         
         const text = view.select("text.vzb-bc-x-axis-group-text")
-          .text(_this.translator(d.label));
+          .text(_this.localise(d.label));
         
         const calcs = {min: d.min, max: d.max};
         
@@ -1206,7 +2566,7 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
           const view = d3.select(this);
 
           const text = view.select("text.vzb-bc-x-axis-group-text")
-            .text(_this.translator(d.label_short));
+            .text(_this.localise(d.label_short));
 
           const calcs = xAxisGroups_calcs[i];
 
@@ -1255,19 +2615,19 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
         parentView.append("rect").lower()
           .attr("x", calcs.boundaryMinX_px)
           .attr("width", calcs.boundaryMaxX_px - calcs.boundaryMinX_px)
-          .attr("y", -_this.activeProfile.margin.top)
-          .attr("height", _this.height + _this.activeProfile.margin.top)
+          .attr("y", -_this.profileConstants.margin.top)
+          .attr("height", _this.height + _this.profileConstants.margin.top)
   
         if (calcs.min || calcs.min === 0) parentView.append("line").lower()
           .attr("x1", calcs.boundaryMinX_px)
           .attr("x2", calcs.boundaryMinX_px)
-          .attr("y1", -_this.activeProfile.margin.top)
+          .attr("y1", -_this.profileConstants.margin.top)
           .attr("y2", _this.height)
   
         if (calcs.max || calcs.max === 0) parentView.append("line").lower()
           .attr("x1", calcs.boundaryMaxX_px)
           .attr("x2", calcs.boundaryMaxX_px)
-          .attr("y1", -_this.activeProfile.margin.top)
+          .attr("y1", -_this.profileConstants.margin.top)
           .attr("y2", _this.height)
   
       }).on("mouseleave", function(d, i) {
@@ -1282,8 +2642,8 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
     // diagonal line that is used when the same idicator ID is used for both axis X and Y
     const showLineEqualXY = 
       this.model.marker.axis_x.which == this.model.marker.axis_y.which 
-      && this.model.ui.chart.decorations.enabled
-      && this.getLayoutProfile() !== "small";
+      && this.ui.decorations.enabled
+      && this.getLayoutProfile() !== "SMALL";
     
     this.lineEqualXY.classed("vzb-invisible", !showLineEqualXY);
     if (showLineEqualXY) {
@@ -1300,49 +2660,7 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
     }
   },
 
-  _resizeDataWarning() {
-    // reset font size to remove jumpy measurement
-    const dataWarningText = this.dataWarningEl.select("text").style("font-size", null);
 
-    // reduce font size if the caption doesn't fit
-    const dataWarningWidth = dataWarningText.node().getBBox().width + dataWarningText.node().getBBox().height * 3;
-    const remainingWidth = this.width - this.xTitleEl.node().getBBox().width - this.activeProfile.infoElHeight;
-    const font = parseInt(dataWarningText.style("font-size")) * remainingWidth / dataWarningWidth;
-    dataWarningText.style("font-size", dataWarningWidth > remainingWidth ? font + "px" : null);
-
-    // position the warning icon
-    const warnBB = dataWarningText.node().getBBox();
-    this.dataWarningEl.select("svg")
-      .attr("width", warnBB.height * 0.75)
-      .attr("height", warnBB.height * 0.75)
-      .attr("x", -warnBB.width - warnBB.height * 1.2)
-      .attr("y", -warnBB.height * 0.65);
-
-    this.dataWarningEl
-      .classed("vzb-hidden", this.model.ui.presentation)
-      .attr("transform", "translate("
-        + (this.model.locale.isRTL() ? warnBB.width + warnBB.height : this.width) + ","
-        + (this.height + this.activeProfile.margin.bottom - this.activeProfile.xAxisTitleBottomMargin)
-        + ")");
-  },
-
-  updateMarkerSizeLimits() {
-    const _this = this;
-    const extent = this.model.marker.size.extent || [0, 1];
-
-    if (!this.activeProfile) return utils.warn("updateMarkerSizeLimits() is called before ready(). This can happen if events get unfrozen and getFrame() still didn't return data");
-
-    let minRadius = this.activeProfile.minRadiusPx;
-    let maxRadius = this.activeProfile.maxRadiusPx;
-
-    let minArea = utils.radiusToArea(Math.max(maxRadius * extent[0], minRadius));
-    let maxArea = utils.radiusToArea(Math.max(maxRadius * extent[1], minRadius));
-
-    let range = minArea === maxArea? [minArea, maxArea] :
-      d3.range(minArea, maxArea, (maxArea - minArea)/this.sScale.domain().length).concat(maxArea);
-
-    this.sScale.range(range);
-  },
 
   redrawDataPointsOnlyColors() {
     const _this = this;
@@ -1356,8 +2674,8 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
 
     let time = this.model.time.value;
 
-    if (this.model.ui.chart.lockNonSelected && this.someSelected) {
-      time = this.model.time.parse("" + this.model.ui.chart.lockNonSelected);
+    if (this.ui.lockNonSelected && this.someSelected) {
+      time = this.model.time.parse("" + this.ui.lockNonSelected);
     }
     this.model.marker.getFrame(time, valuesLocked => {
       if (!_this._frameIsValid(valuesLocked)) return utils.warn("redrawDataPointsOnlyColor: empty data received from marker.getFrame(). doing nothing");
@@ -1384,7 +2702,7 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
             if (!valuesTrailStart) return utils.warn("redrawDataPointsOnlyColor: empty data received from marker.getFrames(). doing nothing");
 
             const cache = {};
-            if (!_this.model.ui.chart.trails || trailStartTime - _this.time == 0) {
+            if (!_this.ui.trails || trailStartTime - _this.time == 0) {
               cache.scaledC0 = scaledC;
             } else {
               const valueC = valuesTrailStart.color[utils.getKey(d, dataKeys.color)];
@@ -1411,8 +2729,8 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
 
     let time = this.model.time.value;
 
-    if (this.model.ui.chart.lockNonSelected && this.someSelected) {
-      time = this.model.time.parse("" + this.model.ui.chart.lockNonSelected);
+    if (this.ui.lockNonSelected && this.someSelected) {
+      time = this.model.time.parse("" + this.ui.lockNonSelected);
     }
     this.model.marker.getFrame(time, valuesLocked => {
       if (!_this._frameIsValid(valuesLocked)) return utils.warn("redrawDataPointsOnlySize: empty data received from marker.getFrame(). doing nothing");
@@ -1439,7 +2757,7 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
             if (!valuesTrailStart) return utils.warn("redrawDataPointsOnlySize: empty data received from marker.getFrames(). doing nothing");
 
             const cache = {};
-            if (!_this.model.ui.chart.trails || trailStartTime - _this.time == 0) {
+            if (!_this.ui.trails || trailStartTime - _this.time == 0) {
               cache.scaledS0 = scaledS;
             } else {
               cache.scaledS0 = utils.areaToRadius(_this.sScale(valuesTrailStart.size[utils.getKey(d, dataKeys.size)]));
@@ -1463,8 +2781,8 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
     const KEY = this.KEY;
     if (duration == null) duration = _this.duration;
 
-    if (this.model.ui.chart.lockNonSelected && this.someSelected) {
-      const time = this.model.time.parse("" + this.model.ui.chart.lockNonSelected);
+    if (this.ui.lockNonSelected && this.someSelected) {
+      const time = this.model.time.parse("" + this.ui.lockNonSelected);
 
       //get values for locked frames
       this.model.marker.getFrame(time, lockedFrame => {
@@ -1599,8 +2917,8 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
       const select = utils.find(_this.model.marker.select, f => utils.getKey(f, KEYS) == d[KEY]);
 
       const time = _this.model.time.formatDate(_this.time);
-      if (!this.model.ui.chart.trails || select.trailStartTime == time || select.trailStartTime == null) {
-        if (this.model.ui.chart.trails && select.trailStartTime == null) select.trailStartTime = time; // need only when trailStartTime == null
+      if (!this.ui.trails || select.trailStartTime == time || select.trailStartTime == null) {
+        if (this.ui.trails && select.trailStartTime == null) select.trailStartTime = time; // need only when trailStartTime == null
 
         cache.labelX0 = valueX;
         cache.labelY0 = valueY;
@@ -1612,8 +2930,8 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
 
       const labelText = _this._getLabelText(values, d, select.trailStartTime);
 
-      if (showhide && d.hidden && _this.model.ui.chart.trails && trailStartTime && (trailStartTime < _this.time)) showhide = false;
-      if (d.hidden && !_this.model.ui.chart.trails) showhide = true;
+      if (showhide && d.hidden && _this.ui.trails && trailStartTime && (trailStartTime < _this.time)) showhide = false;
+      if (d.hidden && !_this.ui.trails) showhide = true;
 
       this._labels.updateLabel(d, index, cache, valueX, valueY, valueS, valueC, labelText, valueLST, duration, showhide);
 
@@ -1622,11 +2940,11 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
 
   _getLabelText(values, d, time) {
     return this.model.marker.getCompoundLabelText(d, values)
-      + (this.model.ui.chart.timeInTrails && time && (this.model.time.start - this.model.time.end !== 0) ? " " + time : "");
+      + (this.ui.timeInTrails && time && (this.model.time.start - this.model.time.end !== 0) ? " " + time : "");
   },
   
   _updateForecastOverlay() {
-    this.forecastOverlay.classed("vzb-hidden", (this.model.time.value <= this.model.time.endBeforeForecast) || !this.model.time.endBeforeForecast || !this.model.ui.chart.showForecastOverlay);
+    this.forecastOverlay.classed("vzb-hidden", (this.model.time.value <= this.model.time.endBeforeForecast) || !this.model.time.endBeforeForecast || !this.ui.showForecastOverlay);
   },
 
   _setTooltip(tooltipText, x, y, s, c, d) {
@@ -1660,8 +2978,8 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
     const unitS = this.strings.unit.S;
     const unitC = this.strings.unit.C;
 
-    const formatterS = this.model.marker.size.getTickFormatter(!this.model.ui.numberFormatSIPrefix);
-    const formatterC = this.model.marker.color.getTickFormatter(!this.model.ui.numberFormatSIPrefix);
+    const formatterS = this.model.marker.size.getTickFormatter(!this.ui.numberFormatSIPrefix);
+    const formatterC = this.model.marker.color.getTickFormatter(!this.ui.numberFormatSIPrefix);
 
     //resolve labels for colors via the color legend
     if (this.model.marker.color.isDiscrete() && this.model.marker.color.use !== "constant" && titleC && this.model.marker.color.getColorlegendMarker()) {
@@ -1669,36 +2987,9 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
     }
 
     return [formatterS(titleS) + " " + unitS,
-      titleC || titleC === 0 ? formatterC(titleC) + " " + unitC : this.translator("hints/nodata")];
+      titleC || titleC === 0 ? formatterC(titleC) + " " + unitC : this.localise("hints/nodata")];
   },
 
-  _updateSTitle(titleS, titleC) {
-
-    // vertical text about size and color
-    if (this.activeProfile.hideSTitle
-      && this.model.ui.dialogs.sidebar.indexOf("colors") > -1
-      && this.model.ui.dialogs.sidebar.indexOf("size") > -1) {
-      this.sTitleEl.classed("vzb-invisible", true);
-      return;
-    }
-    if (this.sTitleEl.classed("vzb-invisible")) {
-      this.sTitleEl.classed("vzb-invisible", false);
-    }
-    const sTitleContentON = this.model.marker.size.use !== "constant";
-    const cTitleContentON = this.model.marker.color.use !== "constant";
-    const sTitleText = this.sTitleEl.select("text")
-    // reset font size to remove jumpy measurement
-      .style("font-size", null)
-      .text(
-        (sTitleContentON ? this.translator("buttons/size") + ": " + (titleS ? titleS : this.strings.title.S) : "") +
-        (sTitleContentON && cTitleContentON ? ", " : "") +
-        (cTitleContentON ? this.translator("buttons/colors") + ": " + (titleC ? titleC : this.strings.title.C) : "")
-      );
-    const sTitleWidth = sTitleText.node().getBBox().width;
-    const remainigHeight = this.height - 30;
-    const font = parseInt(sTitleText.style("font-size")) * remainigHeight / sTitleWidth;
-    sTitleText.style("font-size", sTitleWidth > remainigHeight ? font + "px" : null);
-  },
 
   selectDataPoints() {
     const _this = this;
@@ -1759,7 +3050,7 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
 
         if (!valueY && valueY !== 0 || !valueX && valueX !== 0 || !valueS && valueS !== 0) return;
 
-        if (_this.model.ui.chart.whenHovering.showProjectionLineX
+        if (_this.ui.whenHovering.showProjectionLineX
           && _this.xScale(valueX) > 0 && _this.xScale(valueX) < _this.width
           && (_this.yScale(valueY) + radius) < _this.height) {
           _this.projectionX
@@ -1769,7 +3060,7 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
             .attr("x2", _this.xScale(valueX));
         }
 
-        if (_this.model.ui.chart.whenHovering.showProjectionLineY
+        if (_this.ui.whenHovering.showProjectionLineY
           && _this.yScale(valueY) > 0 && _this.yScale(valueY) < _this.height
           && (_this.xScale(valueX) - radius) > 0) {
           _this.projectionY
@@ -1779,11 +3070,11 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
             .attr("x1", _this.xScale(valueX) - radius);
         }
 
-        if (_this.model.ui.chart.whenHovering.higlightValueX) _this.xAxisEl.call(
+        if (_this.ui.whenHovering.higlightValueX) _this.xAxisEl.call(
           _this.xAxis.highlightValue(valueX)
         );
 
-        if (_this.model.ui.chart.whenHovering.higlightValueY) _this.yAxisEl.call(
+        if (_this.ui.whenHovering.higlightValueY) _this.yAxisEl.call(
           _this.yAxis.highlightValue(valueY)
         );
       });
@@ -1818,8 +3109,8 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
       d[KEY] = utils.getKey(d, KEYS);
       d.isSelected = _this.model.marker.isSelected(d);
 
-      if (_this.model.ui.chart.lockNonSelected && _this.someSelected && !d.isSelected) {
-        d[TIMEDIM] = _this.model.time.parse("" + _this.model.ui.chart.lockNonSelected);
+      if (_this.ui.lockNonSelected && _this.someSelected && !d.isSelected) {
+        d[TIMEDIM] = _this.model.time.parse("" + _this.ui.lockNonSelected);
       } else {
         d[TIMEDIM] = _this.model.time.parse("" + d.trailStartTime) || _this.time;
       }
@@ -1841,7 +3132,7 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
         //show tooltip
         let text = "";
         let hoverTrail = false;
-        if (d.isSelected && _this.model.ui.chart.trails) {
+        if (d.isSelected && _this.ui.trails) {
           text = _this.model.time.formatDate(_this.time);
           const selectedData = utils.find(_this.model.marker.select, f => utils.getKey(f, KEYS) == d[KEY]);
           hoverTrail = text !== selectedData.trailStartTime && !d3.select(d3.event.target).classed("bubble-" + d[KEY]);
@@ -1932,6 +3223,6 @@ const BubbleChart = Vizabi.Component.extend("bubblechart", {
     this.nonSelectedOpacityZero = _this.model.marker.opacitySelectDim < 0.01;
   }
 
-});
+};
 
-export default BubbleChart;
+//export default BubbleChart;

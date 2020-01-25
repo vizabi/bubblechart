@@ -1,8 +1,10 @@
-const { utils } = Vizabi;
+import {
+  LegacyUtils as utils,
+} from "VizabiSharedComponents";
 
-const PanZoom = Vizabi.Class.extend({
+export default class PanZoom {
 
-  init(context) {
+  constructor(context) {
     this.context = context;
 
     this.dragRectangle = d3.drag();
@@ -26,11 +28,11 @@ const PanZoom = Vizabi.Class.extend({
     this.zoomer.ratioX = 1;
     this.zoomer.ratioY = 1;
 
-    context._zoomedXYMinMax = {
-      axis_x: { zoomedMin: null, zoomedMax: null },
-      axis_y: { zoomedMin: null, zoomedMax: null }
+    this.context._zoomedXYMinMax = {
+      x: { zoomedMin: null, zoomedMax: null },
+      y: { zoomedMin: null, zoomedMax: null }
     };
-  },
+  }
 
   dragSubject() {
     const _this = this.context;
@@ -54,7 +56,7 @@ const PanZoom = Vizabi.Class.extend({
         y: d3.mouse(this)[1]
       };
     };
-  },
+  }
 
   drag() {
     const _this = this.context;
@@ -79,7 +81,7 @@ const PanZoom = Vizabi.Class.extend({
           x: d3.mouse(this)[0],
           y: d3.mouse(this)[1]
         };
-        _this.zoomRect.classed("vzb-invisible", false);
+        _this.DOM.zoomRect.classed("vzb-invisible", false);
       },
 
       go(d, i) {
@@ -91,7 +93,7 @@ const PanZoom = Vizabi.Class.extend({
         //             (d3.event.sourceEvent.touches.length > 1 || d3.event.sourceEvent.targetTouches.length > 1)) {
         //   self.dragLock = false;
 
-        //   _this.zoomRect
+        //   _this.DOM.zoomRect
         //     .attr("width", 0)
         //     .attr("height", 0)
         //     .classed("vzb-invisible", true);
@@ -105,7 +107,7 @@ const PanZoom = Vizabi.Class.extend({
           y: d3.event.y
         };
 
-        _this.zoomRect
+        _this.DOM.zoomRect
           .attr("x", Math.min(mouse.x, origin.x))
           .attr("y", Math.min(mouse.y, origin.y))
           .attr("width", Math.abs(mouse.x - origin.x))
@@ -116,7 +118,7 @@ const PanZoom = Vizabi.Class.extend({
         // if (!self.dragLock) return;
         // self.dragLock = false;
 
-        _this.zoomRect
+        _this.DOM.zoomRect
           .attr("width", 0)
           .attr("height", 0)
           .classed("vzb-invisible", true);
@@ -145,7 +147,8 @@ const PanZoom = Vizabi.Class.extend({
         );
       }
     };
-  },
+  }
+
   zoomFilter() {
     const _this = this.context;
     const self = this;
@@ -175,7 +178,8 @@ const PanZoom = Vizabi.Class.extend({
 
       return false;
     };
-  },
+  }
+
   zoom() {
     const _this = this.context;
     const zoomer = this.zoomer;
@@ -185,11 +189,11 @@ const PanZoom = Vizabi.Class.extend({
       start() {
         //this.savedScale = zoomer.scale;
         if ((_this.ui.cursorMode !== "plus") && (_this.ui.cursorMode !== "minus")) {
-          _this.chartSvg.classed("vzb-zooming", true);
+          _this.DOM.chartSvg.classed("vzb-zooming", true);
         }
 
-        _this.model._data.marker.clearHighlighted();
-        _this._setTooltip();
+        ////_this.model._data.marker.clearHighlighted();
+        ////_this._setTooltip();
 
       },
       go() {
@@ -413,13 +417,13 @@ const PanZoom = Vizabi.Class.extend({
           }
         }
 
-        if (_this.model.marker.axis_x.scaleType === "ordinal") {
+        if (_this.MDL.x.scale.type === "ordinal") {
           _this.xScale.rangeBands(xRange);
         } else {
           _this.xScale.range(xRange);
         }
 
-        if (_this.model.marker.axis_y.scaleType === "ordinal") {
+        if (_this.MDL.y.scale.type === "ordinal") {
           _this.yScale.rangeBands(yRange);
         } else {
           _this.yScale.range(yRange);
@@ -449,18 +453,23 @@ const PanZoom = Vizabi.Class.extend({
          */
 
         _this._zoomedXYMinMax = {
-          axis_x: {
+          x: {
             zoomedMin: formatter(_this.xScale.invert(zoomedXRange[0])),
             zoomedMax: formatter(_this.xScale.invert(zoomedXRange[1]))
           },
-          axis_y: {
+          y: {
             zoomedMin: formatter(_this.yScale.invert(zoomedYRange[0])),
             zoomedMax: formatter(_this.yScale.invert(zoomedYRange[1]))
           }
         };
 
-
-        if (!zoomer.dontFeedToState) _this.model.marker.set(_this._zoomedXYMinMax, null, false /*avoid storing it in URL*/);
+        //TODO/*avoid storing it in URL*/
+        if (!zoomer.dontFeedToState) {
+          _this.ui.panzoom = {
+            x: Object.assign({}, _this._zoomedXYMinMax.x),
+            y: Object.assign({}, _this._zoomedXYMinMax.y),          
+          }
+        }
 
         const optionsY = _this.yAxis.labelerOptions();
         const optionsX = _this.xAxis.labelerOptions();
@@ -469,35 +478,40 @@ const PanZoom = Vizabi.Class.extend({
         optionsY.transitionDuration = zoomer.duration;
         optionsX.transitionDuration = zoomer.duration;
 
-        _this.xAxisEl.call(_this.xAxis.labelerOptions(optionsX));
-        _this.yAxisEl.call(_this.yAxis.labelerOptions(optionsY));
-        _this.redrawDataPoints(zoomer.duration);
-        _this._trails.run("resize", null, zoomer.duration);
+        _this.DOM.xAxisEl.call(_this.xAxis.labelerOptions(optionsX));
+        _this.DOM.yAxisEl.call(_this.yAxis.labelerOptions(optionsY));
+        _this._redrawData(zoomer.duration);
+        //_this._trails.run("resize", null, zoomer.duration);
 
         zoomer.duration = 0;
       },
 
       stop() {
-        _this.chartSvg.classed("vzb-zooming", false);
-
-        _this.draggingNow = false;
-
+        _this.DOM.chartSvg.classed("vzb-zooming", false);
         // if (this.quitZoom) return;
 
         //Force the update of the URL and history, with the same values
-        if (!zoomer.dontFeedToState) _this.model.marker.set(_this._zoomedXYMinMax, true, true);
+        if (!zoomer.dontFeedToState) {
+          _this.ui.panzoom = {
+            x: Object.assign({}, _this._zoomedXYMinMax.x),
+            y: Object.assign({}, _this._zoomedXYMinMax.y),          
+          }
+          //_this.model.marker.set(_this._zoomedXYMinMax, true, true);
+        }
         zoomer.dontFeedToState = null;
+
+        _this.draggingNow = false;
       }
     };
-  },
+  }
 
   expandCanvas(duration) {
     const _this = this.context;
     if (!duration) duration = _this.duration;
 
     //d3 extent returns min and max of the input array as [min, max]
-    const mmX = d3.extent(utils.values(_this.frame.axis_x));
-    const mmY = d3.extent(utils.values(_this.frame.axis_y));
+    const mmX = d3.extent(utils.values(_this.frame.x));
+    const mmY = d3.extent(utils.values(_this.frame.y));
 
     //protection agains unreasonable min-max results -- abort function
     if (!mmX[0] && mmX[0] !== 0 || !mmX[1] && mmX[1] !== 0 || !mmY[0] && mmY[0] !== 0 || !mmY[1] && mmY[1] !== 0) {
@@ -565,7 +579,7 @@ const PanZoom = Vizabi.Class.extend({
     } else {
       _this.redrawDataPoints(duration);
     }
-  },
+  }
 
   zoomToMaxMin(zoomedMinX, zoomedMaxX, zoomedMinY, zoomedMaxY, duration, dontFeedToState) {
     const _this = this.context;
@@ -591,7 +605,7 @@ const PanZoom = Vizabi.Class.extend({
 
 
     this._zoomOnRectangle(_this.element, xRange[0], yRange[0], xRange[1], yRange[1], false, duration, dontFeedToState);
-  },
+  }
 
   _zoomOnRectangle(element, zoomedX1, zoomedY1, zoomedX2, zoomedY2, compensateDragging, duration, dontFeedToState) {
     const _this = this.context;
@@ -684,7 +698,7 @@ const PanZoom = Vizabi.Class.extend({
 
     //zoomer.event(element);
     this.zoomSelection.call(zoomer.transform, d3.zoomIdentity.translate(pan[0], pan[1]).scale(zoom));
-  },
+  }
 
   /*
    * Incrementally zoom in or out and pan the view so that it never looses the point where click happened
@@ -729,8 +743,7 @@ const PanZoom = Vizabi.Class.extend({
     //this.zoomer.event(_this.element);
     this.zoomSelection.call(this.zoomer.transform, d3.zoomIdentity.translate(pan[0], pan[1]).scale(ratio));
 
-  },
-
+  }
 
   /*
    * Reset zoom values without triggering a zoom event.
@@ -741,7 +754,7 @@ const PanZoom = Vizabi.Class.extend({
     this.zoomer.ratioX = 1;
     //this.zoomer.translate([0, 0]);
     (element || this.zoomSelection).property("__zoom", d3.zoomIdentity);
-  },
+  }
 
   reset(element, duration) {
     const _this = this.context;
@@ -754,18 +767,16 @@ const PanZoom = Vizabi.Class.extend({
     this.zoomer.duration = duration || 0;
     //this.zoomer.event(element || _this.element);
     (element || this.zoomSelection).call(this.zoomer.transform, d3.zoomIdentity);
-  },
+  }
 
   rerun(element) {
     const _this = this.context;
     //this.zoomer.event(element || _this.element);
     (element || this.zoomSelection).call(this.zoomer.scaleBy, 1);
-  },
+  }
 
   zoomSelection(element) {
     this.zoomSelection = element;
   }
 
-});
-
-export default PanZoom;
+};

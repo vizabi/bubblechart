@@ -1,7 +1,7 @@
-@import "~bourbon/app/assets/stylesheets/bourbon";
-@import "~vizabi/src/assets/styles/mixins";
-@import "~vizabi/src/assets/styles/common";
-@import "~vizabi/src/assets/styles/chart";
+@import "../node_modules/bourbon/core/_bourbon.scss";
+@import "../node_modules/vizabi-shared-components/src/styles/vizabi-old/_mixins.scss";
+@import "../node_modules/vizabi-shared-components/src/styles/vizabi-old/_common.scss";
+@import "../node_modules/vizabi-shared-components/src/styles/vizabi-old/_chart.scss";
 
 .vzb-tool {
   $vzb-bc-margin: 10px;
@@ -10,6 +10,7 @@
 
   .vzb-bubblechart {
     @extend %vzb-chart-wrapper;
+    display: grid;
     overflow: visible;
     
     //ie11 support for zoom-in, zoom-out cursors
@@ -44,6 +45,9 @@
 
     .vzb-bubblechart-svg {
       @extend %vzb-chart-svg;
+      //@include position(absolute, 0);
+      grid-row-start: 1;
+      grid-column-start: 1;
       transform: translateZ(0);
       overflow: visible;
       
