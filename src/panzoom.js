@@ -465,10 +465,12 @@ export default class PanZoom {
 
         //TODO/*avoid storing it in URL*/
         if (!zoomer.dontFeedToState) {
-          _this.ui.panzoom = {
-            x: Object.assign({}, _this._zoomedXYMinMax.x),
-            y: Object.assign({}, _this._zoomedXYMinMax.y),          
-          }
+          // _this.ui.panzoom = {
+          //   x: Object.assign({}, _this._zoomedXYMinMax.x),
+          //   y: Object.assign({}, _this._zoomedXYMinMax.y),          
+          // }
+          _this.MDL.x.scale.zoomed = [_this._zoomedXYMinMax.x.zoomedMin, _this._zoomedXYMinMax.x.zoomedMax];
+          _this.MDL.y.scale.zoomed = [_this._zoomedXYMinMax.y.zoomedMin, _this._zoomedXYMinMax.y.zoomedMax];
         }
 
         const optionsY = _this.yAxis.labelerOptions();
@@ -492,10 +494,12 @@ export default class PanZoom {
 
         //Force the update of the URL and history, with the same values
         if (!zoomer.dontFeedToState) {
-          _this.ui.panzoom = {
-            x: Object.assign({}, _this._zoomedXYMinMax.x),
-            y: Object.assign({}, _this._zoomedXYMinMax.y),          
-          }
+          // _this.ui.panzoom = {
+          //   x: Object.assign({}, _this._zoomedXYMinMax.x),
+          //   y: Object.assign({}, _this._zoomedXYMinMax.y),          
+          // }
+          _this.MDL.x.scale.zoomed = [_this._zoomedXYMinMax.x.zoomedMin, _this._zoomedXYMinMax.x.zoomedMax];
+          _this.MDL.y.scale.zoomed = [_this._zoomedXYMinMax.y.zoomedMin, _this._zoomedXYMinMax.y.zoomedMax];
           //_this.model.marker.set(_this._zoomedXYMinMax, true, true);
         }
         zoomer.dontFeedToState = null;

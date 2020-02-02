@@ -7,7 +7,8 @@ import {
   LayoutService,
   TreeMenu,
   SteppedSlider,
-  ButtonList 
+  ButtonList,
+  Repeater
 } from "VizabiSharedComponents";
 import VizabiBubbleChart from "./component.js";
 
@@ -19,10 +20,13 @@ export default class BubbleChart extends BaseComponent {
     const marker = config.model.stores.markers.get("bubble");
 
     config.subcomponents = [{
-      type: VizabiBubbleChart,
-      placeholder: ".vzb-bubblechart",
+      type: Repeater,
+      placeholder: ".vzb-repeater",
       model: marker,
-      name: "chart"
+      options: {
+        COMP_TYPE: VizabiBubbleChart,
+        COMP_CSSNAME: "vzb-bubblechart"
+      }
     },{
       type: TimeSlider,
       placeholder: ".vzb-timeslider",
@@ -50,7 +54,8 @@ export default class BubbleChart extends BaseComponent {
     }];
 
     config.template = `
-      <div class="vzb-bubblechart"></div>
+      <div class="vzb-repeater vzb-bubblechart">
+      </div>
       <div class="vzb-animationcontrols">
         <div class="vzb-timeslider"></div>
         <div class="vzb-speedslider"></div>
