@@ -3,10 +3,12 @@ import {
   BaseComponent,
   TimeSlider,
   DataNotes,
+  DataWarning,
   LocaleService,
   LayoutService,
   TreeMenu,
   SteppedSlider,
+  Dialogs,
   ButtonList,
   Repeater
 } from "VizabiSharedComponents";
@@ -19,6 +21,8 @@ export default class BubbleChart extends BaseComponent {
   constructor(config){
     const marker = config.model.stores.markers.get("bubble");
 
+    config.name = "bubblechart";
+
     config.subcomponents = [{
       type: Repeater,
       placeholder: ".vzb-repeater",
@@ -26,7 +30,9 @@ export default class BubbleChart extends BaseComponent {
       options: {
         COMP_TYPE: VizabiBubbleChart,
         COMP_CSSNAME: "vzb-bubblechart"
-      }
+      },
+      default_ui: BubbleChart.DEFAULT_UI,
+      name: "chart",
     },{
       type: TimeSlider,
       placeholder: ".vzb-timeslider",
@@ -43,9 +49,18 @@ export default class BubbleChart extends BaseComponent {
       model: marker,
       name: "tree-menu"
     },{
+      type: DataWarning,
+      placeholder: ".vzb-datawarning",
+      model: marker
+    },{
       type: DataNotes,
       placeholder: ".vzb-datanotes",
       model: marker
+    },{
+      type: Dialogs,
+      placeholder: ".vzb-dialogs",
+      model: marker,
+      name: "dialogs"
     },{
       type: ButtonList,
       placeholder: ".vzb-buttonlist",
@@ -61,9 +76,11 @@ export default class BubbleChart extends BaseComponent {
         <div class="vzb-speedslider"></div>
       </div>
       <div class="vzb-sidebar">
+        <div class="vzb-dialogs"></div>
         <div class="vzb-buttonlist"></div>
       </div>
       <div class="vzb-treemenu"></div>
+      <div class="vzb-datawarning"></div>
       <div class="vzb-datanotes"></div>
     `;
 
@@ -79,7 +96,32 @@ export default class BubbleChart extends BaseComponent {
   }
 }
 
-
+BubbleChart.DEFAULT_UI = {
+  chart: {
+    timeInBackground: true,
+    timeInTrails: true,
+    decorations:true,
+    superhighlightOnMinimapHover: true,
+    numberFormatSIPrefix: true,
+    showForecast: false,
+    pauseBeforeForecast: true,
+    showForecastOverlay: false,
+    show_ticks: true,
+    presentation: false,
+    panWithArrow: false,
+    adaptMinMaxZoom: false,
+    cursorMode: "arrow",
+    zoomOnScrolling: true,
+    opacityHighlight: 1.0,
+    opacitySelect: 1.0,
+    opacityHighlightDim: 0.1,
+    opacitySelectDim: 0.3,
+    opacityRegular: 0.5,
+    labels: {
+      removeLabelBox: false
+    },
+  }
+}
 
 
 

@@ -11,7 +11,9 @@
   .vzb-bubblechart {
     @extend %vzb-chart-wrapper;
     display: grid;
-    overflow: visible;
+    //overflow: visible;
+    min-height: 0;
+    min-width: 0;
     
     //ie11 support for zoom-in, zoom-out cursors
     //ie11 only:The base URI is considered to be the URI of the document containing the element
