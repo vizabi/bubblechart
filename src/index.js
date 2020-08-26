@@ -13,6 +13,7 @@ import {
   Repeater
 } from "VizabiSharedComponents";
 import VizabiBubbleChart from "./component.js";
+import { observable } from "mobx";
 
 const VERSION_INFO = { version: __VERSION, build: __BUILD };
 
@@ -31,7 +32,6 @@ export default class BubbleChart extends BaseComponent {
         COMP_TYPE: VizabiBubbleChart,
         COMP_CSSNAME: "vzb-bubblechart"
       },
-      default_ui: BubbleChart.DEFAULT_UI,
       name: "chart",
     },{
       type: TimeSlider,
@@ -90,7 +90,9 @@ export default class BubbleChart extends BaseComponent {
     };
 
     //register locale service in the marker model
-    config.model.config.markers.bubble.data.locale = config.services.locale;
+    config.model.config.markers.bubble.data.locale = observable({
+        get id() { return config.services.locale.id; }
+      });
 
     super(config);
   }
@@ -98,6 +100,10 @@ export default class BubbleChart extends BaseComponent {
 
 BubbleChart.DEFAULT_UI = {
   chart: {
+    viewWH: {
+      width: 0,
+      height: 0
+    },
     timeInBackground: true,
     timeInTrails: true,
     decorations:true,
