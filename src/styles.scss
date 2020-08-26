@@ -41,6 +41,42 @@
       cursor: url('assets/cursors/grabbing.cur'), auto;
     }
 
+    &.vzb-sm-axis-x-elements-hidden {
+      .vzb-bc-axis-x-title {
+        visibility: hidden;
+        pointer-events: none;
+      }
+      .vzb-bc-axis-x-info {
+        visibility: hidden;
+        pointer-events: none;
+      }
+    }
+
+    &.vzb-sm-axis-y-elements-hidden {
+      .vzb-bc-axis-y-title {
+        visibility: hidden;
+        pointer-events: none;
+      }
+      .vzb-bc-axis-y-info {
+        visibility: hidden;
+        pointer-events: none;
+      }
+    }
+
+    &.vzb-sm-chart {
+      .vzb-data-warning {
+        visibility: hidden;
+        pointer-events: none;
+      }
+    }
+
+    &.vzb-sm-last-chart {
+      .vzb-data-warning {
+        visibility: visible;
+        pointer-events: all;
+      }
+    }
+
     .vzb-bubblechart-svg-front {
       pointer-events: none;
     }
@@ -52,7 +88,7 @@
       grid-column-start: 1;
       transform: translateZ(0);
       overflow: visible;
-      
+
       .vzb-bc-bubbles-crop {
         touch-action: none;
       }
