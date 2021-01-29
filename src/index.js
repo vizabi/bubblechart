@@ -12,7 +12,7 @@ import {
   ButtonList,
   Repeater
 } from "VizabiSharedComponents";
-import VizabiBubbleChart from "./component.js";
+import {VizabiBubbleChart} from "./component.js";
 import { observable } from "mobx";
 
 const VERSION_INFO = { version: __VERSION, build: __BUILD };
@@ -20,7 +20,7 @@ const VERSION_INFO = { version: __VERSION, build: __BUILD };
 export default class BubbleChart extends BaseComponent {
 
   constructor(config){
-    const marker = config.model.stores.markers.get("bubble");
+    const marker = config.splash(config.model.stores.markers.get("bubble"));
 
     config.name = "bubblechart";
 

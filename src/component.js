@@ -14,6 +14,7 @@ import {
   runInAction
 } from "mobx";
 
+import {decorate, computed} from "mobx";
 
 const {ICON_WARN, ICON_QUESTION} = Icons;
 const COLOR_WHITEISH = "rgb(253, 253, 253)";
@@ -72,7 +73,7 @@ const PROFILE_CONSTANTS_FOR_PROJECTOR = (width, height, options) => ({
 });
 
 // BUBBLE CHART COMPONENT
-export default class VizabiBubbleChart extends BaseComponent {
+class _VizabiBubbleChart extends BaseComponent {
 
   constructor(config) {
     config.subcomponents = [{
@@ -284,8 +285,8 @@ export default class VizabiBubbleChart extends BaseComponent {
 
   }
 
-  draw() {
-    this.MDL = {
+  get MDL(){
+    return {
       frame: this.model.encoding.get("frame"),
       selected: this.model.encoding.get("selected"),
       highlighted: this.model.encoding.get("highlighted"),
@@ -296,7 +297,10 @@ export default class VizabiBubbleChart extends BaseComponent {
       color: this.model.encoding.get("color"),
       label: this.model.encoding.get("label"),
       trail: this.model.encoding.get("trail")
+    };
   }
+
+  draw() {
     this.localise = this.services.locale.auto();
 
     //this.MDL.trail.config.show = false;
@@ -1604,7 +1608,7 @@ export default class VizabiBubbleChart extends BaseComponent {
   }  
 }
 
-VizabiBubbleChart.DEFAULT_UI = {
+_VizabiBubbleChart.DEFAULT_UI = {
   showForecastOverlay: true,
   opacityHighlight: 1.0,
   opacitySelect: 1.0,
@@ -3214,3 +3218,8 @@ const BubbleChart = {
 };
 
 //export default BubbleChart;
+
+
+export const VizabiBubbleChart = decorate(_VizabiBubbleChart, {
+  "MDL": computed
+});
