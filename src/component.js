@@ -473,7 +473,6 @@ export default class VizabiBubbleChart extends BaseComponent {
             const valueX = d[_this.__alias("x")];
             const valueY = d[_this.__alias("y")];
             const valueC = d.color;
-            const valueL = d.label;
       
             //d.hidden = (!valueS && valueS !== 0) || valueX == null || valueY == null;
       
@@ -1235,7 +1234,7 @@ export default class VizabiBubbleChart extends BaseComponent {
       click(d) {
         if (_this.draggingNow) return;
         // // const isSelected = d.isSelected;
-        if (!d[Symbol.for('trailHeadKey')]) _this.model.toggleSelection(d);
+        if (!d[Symbol.for("trailHeadKey")]) _this.model.toggleSelection(d);
         //_this.MDL.selected.data.filter.toggle(d);
         // // //return to highlighted state
         // // if (!utils.isTouchDevice()) {
@@ -1508,7 +1507,7 @@ export default class VizabiBubbleChart extends BaseComponent {
     const selectedFilter = this.MDL.selected.data.filter;
     
     if (utils.isTouchDevice()) {
-      _this.model.marker.clearHighlighted();
+      _this.model.clearHighlighted();
       _this._labels.showCloseCross(null, false);
     } else {
       //hide tooltip
@@ -1577,9 +1576,8 @@ export default class VizabiBubbleChart extends BaseComponent {
     for (const key of selectedFilter.markers.keys()) {
       const cache = this._labels.cached[key];
 
-      const d = (trail.show ? this.model.getDataMapByFrameValue(trail.starts[key]) : 
-      this.model.dataMap)
-        .getByObjOrStr(null, key)
+      const d = (trail.show ? this.model.getDataMapByFrameValue(trail.starts[key]) : this.model.dataMap)
+        .getByObjOrStr(null, key);
       
       cache.labelText = this[(trail.show && this.ui.timeInTrails ? "__labelAll" : "__labelWithoutFrame")](d);
       cache.labelX0 = d[this.__alias("x")];
@@ -1598,7 +1596,7 @@ export default class VizabiBubbleChart extends BaseComponent {
   }
 
   __labelAll(d) {
-    return this.model.data.space.map(dim => this.localise(d.label[dim])).join(' ');
+    return this.model.data.space.map(dim => this.localise(d.label[dim])).join(" ");
   }
 
   __alias(x) {
