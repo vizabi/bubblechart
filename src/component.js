@@ -14,7 +14,9 @@ import {
   runInAction
 } from "mobx";
 
+
 const {ICON_WARN, ICON_QUESTION} = Icons;
+const COLOR_WHITEISH = "rgb(253, 253, 253)";
 
 const marginScaleH = (marginMin, ratio = 0) => height => marginMin + height * ratio;
 const marginScaleW = (marginMin, ratio = 0) => width => marginMin + width * ratio;
@@ -164,10 +166,7 @@ export default class VizabiBubbleChart extends BaseComponent {
   }
 
   setup() {
-    // this.state = {
-    // }
 
-    // reference elements
     this.DOM = {
       element: this.element,
       chartSvg: this.element.select("svg.vzb-bubblechart-svg-main"),
@@ -180,7 +179,7 @@ export default class VizabiBubbleChart extends BaseComponent {
       eventArea: this.element.select(".vzb-bc-eventarea"),
       forecastOverlay: this.element.select(".vzb-bc-forecastoverlay"),
       tooltipMobile: this.element.select(".vzb-tooltip-mobile")
-    }
+    };
     this.DOM.chartSvg.select(".vzb-bc-graph").call(graph => 
       Object.assign(this.DOM, {
         graph: graph,
@@ -198,7 +197,7 @@ export default class VizabiBubbleChart extends BaseComponent {
         bubbleContainerCrop: graph.select(".vzb-bc-bubbles-crop"),
         zoomSelection: graph.select(".vzb-zoom-selection"),
       })
-    )
+    );
     this.DOM.chartSvgFront.select(".vzb-bc-graph").call(graphFront => 
       Object.assign(this.DOM, {
         graphFront: graphFront,
@@ -207,7 +206,7 @@ export default class VizabiBubbleChart extends BaseComponent {
         linesContainer: graphFront.select(".vzb-bc-lines"),
         bubbleCrown: graphFront.select(".vzb-bc-bubble-crown")
       })
-    )
+    );
     this.DOM.chartSvgBack.select(".vzb-bc-graph").call(graphBack => {
       Object.assign(this.DOM, {
         yAxisElContainer: graphBack.select(".vzb-bc-axis-y"),
@@ -216,12 +215,12 @@ export default class VizabiBubbleChart extends BaseComponent {
         projectionX: graphBack.select(".vzb-bc-projection-x"),
         projectionY: graphBack.select(".vzb-bc-projection-y"),
         decorationsEl: graphBack.select(".vzb-bc-decorations"),
-      })
+      });
       this.DOM.yAxisEl = this.DOM.yAxisElContainer.select("g");
       this.DOM.xAxisEl = this.DOM.xAxisElContainer.select("g");
       this.DOM.lineEqualXY = this.DOM.decorationsEl.select(".vzb-bc-line-equal-xy");
       this.DOM.xAxisGroupsEl = this.DOM.decorationsEl.select(".vzb-bc-x-axis-groups");
-      })
+    });
 
     //set filter
     this.DOM.bubbleCrown.selectAll(".vzb-crown-glow")
@@ -236,8 +235,6 @@ export default class VizabiBubbleChart extends BaseComponent {
     this.xAxis = axisSmart("bottom");
     this.yAxis = axisSmart("left");
 
-    this.COLOR_BLACKISH = "#333";
-    this.COLOR_WHITEISH = "#fdfdfd";
 
     this.isCanvasPreviouslyExpanded = false;
     this.draggingNow = null;
@@ -299,7 +296,7 @@ export default class VizabiBubbleChart extends BaseComponent {
       color: this.model.encoding.get("color"),
       label: this.model.encoding.get("label"),
       trail: this.model.encoding.get("trail")
-    }
+  }
     this.localise = this.services.locale.auto();
 
     //this.MDL.trail.config.show = false;
@@ -315,8 +312,8 @@ export default class VizabiBubbleChart extends BaseComponent {
     this.addReaction(this._updateUIStrings);
     this.addReaction(this._updateSize);
     this.addReaction(this._updateMarkerSizeLimits);
-//    this.addReaction(this._resetZoomMinMaxXReaction, this._resetZoomMinMaxX);
-//    this.addReaction(this._resetZoomMinMaxYReaction, this._resetZoomMinMaxY);
+    //    this.addReaction(this._resetZoomMinMaxXReaction, this._resetZoomMinMaxX);
+    //    this.addReaction(this._resetZoomMinMaxYReaction, this._resetZoomMinMaxY);
     this.addReaction(this._updateOpacity);
     this.addReaction(this._updateShowYear);
     this.addReaction(this._updateYear);
@@ -339,7 +336,7 @@ export default class VizabiBubbleChart extends BaseComponent {
           });
         }
       });
-      selectedFilter.markers.has()
+      selectedFilter.markers.has();
       for (const [marker] of selectedFilter.markers) {
         if (!this.MDL.trail.config.starts[marker]) {
           this.MDL.trail.setTrail({
@@ -348,11 +345,11 @@ export default class VizabiBubbleChart extends BaseComponent {
           });
         }
       }
-    })
+    });
   }
 
   _updateShowYear() {
-      this.DOM.yearEl.classed("vzb-hidden", !this.ui.timeInBackground);
+    this.DOM.yearEl.classed("vzb-hidden", !this.ui.timeInBackground);
   }
 
   _updateYear() {
@@ -422,7 +419,6 @@ export default class VizabiBubbleChart extends BaseComponent {
             const valueY = d[_this.__alias("y")];
             const valueS = d.size;
             const valueC = d.color;
-            const valueL = d.label;
       
             //d.hidden = (!valueS && valueS !== 0) || valueX == null || valueY == null;
       
@@ -438,8 +434,8 @@ export default class VizabiBubbleChart extends BaseComponent {
                 .attr("r", d.r)
                 .attr("fill", scaledC)
                 .attr("cy", scaledY)
-                .attr("cx", scaledX)
-                //.transition(transition)
+                .attr("cx", scaledX);
+              //.transition(transition)
       
               //trail line
               if (trail) {
@@ -463,7 +459,7 @@ export default class VizabiBubbleChart extends BaseComponent {
               view
                 .style("opacity", 0)
                 .transition().duration(duration*0.9)
-                .style("opacity", d[Symbol.for("opacity")])
+                .style("opacity", d[Symbol.for("opacity")]);
             }
       
             if (!trail) {
@@ -473,6 +469,7 @@ export default class VizabiBubbleChart extends BaseComponent {
 
         update => update
           .each(function(d, index) {
+            
             const trail = d[Symbol.for("trailHeadKey")];
             const dataNext = data[index + 1] || {};
             const dataNext2 = data[index + 2] || {};
@@ -506,7 +503,9 @@ export default class VizabiBubbleChart extends BaseComponent {
                 .attr("r", d.r)
                 .attr("fill", scaledC)
                 .attr("cy", scaledY)
-                .attr("cx", scaledX)
+                .attr("cx", scaledX);
+
+              
             
               //trail line
               if (trail) {
@@ -517,18 +516,18 @@ export default class VizabiBubbleChart extends BaseComponent {
                 
                 lineView
                   .attr("x1", scaledX)
-                  .attr("y1", scaledY)
+                  .attr("y1", scaledY);
                 if (duration && !data[index + 2][Symbol.for("trailHeadKey")]) {
                   lineView
                     .attr("x2", scaledX)
                     .attr("y2", scaledY)
                     .transition(transition)
                     .attr("x2", scaledX0)
-                    .attr("y2", scaledY0)
+                    .attr("y2", scaledY0);
                 } else {
                   lineView.interrupt()
                     .attr("x2", scaledX0)
-                    .attr("y2", scaledY0)
+                    .attr("y2", scaledY0);
                 }
       
                 lineView
@@ -543,7 +542,7 @@ export default class VizabiBubbleChart extends BaseComponent {
           }),    
 
         exit => exit
-          .each(function(d, index) {
+          .each(function(d) {
             const trail = d[Symbol.for("trailHeadKey")];
             const node = this;
             //console.log("exit", d)
@@ -591,7 +590,7 @@ export default class VizabiBubbleChart extends BaseComponent {
     const _this = this;
     const data = this.__dataProcessed;
 
-    if (this.bubbles) this.bubbles.each(function(d, index, group) {
+    if (this.bubbles) this.bubbles.each(function(d, index) {
       const trail = d[Symbol.for("trailHeadKey")];
       const node = trail ? this.children[0] : this;
 
@@ -599,7 +598,6 @@ export default class VizabiBubbleChart extends BaseComponent {
       const valueY = d[_this.__alias("y")];
       const valueS = d.size;
       const valueC = d.color;
-      const valueL = d.label;
 
       d.r = utils.areaToRadius(_this.sScale(valueS || 0));
       const scaledX = _this.xScale(valueX);
@@ -615,10 +613,11 @@ export default class VizabiBubbleChart extends BaseComponent {
         .attr("r", d.r)
         .attr("fill", scaledC)
         .attr("cy", scaledY)
-        .attr("cx", scaledX)
+        .attr("cx", scaledX);
 
       if (trail) {
-        const lineView = duration ? d3.select(node.nextSibling)
+        const lineView = duration ? 
+          d3.select(node.nextSibling)
             .transition()
             .duration(duration)
           : d3.select(node.nextSibling).interrupt();
@@ -666,7 +665,7 @@ export default class VizabiBubbleChart extends BaseComponent {
     {
       x: this.MDL.x.scale.zoomed,
       y: this.MDL.y.scale.zoomed
-    }
+    };
     
     const xDomain = this.MDL.x.data.domain;
     const yDomain = this.MDL.y.data.domain;
@@ -736,7 +735,7 @@ export default class VizabiBubbleChart extends BaseComponent {
   }
 
   _getDuration() {
-     return this.MDL.frame.playing ? this.MDL.frame.speed || 0 : 0;
+    return this.MDL.frame.playing ? this.MDL.frame.speed || 0 : 0;
   }
 
   _updateXYScales() {
@@ -898,12 +897,11 @@ export default class VizabiBubbleChart extends BaseComponent {
   }
 
   _updateSize() {
-    const containerWH = this.services.layout.size;
+    this.services.layout.size;
 
     const {
       x,
-      y,
-      size
+      y
     } = this.MDL;
     
     const {
@@ -958,7 +956,7 @@ export default class VizabiBubbleChart extends BaseComponent {
       .attr("transform", "translate(" + (margin.left * this.profileConstants.leftMarginRatio) + "," + margin.top + ")");
 
     this._year.resizeText(width, height);
-      //this.yearEl.classed("vzb-hidden", !this.ui.timeInBackground);
+    //this.yearEl.classed("vzb-hidden", !this.ui.timeInBackground);
     //this.year.resize(width, height);
     
     eventArea
@@ -1079,7 +1077,7 @@ export default class VizabiBubbleChart extends BaseComponent {
       .attr("transform", layoutProfile !== "SMALL" ?
         "translate(" + (-margin.left - this.profileConstants.yAxisTitleBottomMargin)  + "," + (height * 0.5) + ") rotate(-90)"
         : 
-        "translate(" + (isRTL ? width : 10 - this.profileConstants.margin.left) + ", -" + this.profileConstants.yAxisTitleBottomMargin + ")")
+        "translate(" + (isRTL ? width : 10 - this.profileConstants.margin.left) + ", -" + this.profileConstants.yAxisTitleBottomMargin + ")");
 
     xTitleEl
       .style("font-size", infoElHeight + "px")
@@ -1099,7 +1097,7 @@ export default class VizabiBubbleChart extends BaseComponent {
       const conceptPropsY = y.data.conceptProps;
 
       yInfoEl
-        .classed('vzb-hidden', !conceptPropsY.description && !conceptPropsY.sourceLink || this.services.layout.projector)
+        .classed("vzb-hidden", !conceptPropsY.description && !conceptPropsY.sourceLink || this.services.layout.projector)
         .select("svg")
         .attr("width", infoElHeight + "px")
         .attr("height", infoElHeight + "px");
@@ -1116,7 +1114,7 @@ export default class VizabiBubbleChart extends BaseComponent {
       const conceptPropsX = x.data.conceptProps;
 
       xInfoEl
-        .classed('vzb-hidden', !conceptPropsX.description && !conceptPropsX.sourceLink || this.services.layout.projector)
+        .classed("vzb-hidden", !conceptPropsX.description && !conceptPropsX.sourceLink || this.services.layout.projector)
         .select("svg")
         .attr("width", infoElHeight + "px")
         .attr("height", infoElHeight + "px");
@@ -1251,20 +1249,20 @@ export default class VizabiBubbleChart extends BaseComponent {
     const _this = this;
 
     return {
-      mouseover(d, i) {
+      mouseover(d) {
         _this.hoverBubble = true;
         _this.MDL.highlighted.data.filter.set(d);
         _this._labels.showCloseCross(d, true);
       },
 
-      mouseout(d, i) {
+      mouseout(d) {
         _this.hoverBubble = false;
         _this.MDL.highlighted.data.filter.delete(d);
         //_this._setTooltip();
         _this._labels.showCloseCross(d, false);
       },
 
-      click(d, i) {
+      click(d) {
         if (_this.draggingNow) return;
         // // const isSelected = d.isSelected;
         if (!d[Symbol.for('trailHeadKey')]) _this.model.toggleSelection(d);
@@ -1325,13 +1323,12 @@ export default class VizabiBubbleChart extends BaseComponent {
     }
   }
 
-  _getLabelText(d, time) {
+  _getLabelText(d) {
     return this.KEYS.map(key => d.label[key]).join(",");
     ////  + (this.model.ui.chart.timeInTrails && time && (this.model.time.start - this.model.time.end !== 0) ? " " + time : "");
   }
 
   _updateOpacity(selection) {
-    const _this = this;
     //this.MDL.frame.value; //listen
 
     const highlightedFilter = this.MDL.highlighted.data.filter;
@@ -1346,7 +1343,7 @@ export default class VizabiBubbleChart extends BaseComponent {
     if (_selection) _selection.style("opacity", d => this._getBubbleOpacity(d, this.ui));
   }
 
-  _getBubbleOpacity(d) {
+  _getBubbleOpacity(d) { 
     const ui = this.ui;
 
     if (this.__highlightedMarkers.has(d[Symbol.for("key")])) return ui.opacityHighlight;
@@ -1361,7 +1358,7 @@ export default class VizabiBubbleChart extends BaseComponent {
 
   _updateDoubtOpacity(opacity) {
     if (opacity == null) opacity = this.wScale(this.MDL.frame.value.getUTCFullYear());
-    if (this.MDL.selected.data.filter.any) opacity = 1;
+    if (this.MDL.selected.data.filter.any()) opacity = 1;
     this.DOM.dataWarningEl.style("opacity", opacity);
   }
 
@@ -1386,7 +1383,7 @@ export default class VizabiBubbleChart extends BaseComponent {
 
   }
 
-    /*
+  /*
    * Shows and hides axis projections
    */
   _axisProjections(d) {
@@ -1401,7 +1398,6 @@ export default class VizabiBubbleChart extends BaseComponent {
 
       const valueY = d[this.__alias("y")];
       const valueX = d[this.__alias("x")];
-      const valueS = d.size;
       const radius = d.r;
 
       //if (!valueY && valueY !== 0 || !valueX && valueX !== 0 || !valueS && valueS !== 0) return;
@@ -1451,10 +1447,6 @@ export default class VizabiBubbleChart extends BaseComponent {
    */
   _highlightDataPoints() {
     const _this = this;
-    const TIMEDIM = this.TIMEDIM;
-    const dataKeys = this.dataKeys;
-    const KEYS = this.KEYS;
-    const KEY = this.KEY;
 
     const highlightedFilter = this.MDL.highlighted.data.filter;
     const selectedFilter = this.MDL.selected.data.filter;
@@ -1471,7 +1463,7 @@ export default class VizabiBubbleChart extends BaseComponent {
       const x = _this.xScale(d[_this.__alias("x")]);
       const y = _this.yScale(d[_this.__alias("y")]);
       const s = d.r;
-      const c = d.color != null ? this.cScale(d.color) : this.COLOR_WHITEISH;
+      const c = d.color != null ? this.cScale(d.color) : COLOR_WHITEISH;
       let entityOutOfView = false;
 
       ////const titles = _this._formatSTitleValues(values.size[utils.getKey(d, dataKeys.size)], values.color[utils.getKey(d, dataKeys.color)]);
@@ -1564,20 +1556,15 @@ export default class VizabiBubbleChart extends BaseComponent {
   }
 
   _updateLabel(d, x, y, duration, showhide, hidden) {
-    const _this = this;
-    const KEYS = this.KEYS;
-    const KEY = this.KEY;
     const selectedMarkers = this.MDL.selected.data.filter.markers;
     const key = d[Symbol.for("key")];
     // only for selected markers
     if (selectedMarkers.has(key)) {
       const trail = this.MDL.trail;
-      const trailDim = this.MDL.trail.groupDim;
   
       const cache = {};
 
       let labelText = "";
-      let data;
 
       //if (showhide && hidden && trail.show && trailStartTime && (trailStartTime < _this.time)) showhide = false;
       if (hidden && !trail.show) showhide = true;
@@ -1592,7 +1579,7 @@ export default class VizabiBubbleChart extends BaseComponent {
           cache.labelText = labelText = this.__labelAll(trailData);
           cache.labelX0 = trailData[this.__alias("x")];
           cache.labelY0 = trailData[this.__alias("y")];
-          cache.scaledC0 = trailData.color != null ? this.cScale(trailData.color) : this.COLOR_WHITEISH,
+          cache.scaledC0 = trailData.color != null ? this.cScale(trailData.color) : COLOR_WHITEISH,
           cache.scaledS0 = (trailData.size || trailData.size === 0) ? utils.areaToRadius(this.sScale(trailData.size)) : null;
           cache.valueS0 = trailData.size;
           trailData.hidden = hidden;
@@ -1602,7 +1589,7 @@ export default class VizabiBubbleChart extends BaseComponent {
         cache.labelText = labelText = this.__labelWithoutFrame(d);
         cache.labelX0 = x;
         cache.labelY0 = y;
-        cache.scaledC0 = d.color != null ? this.cScale(d.color) : this.COLOR_WHITEISH,
+        cache.scaledC0 = d.color != null ? this.cScale(d.color) : COLOR_WHITEISH,
         cache.scaledS0 = (d.size || d.size === 0) ? utils.areaToRadius(this.sScale(d.size)) : null;
         cache.valueS0 = d.size;
         d.hidden = hidden;
@@ -1627,7 +1614,7 @@ export default class VizabiBubbleChart extends BaseComponent {
       cache.labelText = this[(trail.show && this.ui.timeInTrails ? "__labelAll" : "__labelWithoutFrame")](d);
       cache.labelX0 = d[this.__alias("x")];
       cache.labelY0 = d[this.__alias("y")];
-      cache.scaledC0 = d.color != null ? this.cScale(d.color) : this.COLOR_WHITEISH,
+      cache.scaledC0 = d.color != null ? this.cScale(d.color) : COLOR_WHITEISH,
       cache.scaledS0 = (d.size || d.size === 0) ? utils.areaToRadius(this.sScale(d.size)) : null;
       cache.valueS0 = d.size;
       cache.initTextBBox = null;
@@ -1637,7 +1624,7 @@ export default class VizabiBubbleChart extends BaseComponent {
   }
 
   __labelWithoutFrame(d) {
-    return this.KEYS.map(dim => this.localise(d.label[dim])).join(' ');
+    return this.KEYS.map(dim => this.localise(d.label[dim])).join(" ");
   }
 
   __labelAll(d) {
@@ -2207,7 +2194,7 @@ const BubbleChart = {
           return pointer;
         })
         .sort((a, b) => b.sortValue - a.sortValue);
-    };
+};
 
     // get array of GEOs, sorted by the size hook
     // that makes larger bubbles go behind the smaller ones
@@ -2268,7 +2255,7 @@ const BubbleChart = {
 
     this.model.marker.select.forEach(d => {
       if (keys.indexOf(utils.getKey(d, KEYS)) !== -1) _select.push(d);
-    });
+});
 
     if (_select.length !== _this.model.marker.select.length) _this.model.marker.select = _select;
   },
