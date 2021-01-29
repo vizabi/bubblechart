@@ -335,7 +335,7 @@ class _VizabiBubbleChart extends BaseComponent {
 
     this.processFrameData();
     this._createAndDeleteBubbles();
-    this.redrawData();
+    //this.redrawData();
   }
 
   _updateTrailsOnSelect() {
