@@ -317,13 +317,21 @@ export default class VizabiBubbleChart extends BaseComponent {
     this.addReaction(this._updateOpacity);
     this.addReaction(this._updateShowYear);
     this.addReaction(this._updateYear);
-    this.addReaction(this._drawData);
+    this.addReaction(this.drawData);
     this.addReaction(this._zoomToMarkerMaxMin);
-    this.addReaction(this._redrawDataReaction, this._redrawDataSideEffect, { delay: 1 });
+
     this.addReaction(this._selectDataPoints);
     this.addReaction(this._highlightDataPoints);
     this.addReaction(this._blinkSuperHighlighted);
     this.addReaction(this._updateDoubtOpacity);
+  }
+
+  drawData() {
+    if (this.MDL.trail.show) this.MDL.trail.updateTrailStart(this.MDL.frame.framesAround[1]);
+
+    this.processFrameData();
+    this._createAndDeleteBubbles();
+    this.redrawData();
   }
 
   _updateTrailsOnSelect() {
@@ -355,24 +363,6 @@ export default class VizabiBubbleChart extends BaseComponent {
   _updateYear() {
     const duration = this._getDuration();
     this._year.setText(this.localise(this.MDL.frame.value), duration);    
-  }
-
-  _drawDataReaction() {
-    return { value: this.MDL.frame.value }
-  }
-
-  _drawData() {
-    const {
-      frame,
-      trail: trailMdl
-    } = this.MDL;
-
-    if (trailMdl.show) trailMdl.updateTrailStart(frame.framesAround[1]);
-
-    this._processFrameData();
-    this._createAndDeleteBubbles();
-
-    if (!this.bubbles) return utils.warn("redrawDataPoints(): no entityBubbles defined. likely a premature call, fix it!");
   }
 
   _createAndDeleteBubbles() {
@@ -565,21 +555,8 @@ export default class VizabiBubbleChart extends BaseComponent {
 
   }
 
-  _redrawDataReaction() {
-    return {
-      typeColor: this.MDL.color.scale.d3Scale,
-      sizeType: this.MDL.size.scale.type,
-      sizeExtent: this.MDL.size.scale.extent,
-      show: this.MDL.trail.show,
-      timeInTrails: this.ui.timeInTrails
-    }
-  }
 
-  _redrawDataSideEffect() {
-    this._redrawData();
-  }
-
-  _redrawData(duration) {
+  redrawData(duration) {
     this.services.layout.size;
     this.MDL.x.scale.type;
     this.MDL.y.scale.type;
@@ -1228,15 +1205,8 @@ export default class VizabiBubbleChart extends BaseComponent {
         + ")");
   }
 
-  getValue(d) {
-    return d;
-  }
-
-  _processFrameData() {
-    return this.__dataProcessed = this.model.dataArray
-      .concat()
-      .map(this.getValue)
-      //.sort((a, b) => b.size - a.size);
+  processFrameData() {
+    return this.__dataProcessed = this.model.dataArray;
   }
 
   _getTransition(duration) {
