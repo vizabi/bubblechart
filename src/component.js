@@ -1267,7 +1267,7 @@ class _VizabiBubbleChart extends BaseComponent {
     let maxArea = utils.radiusToArea(Math.max(maxRadiusPx * extent[1], minRadiusPx));
 
     let range = minArea === maxArea? [minArea, maxArea] :
-      d3.range(minArea, maxArea, (maxArea - minArea)/this.sScale.domain().length).concat(maxArea);
+      d3.range(minArea, maxArea, (maxArea - minArea)/(this.sScale.domain().length - 1)).concat(maxArea);
 
     this.sScale.range(range);
   }
