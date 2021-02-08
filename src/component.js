@@ -751,24 +751,41 @@ class _VizabiBubbleChart extends BaseComponent {
     const conceptPropsS = Utils.getConceptProps(size, this.localise);
     const conceptPropsC = Utils.getConceptProps(color, this.localise);
 
+    function getTitle(cp, enc){
+      return cp.name || cp.concept || enc.name;
+    }
+
+    function getShortTitle(cp, enc){
+      return cp.name_short || getTitle(cp, enc);
+    }
+
+    function getSubtitle(cp, enc) {
+      const title = getTitle(cp, enc);
+      const shortTitle = getShortTitle(cp, enc);
+      let subtitle = title.replace(shortTitle,"");
+      if (subtitle[0] === ",") subtitle = subtitle.slice(1);
+      const regexpResult = /^\((.*)\)$|.*/.exec(subtitle.trim());
+      return regexpResult[1] || regexpResult[0] || "";
+    }
+
     this.strings = {
       title: {
-        Y: conceptPropsY.name,
-        X: conceptPropsX.name,
-        S: conceptPropsS.name,
-        C: conceptPropsC.name
+        Y: getTitle(conceptPropsY, y),
+        X: getTitle(conceptPropsX, x),
+        S: getTitle(conceptPropsS, size),
+        C: getTitle(conceptPropsC, color)
       },
       title_short: {
-        Y: conceptPropsY.name_short || conceptPropsY.name,
-        X: conceptPropsX.name_short || conceptPropsX.name,
-        S: conceptPropsS.name_short || conceptPropsS.name,
-        C: conceptPropsC.name_short || conceptPropsC.name       
+        Y: getShortTitle(conceptPropsY, y),
+        X: getShortTitle(conceptPropsX, x),
+        S: getShortTitle(conceptPropsS, size),
+        C: getShortTitle(conceptPropsC, color)
       },
       subtitle: {
-        Y: this._getSubtitle(conceptPropsY.name, conceptPropsY.name_short || conceptPropsY.name),
-        X: this._getSubtitle(conceptPropsX.name, conceptPropsX.name_short || conceptPropsX.name),
-        S: conceptPropsS.name_short,
-        C: conceptPropsC.name_short        
+        Y: getSubtitle(conceptPropsY, y),
+        X: getSubtitle(conceptPropsX, x),
+        S: conceptPropsS.name_short || "",
+        C: conceptPropsC.name_short || ""
       },
       unit: {
         Y: conceptPropsY.unit || "",
@@ -867,13 +884,6 @@ class _VizabiBubbleChart extends BaseComponent {
       .on("mouseout", () => {
         _this._updateDoubtOpacity();
       });
-  }
-
-  _getSubtitle(title, shortTitle) {
-    let subtitle = title.replace(shortTitle,"");
-    if (subtitle[0] === ",") subtitle = subtitle.slice(1);
-    const regexpResult = /^\((.*)\)$|.*/.exec(subtitle.trim());
-    return regexpResult[1] || regexpResult[0] || "";
   }
 
   _updateSize() {
