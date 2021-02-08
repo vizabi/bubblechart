@@ -1340,7 +1340,7 @@ class _VizabiBubbleChart extends BaseComponent {
   }
 
   _updateDoubtOpacity(opacity) {
-    if (opacity == null) opacity = this.wScale(this.MDL.frame.value.getUTCFullYear());
+    if (opacity == null) opacity = this.wScale(this.localise(this.MDL.frame.value));
     if (this.MDL.selected.data.filter.any()) opacity = 1;
     this.DOM.dataWarningEl.style("opacity", opacity);
   }
