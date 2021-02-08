@@ -1596,7 +1596,9 @@ class _VizabiBubbleChart extends BaseComponent {
   }
 
   __labelWithoutFrame(d) {
-    return this.KEYS.map(dim => this.localise(d.label[dim])).join(" ");
+    if (typeof d.label == "object") return Object.values(d.label).join(", ");
+    if (d.label != null) return "" + d.label;
+    return d[Symbol.for("key")];
   }
 
   __labelAll(d) {
