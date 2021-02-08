@@ -746,52 +746,28 @@ class _VizabiBubbleChart extends BaseComponent {
 
     const _this = this;
 
-    const conceptPropsY = Utils.getConceptProps(y, this.localise);
-    const conceptPropsX = Utils.getConceptProps(x, this.localise);
-    const conceptPropsS = Utils.getConceptProps(size, this.localise);
-    const conceptPropsC = Utils.getConceptProps(color, this.localise);
-
-    function getTitle(cp, enc){
-      return cp.name || cp.concept || enc.name;
-    }
-
-    function getShortTitle(cp, enc){
-      return cp.name_short || getTitle(cp, enc);
-    }
-
-    function getSubtitle(cp, enc) {
-      const title = getTitle(cp, enc);
-      const shortTitle = getShortTitle(cp, enc);
-      let subtitle = title.replace(shortTitle,"");
-      if (subtitle[0] === ",") subtitle = subtitle.slice(1);
-      const regexpResult = /^\((.*)\)$|.*/.exec(subtitle.trim());
-      return regexpResult[1] || regexpResult[0] || "";
-    }
-
     this.strings = {
       title: {
-        Y: getTitle(conceptPropsY, y),
-        X: getTitle(conceptPropsX, x),
-        S: getTitle(conceptPropsS, size),
-        C: getTitle(conceptPropsC, color)
+        Y: Utils.getConceptName(y, this.loclaise),
+        X: Utils.getConceptName(x, this.loclaise),
+        S: Utils.getConceptName(size, this.loclaise),
+        C: Utils.getConceptName(color, this.loclaise)
       },
       title_short: {
-        Y: getShortTitle(conceptPropsY, y),
-        X: getShortTitle(conceptPropsX, x),
-        S: getShortTitle(conceptPropsS, size),
-        C: getShortTitle(conceptPropsC, color)
+        Y: Utils.getConceptShortName(y, this.loclaise),
+        X: Utils.getConceptShortName(x, this.loclaise),
+        S: Utils.getConceptShortName(size, this.loclaise),
+        C: Utils.getConceptShortName(color, this.loclaise)
       },
       subtitle: {
-        Y: getSubtitle(conceptPropsY, y),
-        X: getSubtitle(conceptPropsX, x),
-        S: conceptPropsS.name_short || "",
-        C: conceptPropsC.name_short || ""
+        Y: Utils.getConceptNameMinusShortName(y, this.locale),
+        X: Utils.getConceptNameMinusShortName(x, this.locale)
       },
       unit: {
-        Y: conceptPropsY.unit || "",
-        X: conceptPropsX.unit || "",
-        S: conceptPropsS.unit || "",
-        C: conceptPropsC.unit || ""
+        Y: Utils.getConceptUnit(y),
+        X: Utils.getConceptUnit(x),
+        S: Utils.getConceptUnit(size),
+        C: Utils.getConceptUnit(color)
       }
     };
 
