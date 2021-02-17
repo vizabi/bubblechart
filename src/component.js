@@ -1535,7 +1535,7 @@ class _VizabiBubbleChart extends BaseComponent {
         if (trailStart >= this.MDL.frame.value || showhide) {
           const trailData = this.model.getDataMapByFrameValue(trailStart).getByObjOrStr(null, key);
           
-          cache.labelText = labelText = this.__labelAll(trailData);
+          cache.labelText = labelText = this.__labelWithFrame(trailData);
           cache.labelX0 = trailData[this.__alias("x")];
           cache.labelY0 = trailData[this.__alias("y")];
           cache.scaledC0 = trailData.color != null ? this.cScale(trailData.color) : COLOR_WHITEISH,
@@ -1569,7 +1569,7 @@ class _VizabiBubbleChart extends BaseComponent {
       const d = (trail.show ? this.model.getDataMapByFrameValue(trail.starts[key]) : this.model.dataMap)
         .getByObjOrStr(null, key);
       
-      cache.labelText = this[(trail.show && this.ui.timeInTrails ? "__labelAll" : "__labelWithoutFrame")](d);
+      cache.labelText = this[(trail.show && this.ui.timeInTrails ? "__labelWithFrame" : "__labelWithoutFrame")](d);
       cache.labelX0 = d[this.__alias("x")];
       cache.labelY0 = d[this.__alias("y")];
       cache.scaledC0 = d.color != null ? this.cScale(d.color) : COLOR_WHITEISH,
@@ -1587,8 +1587,8 @@ class _VizabiBubbleChart extends BaseComponent {
     return d[Symbol.for("key")];
   }
 
-  __labelAll(d) {
-    return this.model.data.space.map(dim => this.localise(d.label[dim])).join(" ");
+  __labelWithFrame(d) {
+    return this.__labelWithoutFrame(d) + " " + this.localise(this.MDL.frame.value);
   }
 
   __alias(x) {
