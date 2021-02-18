@@ -22,6 +22,10 @@ const COLOR_WHITEISH = "rgb(253, 253, 253)";
 const marginScaleH = (marginMin, ratio = 0) => height => marginMin + height * ratio;
 const marginScaleW = (marginMin, ratio = 0) => width => marginMin + width * ratio;
 
+function isTrailBubble(d){
+  return !!d[Symbol.for("trailHeadKey")];
+}
+
 const PROFILE_CONSTANTS = (width, height, options) => ({
   SMALL: {
     margin: { top: 30, bottom: 35, left: 30, right: 10},
@@ -380,7 +384,7 @@ class _VizabiBubbleChart extends BaseComponent {
       .join(
         enter => enter
           .append(d => {
-            if (d[Symbol.for("trailHeadKey")]) {
+            if (isTrailBubble(d)) {
               const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
               g.appendChild(document.createElementNS("http://www.w3.org/2000/svg", "circle"));
               g.appendChild(document.createElementNS("http://www.w3.org/2000/svg", "line"));
@@ -404,9 +408,9 @@ class _VizabiBubbleChart extends BaseComponent {
           })
           .each(function(d, index) {
             const dataNext = data[index + 1] || {};
-            const trail = d[Symbol.for("trailHeadKey")];
-            const headTrail = trail && !dataNext[Symbol.for("trailHeadKey")];
-            const node = trail ? this.children[0] : this;
+            const isTrail = isTrailBubble(d);
+            const headTrail = isTrail && !dataNext[Symbol.for("trailHeadKey")];
+            const node = isTrail ? this.children[0] : this;
             //console.log("enter", d, headTrail)
       
             const valueX = d[_this.__alias("x")];
@@ -432,7 +436,7 @@ class _VizabiBubbleChart extends BaseComponent {
               //.transition(transition)
       
               //trail line
-              if (trail) {
+              if (isTrail) {
                 const lineView = d3.select(node.nextSibling);
 
                 const scaledX0 = _this.xScale(dataNext[_this.__alias("x")]);
@@ -449,14 +453,14 @@ class _VizabiBubbleChart extends BaseComponent {
               }
             }
       
-            if (duration && !trail) {
+            if (duration && !isTrail) {
               view
                 .style("opacity", 0)
                 .transition().duration(duration*0.9)
                 .style("opacity", d[Symbol.for("opacity")]);
             }
       
-            if (!trail) {
+            if (!isTrail) {
               _this._updateLabel(d, valueX, valueY, duration, true, false);
             }
           }),
@@ -464,15 +468,15 @@ class _VizabiBubbleChart extends BaseComponent {
         update => update
           .each(function(d, index) {
             
-            const trail = d[Symbol.for("trailHeadKey")];
+            const isTrail = isTrailBubble(d);
             const dataNext = data[index + 1] || {};
             const dataNext2 = data[index + 2] || {};
-            const headTrail = trail && !dataNext[Symbol.for("trailHeadKey")];
-            const headTrail2 = trail && !dataNext2[Symbol.for("trailHeadKey")];
+            const headTrail = isTrail && !dataNext[Symbol.for("trailHeadKey")];
+            const headTrail2 = isTrail && !dataNext2[Symbol.for("trailHeadKey")];
       
             const valueS = d.size;
             d.r = utils.areaToRadius(_this.sScale(valueS || 0));
-            if (trail && !headTrail && !headTrail2) return;
+            if (isTrail && !headTrail && !headTrail2) return;
       
             const valueX = d[_this.__alias("x")];
             const valueY = d[_this.__alias("y")];
@@ -486,8 +490,8 @@ class _VizabiBubbleChart extends BaseComponent {
             const scaledC = valueC != null ? _this.cScale(valueC) : COLOR_WHITEISH;
       
             if (!duration || !headTrail) {
-              const node = trail ? this.children[0] : this;
-              const view = duration && !trail ?
+              const node = isTrail ? this.children[0] : this;
+              const view = duration && !isTrail ?
                 d3.select(node).transition(transition)
                 :
                 d3.select(node).interrupt();
@@ -501,7 +505,7 @@ class _VizabiBubbleChart extends BaseComponent {
               
             
               //trail line
-              if (trail) {
+              if (isTrail) {
                 const lineView = d3.select(node.nextSibling);
 
                 const scaledX0 = _this.xScale(dataNext[_this.__alias("x")]);
@@ -530,17 +534,17 @@ class _VizabiBubbleChart extends BaseComponent {
               }
             }
             
-            if (!trail)
+            if (!isTrail)
               _this._updateLabel(d, valueX, valueY, duration, false, false);    
           }),    
 
         exit => exit
           .each(function(d) {
-            const trail = d[Symbol.for("trailHeadKey")];
+            const isTrail = isTrailBubble(d);
             const node = this;
             //console.log("exit", d)
             
-            const view = duration && !trail ?
+            const view = duration && !isTrail ?
               d3.select(node).transition(transition)
                 .duration(duration*0.9)
                 .style("opacity", 0)
@@ -550,7 +554,7 @@ class _VizabiBubbleChart extends BaseComponent {
             view
               .remove();
             
-            if (!trail) 
+            if (!isTrail) 
               _this._updateLabel(d, d[_this.__alias("x")], d[_this.__alias("y")], duration, true, true);
           })
       )
@@ -571,8 +575,8 @@ class _VizabiBubbleChart extends BaseComponent {
     const data = this.__dataProcessed;
 
     if (this.bubbles) this.bubbles.each(function(d, index) {
-      const trail = d[Symbol.for("trailHeadKey")];
-      const node = trail ? this.children[0] : this;
+      const isTrail = isTrailBubble(d);
+      const node = isTrail ? this.children[0] : this;
 
       const valueX = d[_this.__alias("x")];
       const valueY = d[_this.__alias("y")];
@@ -595,7 +599,7 @@ class _VizabiBubbleChart extends BaseComponent {
         .attr("cy", scaledY)
         .attr("cx", scaledX);
 
-      if (trail) {
+      if (isTrail) {
         const lineView = duration ? 
           d3.select(node.nextSibling)
             .transition()
@@ -1224,7 +1228,7 @@ class _VizabiBubbleChart extends BaseComponent {
       click(d) {
         if (_this.draggingNow) return;
         // // const isSelected = d.isSelected;
-        if (!d[Symbol.for("trailHeadKey")]) _this.model.toggleSelection(d);
+        if (!isTrailBubble(d)) _this.model.toggleSelection(d);
         //_this.MDL.selected.data.filter.toggle(d);
         // // //return to highlighted state
         // // if (!utils.isTouchDevice()) {
@@ -1233,6 +1237,7 @@ class _VizabiBubbleChart extends BaseComponent {
       }
     };
   }
+  
 
   _updateMarkerSizeLimits() {
     this.services.layout.size;
@@ -1306,7 +1311,7 @@ class _VizabiBubbleChart extends BaseComponent {
     const ui = this.ui;
 
     if (this.__highlightedMarkers.has(d[Symbol.for("key")])) return ui.opacityHighlight;
-    if (d[Symbol.for("trailHeadKey")]) return ui.opacityRegular;
+    if (isTrailBubble(d)) return ui.opacityRegular;
     if (this.__selectedMarkers.has(d[Symbol.for("key")])) return ui.opacitySelect;
 
     if (this.__someSelected) return ui.opacitySelectDim;
@@ -1438,19 +1443,19 @@ class _VizabiBubbleChart extends BaseComponent {
       // const trailGroupDim = this.MDL.trail.groupDim;
       const isSelected = selectedFilter.has(selectedKey);
       const isTailTrail = !(trailStarts[selectedKey] - d[trailGroupDim]);
-      const isBubble = !(d[Symbol.for("trailHeadKey")]);
+      const isTrail = isTrailBubble(d);
 
       let text = "";
       
       text = isSelected ? 
-        !trailShow || isTailTrail || (isBubble && !this.hoverBubble) ? "": this.localise(d.label[trailGroupDim])
+        !trailShow || isTailTrail || (!isTrail && !this.hoverBubble) ? "": this.localise(d.label[trailGroupDim])
         : 
         this.__labelWithoutFrame(d);
       
       _this._labels.highlight(null, false);
       _this._labels.highlight({ [Symbol.for("key")]: selectedKey }, true);
       if (isSelected) {
-        const skipCrownInnerFill = isBubble;
+        const skipCrownInnerFill = !isTrail;
         //!d.trailStartTime || d.trailStartTime == _this.model.time.formatDate(_this.time);
         _this._setBubbleCrown(x, y, s, c, skipCrownInnerFill);
       }
