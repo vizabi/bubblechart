@@ -748,20 +748,20 @@ class _VizabiBubbleChart extends BaseComponent {
 
     this.strings = {
       title: {
-        Y: Utils.getConceptName(y, this.loclaise),
-        X: Utils.getConceptName(x, this.loclaise),
-        S: Utils.getConceptName(size, this.loclaise),
-        C: Utils.getConceptName(color, this.loclaise)
+        Y: Utils.getConceptName(y, this.localise),
+        X: Utils.getConceptName(x, this.localise),
+        S: Utils.getConceptName(size, this.localise),
+        C: Utils.getConceptName(color, this.localise)
       },
       title_short: {
-        Y: Utils.getConceptShortName(y, this.loclaise),
-        X: Utils.getConceptShortName(x, this.loclaise),
-        S: Utils.getConceptShortName(size, this.loclaise),
-        C: Utils.getConceptShortName(color, this.loclaise)
+        Y: Utils.getConceptShortName(y, this.localise),
+        X: Utils.getConceptShortName(x, this.localise),
+        S: Utils.getConceptShortName(size, this.localise),
+        C: Utils.getConceptShortName(color, this.localise)
       },
       subtitle: {
-        Y: Utils.getConceptNameMinusShortName(y, this.locale),
-        X: Utils.getConceptNameMinusShortName(x, this.locale)
+        Y: Utils.getConceptNameMinusShortName(y, this.localise),
+        X: Utils.getConceptNameMinusShortName(x, this.localise)
       },
       unit: {
         Y: Utils.getConceptUnit(y),
