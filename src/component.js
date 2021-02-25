@@ -314,7 +314,8 @@ class _VizabiBubbleChart extends BaseComponent {
     this.KEYS = this.model.data.space.filter(dim => dim !== this.TIMEDIM);
 
     if (this._updateLayoutProfile()) return; //return if exists with error
-    this.addReaction(this._updateTrailsOnSelect);
+  //  this.addReaction(this._updateTrailsOnSelect);
+    this.addReaction(this._updateTrailStart);
     this.addReaction(this._updateXYScales);
     this.addReaction(this._updateColorScale);
     this.addReaction(this._updateUIStrings);
@@ -335,11 +336,13 @@ class _VizabiBubbleChart extends BaseComponent {
   }
 
   drawData() {
-    if (this.MDL.trail.show) this.MDL.trail.updateTrailStart(this.MDL.frame.framesAround[1]);
-
     this.processFrameData();
     this._createAndDeleteBubbles();
     //this.redrawData();
+  }
+  
+  _updateTrailStart(){
+    if (this.MDL.trail.show) this.MDL.trail.updateTrailStart(this.MDL.frame.framesAround[1]);
   }
 
   _updateTrailsOnSelect() {
