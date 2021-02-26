@@ -314,7 +314,7 @@ class _VizabiBubbleChart extends BaseComponent {
     this.KEYS = this.model.data.space.filter(dim => dim !== this.TIMEDIM);
 
     if (this._updateLayoutProfile()) return; //return if exists with error
-  //  this.addReaction(this._updateTrailsOnSelect);
+    this.addReaction(this._updateTrailsOnSelect);
     this.addReaction(this._updateTrailStart);
     this.addReaction(this._updateXYScales);
     this.addReaction(this._updateColorScale);
@@ -346,17 +346,16 @@ class _VizabiBubbleChart extends BaseComponent {
   }
 
   _updateTrailsOnSelect() {
-    const selectedFilter = this.MDL.selected.data.filter;
+    const selectedBubbles = this.MDL.selected.data.filter.markers;
     runInAction(() => {
       Object.keys(this.MDL.trail.config.starts).forEach(marker => {
-        if (!selectedFilter.markers.has(marker)) {
+        if (!selectedBubbles.has(marker)) {
           this.MDL.trail.deleteTrail({
             [Symbol.for("key")]: marker
           });
         }
       });
-      selectedFilter.markers.has();
-      for (const [marker] of selectedFilter.markers) {
+      for (const [marker] of selectedBubbles) {
         if (!this.MDL.trail.config.starts[marker]) {
           this.MDL.trail.setTrail({
             [Symbol.for("key")]: marker,
@@ -1231,7 +1230,7 @@ class _VizabiBubbleChart extends BaseComponent {
       click(d) {
         if (_this.draggingNow) return;
         // // const isSelected = d.isSelected;
-        if (!isTrailBubble(d)) _this.model.toggleSelection(d);
+        if (!isTrailBubble(d)) _this.MDL.selected.data.filter.toggle(d);
         //_this.MDL.selected.data.filter.toggle(d);
         // // //return to highlighted state
         // // if (!utils.isTouchDevice()) {
