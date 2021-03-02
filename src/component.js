@@ -314,13 +314,14 @@ class _VizabiBubbleChart extends BaseComponent {
     this.KEYS = this.model.data.space.filter(dim => dim !== this.TIMEDIM);
 
     if (this._updateLayoutProfile()) return; //return if exists with error
-    this.addReaction(this._updateTrailsOnSelect);
-    this.addReaction(this._updateTrailStart);
-    this.addReaction(this._updateXYScales);
+    this.addReaction(this._updateScales);
     this.addReaction(this._updateColorScale);
     this.addReaction(this._updateUIStrings);
     this.addReaction(this._updateSize);
     this.addReaction(this._updateMarkerSizeLimits);
+    this.addReaction(this._updateSizeScale);
+    this.addReaction(this._updateTrailsOnSelect);
+    this.addReaction(this._updateTrailStart);
     //    this.addReaction(this._resetZoomMinMaxXReaction, this._resetZoomMinMaxX);
     //    this.addReaction(this._resetZoomMinMaxYReaction, this._resetZoomMinMaxY);
     this.addReaction(this._updateOpacity);
@@ -724,10 +725,14 @@ class _VizabiBubbleChart extends BaseComponent {
     return this.MDL.frame.playing ? this.MDL.frame.speed || 0 : 0;
   }
 
-  _updateXYScales() {
+  _updateScales() {
     this.yScale = this.MDL.y.scale.d3Scale.copy();
     this.xScale = this.MDL.x.scale.d3Scale.copy();
     this._labels.setScales(this.xScale, this.yScale);
+  }
+
+  _updateSizeScale() {
+    this.sScale = this.MDL.size.scale.d3Scale.copy();
   }
 
   _updateColorScale() {
@@ -1243,10 +1248,6 @@ class _VizabiBubbleChart extends BaseComponent {
 
   _updateMarkerSizeLimits() {
     this.services.layout.size;
-    this.MDL.size.scale.domain;
-    this.MDL.size.scale.extent;
-
-    this.sScale = this.MDL.size.scale.d3Scale.copy();
 
     //if (!this.profileConstants) return utils.warn("updateMarkerSizeLimits() is called before ready(). This can happen if events get unfrozen and getFrame() still didn't return data");
     const {
@@ -1260,9 +1261,9 @@ class _VizabiBubbleChart extends BaseComponent {
     let maxArea = utils.radiusToArea(Math.max(maxRadiusPx * extent[1], minRadiusPx));
 
     let range = minArea === maxArea? [minArea, maxArea] :
-      d3.range(minArea, maxArea, (maxArea - minArea)/(this.sScale.domain().length - 1)).concat(maxArea);
+      d3.range(minArea, maxArea, (maxArea - minArea)/(this.MDL.size.scale.domain.length - 1)).concat(maxArea);
 
-    this.sScale.range(range);
+    this.MDL.size.scale.config.range = range;
   }
 
   _setTooltip(tooltipText, x, y, s, c, d) {

@@ -100,10 +100,6 @@ export default class BubbleChart extends BaseComponent {
 
 BubbleChart.DEFAULT_UI = {
   chart: {
-    viewWH: {
-      width: 0,
-      height: 0
-    },
     timeInBackground: true,
     timeInTrails: true,
     decorations:true,
