@@ -100,30 +100,8 @@ export default class BubbleChart extends BaseComponent {
 
 BubbleChart.DEFAULT_UI = {
   chart: {
-    timeInBackground: true,
-    timeInTrails: true,
-    decorations:true,
-    superhighlightOnMinimapHover: true,
-    numberFormatSIPrefix: true,
-    showForecast: false,
-    pauseBeforeForecast: true,
-    showForecastOverlay: false,
-    show_ticks: true,
-    presentation: false,
-    panWithArrow: false,
-    adaptMinMaxZoom: false,
-    cursorMode: "arrow",
-    zoomOnScrolling: true,
-    opacityHighlight: 1.0,
-    opacitySelect: 1.0,
-    opacityHighlightDim: 0.1,
-    opacitySelectDim: 0.3,
-    opacityRegular: 0.5,
-    labels: {
-      removeLabelBox: false
-    },
   }
-}
+};
 
 
 
@@ -230,42 +208,7 @@ const OldBubbleChart = {
     locale: {},
     ui: {
       chart: {
-        timeInBackground: true,
-        timeInTrails: true,
-        decorations: {
-          enabled: true,
-          xAxisGroups: null
-        },
-        superhighlightOnMinimapHover: true,
-        whenHovering: {
-          showProjectionLineX: true,
-          showProjectionLineY: true,
-          higlightValueX: true,
-          higlightValueY: true
-        },
-        labels: {
-          enabled: true,
-          dragging: true,
-          removeLabelBox: false
-        },
-        margin: {
-          left: 0,
-          top:0
-        },
-        trails: true,
-        lockNonSelected: 0
       },
-      datawarning: {
-        doubtDomain: [],
-        doubtRange: []
-      },
-      numberFormatSIPrefix: true,
-      show_ticks: true,
-      presentation: false,
-      panWithArrow: false,
-      adaptMinMaxZoom: false,
-      cursorMode: "arrow",
-      zoomOnScrolling: false,
       buttons: ["colors", "find", "zoom", "trails", "lock", "moreoptions", "presentation", "sidebarcollapse", "fullscreen"],
       dialogs: {
         popup: ["colors", "find", "size", "zoom", "moreoptions"],

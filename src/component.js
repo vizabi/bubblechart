@@ -1605,7 +1605,10 @@ class _VizabiBubbleChart extends BaseComponent {
 }
 
 _VizabiBubbleChart.DEFAULT_UI = {
+  show_ticks: true,
+  showForecast: false,
   showForecastOverlay: true,
+  pauseBeforeForecast: true,
   opacityHighlight: 1.0,
   opacitySelect: 1.0,
   opacityHighlightDim: 0.1,
@@ -1613,9 +1616,15 @@ _VizabiBubbleChart.DEFAULT_UI = {
   opacityRegular: 0.5,
   timeInBackground: true,
   timeInTrails: true,
+  lockNonSelected: 0,
+  numberFormatSIPrefix: true,
+  panWithArrow: false,
+  adaptMinMaxZoom: false,
+  cursorMode: "arrow",
+  zoomOnScrolling: true,
   decorations: {
     enabled: true,
-    xAxisGroups: null
+    xAxisGroups: null //left to be set by external page
   },
   superhighlightOnMinimapHover: true,
   whenHovering: {
@@ -1625,20 +1634,18 @@ _VizabiBubbleChart.DEFAULT_UI = {
     higlightValueY: true
   },
   labels: {
-    // enabled: true,
-    // dragging: true,
-    removeLabelBox: true
+    enabled: true,
+    dragging: true,
+    removeLabelBox: false
   },
   margin: {
     left: 0,
-    top:0
+    top: 0
   },
-  lockNonSelected: 0,
   datawarning: {
     doubtDomain: [],
     doubtRange: []
-  },
-  numberFormatSIPrefix: true,
+  }
 };
 
 //export default BubbleChart;
