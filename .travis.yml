@@ -1,8 +1,7 @@
 language: node_js
 dist: trusty
-sudo: true
 node_js:
-- 8
+- 12.13.0
 addons:
   apt:
     packages:
@@ -19,30 +18,67 @@ cache:
   - node_modules
 before_install:
 - ssh-keyscan -H $TOOLSPAGE_HOST 2>&1 | tee -a $HOME/.ssh/known_hosts
-- openssl aes-256-cbc -K $encrypted_02a74dd532b3_key -iv $encrypted_02a74dd532b3_iv -in deploy_rsa.enc -out /tmp/deploy_rsa -d
+# this is created by travis encrypt command when adding npm api_key
+- openssl aes-256-cbc -K $encrypted_6f3bd6d63370_key -iv $encrypted_6f3bd6d63370_iv
+  -in deploy_rsa.enc -out /tmp/deploy_rsa -d
 - eval "$(ssh-agent -s)"
 - chmod 600 /tmp/deploy_rsa
 - ssh-add /tmp/deploy_rsa
-- npm install -g npm@latest
 - sudo pip install s3cmd
+install:
+- npm install --ignore-scripts
 before_script:
 - export DISPLAY=:99.0
 - sh -e /etc/init.d/xvfb start
-- npm run build
 script:
-- npm run deploy
+- tool-bump
+- npm run build
+- PACKAGE_VERSION=$(node -p "require('./package.json').version")
 deploy:
-- provider: npm
+#
+# put build files on s3 into a versioned folder
+#
+- provider: s3
+  access_key_id: $AWS_ACCESS_KEY_ID
+  secret_access_key:
+    secure: Cp30OFVtxwZLW7Vgr9SAGCFfRjXUkJ3XPnPD/2ted9XNHFHCYOHe5KJH+D8IffN0h/xdC44wp8ClRqdQHpRcsEhATuYi78F2Sp3i89mzCpV8LeaLMUhc+9A4WxM7aR6byLfqmCxEdlBRNUp0xltu221otARmsyrkaZ6BmzpUh63wLlQv1wtVgzaS1ZKE1a1KfMxnkzW/QJaSUqiw3zCkxeoekpvp7dvk0LZKTirP7yeJZcSLNlLxTxxoz/qwROClzhCt5sVWl1tssZOAO/Edjv1cZ//Ih3NHFZO3jqraRY4ctoji8RG+3LTTTzJgcwqUlMvF3GZQtVhbxE673LZdmVp5CGwLFu17vtwwBO2j1WBRmlDgtuFuZRv4rAdcD2ERTf9CoOkoXM7r3rUW0+lY7xWpdUvSx5xjc3qLT5lqu5aW9SG7C0MMlE7DugRUnasl7rYtLWk/fx1JnifJ8rQP+svqCdt2PBZKCXQ05KBzaMHQRzH35juIPBKYRSMsGjrSYTxXo8z+LM6+gtyrcKZIiOZPiwFFLrRvHSxA88JSFXzVCoARcVo0tNlU3OcU3VipN/1AKxnxL+SjXC9ApP1jwAvKPcc/1ZEEBbmFlIMgcdWLv7H9ZMovgpObiXKBIONTthyVjowr8fHS3eApyunaZlh5n+wqBUtM9hBbdTED7U0=
+  bucket: $AWS_BUCKET
+  upload-dir: $AWS_SUBFOLDER/$PACKAGE_VERSION
+  region: eu-west-1
   skip_cleanup: true
+  local_dir: build
+  on:
+    branch: master
+#
+# put build files on s3 as latest version
+#
+- provider: s3
+  access_key_id: $AWS_ACCESS_KEY_ID
+  secret_access_key:
+    secure: Cp30OFVtxwZLW7Vgr9SAGCFfRjXUkJ3XPnPD/2ted9XNHFHCYOHe5KJH+D8IffN0h/xdC44wp8ClRqdQHpRcsEhATuYi78F2Sp3i89mzCpV8LeaLMUhc+9A4WxM7aR6byLfqmCxEdlBRNUp0xltu221otARmsyrkaZ6BmzpUh63wLlQv1wtVgzaS1ZKE1a1KfMxnkzW/QJaSUqiw3zCkxeoekpvp7dvk0LZKTirP7yeJZcSLNlLxTxxoz/qwROClzhCt5sVWl1tssZOAO/Edjv1cZ//Ih3NHFZO3jqraRY4ctoji8RG+3LTTTzJgcwqUlMvF3GZQtVhbxE673LZdmVp5CGwLFu17vtwwBO2j1WBRmlDgtuFuZRv4rAdcD2ERTf9CoOkoXM7r3rUW0+lY7xWpdUvSx5xjc3qLT5lqu5aW9SG7C0MMlE7DugRUnasl7rYtLWk/fx1JnifJ8rQP+svqCdt2PBZKCXQ05KBzaMHQRzH35juIPBKYRSMsGjrSYTxXo8z+LM6+gtyrcKZIiOZPiwFFLrRvHSxA88JSFXzVCoARcVo0tNlU3OcU3VipN/1AKxnxL+SjXC9ApP1jwAvKPcc/1ZEEBbmFlIMgcdWLv7H9ZMovgpObiXKBIONTthyVjowr8fHS3eApyunaZlh5n+wqBUtM9hBbdTED7U0=
+  bucket: $AWS_BUCKET
+  upload-dir: $AWS_SUBFOLDER
+  region: eu-west-1
+  skip_cleanup: true
+  local_dir: build
+  on:
+    branch: master
+#
+# npm deploy
+#
+- provider: npm 
   email: konzeptmeister@gmail.com
   api_key:
-    secure: NwgxH591kbawDf4zu+I2qVpu4zj5RyIbl6IdWMf4EnEARaEfVGU/cFsYinWJSamRODHVt+zN6Zij5QkPulpGS2q11ncReNKd6f93SFam9MHJtkBvUCgzFzq0KIfr8S2tDG/KrAIMWVzusf5n95QfzdkgNHB25D9ZNfydsI0zLUcXzLGLwDpBAjXc/Md86RuvqX+dA6jocw64M4oz/+IowK+CqaypIOY/G8LRHgNi2sz9tYB9P03kiWNZR+qwv9nj/Ew/Svdyd2HYF3/4EiFhMkrZJFnccJZGNmJzG9WcHqKqDwrouWU7ApZRDJj1kvZPOeGDiTKI/STA0tccnltpzjblnjWYAB4PkPZ912jOxKSOXeXU2cE8kKZrKfd/zefVsXz7gL9Gct7CixXS+BDSvRuCGRWmbYwdgQKcJ3bb1P28mcz67a3EcwjWRIXjXFRC+p4uLdGziqnTJYnDt8qsxEwAfz2UpYmf6DkHm4lTYCwAJ2lATKRg04S7BABLYCvruuuPkaOreFP0tGOzHI2JOs8qYy9Qp/soz5zTnoqV0ewunt2ZG/4RZeT/ABWsNt/ui2vrrc4Dn7kWdYqXh2un4E0ZqGcFvBGusnds3AhPmn0KznA+gXhPPvG3zoKj0r/TFseGjDSNqj6/tn2bcqvV/SBb9vGqBaDjuSFT0diMI/w=
-  on:
-    branch: develop
-    node: 8
-    condition: "-e /tmp/deployment.flag"
-- provider: script
+    secure: a5ijG8Q6ENhCnXBjkULl9KBZxyrn+KAp0K6CzTvwekKvSPbjFOoH45VeIy5y29yQAdKSvqouh7SBjHFI29M6LpXeqWiBcWHXDcAUrCHA/IbZL/al4F1OO7as2Ay02KKyKBzaHGAUA9BOecPo8P4k8zL8W6BYhm/HmwmoO3R/iZzUoAyaSHuZ5ya7wCvEo8caZMzy5fX9jbz9brC69XvnDoZvbS5NkFsrUVllUU0ASINkCamXGy2q0ghsPYalGm4I0TOTpAlPHOevQRl+/1vU148/RZWFLOyyBS9z0T4THgp+A8f4VvtkVjGlYRgUusVnBnm6p5jKSEgaXjzhzPB5sjksCy2UlLgfEHZXJB+Rulp3Qel4vwBm9rEWsAf6ZUgDHd/pkOp0vTAn9WNSmChW1plO2Wr8YIEXoolFfHTBbh1qVV9pwwmxJmjAhUeKuV8lk/Vf+3vNuyUWxtqVdpjBolY3bWiVSpdlVLz1Nb383K61jGN1B9t4cvKusAe6Dsu8GKr6DMh9iX+tFMAdexkEKVwktuPByN22NgtQZ8SDBKFj02srq/cVLf8UTJhYSwWKXBjEe53Chsv4By8jBF2z1Ny8C9HyibNliAqk8WnUDRSWlxVJhjWGZx06OGmHUHGuGL6x4Z4+jB5BIeIMPhUnG2SJaY4kj5dNh3l7X3hLaqY=
   skip_cleanup: true
-  script: ssh $TOOLSPAGE_USER@$TOOLSPAGE_HOST 'sh /home/root/redeploy.sh "$TRAVIS_REPO_SLUG"'
   on:
-    branch: develop
+    branch: master
+#
+# rebuild tools page dev
+#
+- provider: script
+  script: ssh $TOOLSPAGE_USER@$TOOLSPAGE_HOST 'sh /home/root/redeploy.sh "$TRAVIS_REPO_SLUG"'
+  skip_cleanup: true
+  on:
+    branch: master
+
