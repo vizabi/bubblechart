@@ -1,5 +1,5 @@
 import {
-  BaseComponent,
+  Chart,
   Icons,
   Utils,
   LegacyUtils as utils,
@@ -77,7 +77,7 @@ const PROFILE_CONSTANTS_FOR_PROJECTOR = (width, height, options) => ({
 });
 
 // BUBBLE CHART COMPONENT
-class _VizabiBubbleChart extends BaseComponent {
+class _VizabiBubbleChart extends Chart {
 
   constructor(config) {
     config.subcomponents = [{
@@ -1652,3 +1652,5 @@ _VizabiBubbleChart.DEFAULT_UI = {
 export const VizabiBubbleChart = decorate(_VizabiBubbleChart, {
   "MDL": computed
 });
+
+Chart.add("bubblechart", VizabiBubbleChart);
