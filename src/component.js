@@ -291,16 +291,16 @@ class _VizabiBubbleChart extends Chart {
 
   get MDL(){
     return {
-      frame: this.model.encoding.get("frame"),
-      selected: this.model.encoding.get("selected"),
-      highlighted: this.model.encoding.get("highlighted"),
-      superHighlighted: this.model.encoding.get("superhighlighted"),
-      y: this.model.encoding.get(this.state.alias.y || "y"),
-      x: this.model.encoding.get(this.state.alias.x || "x"),
-      size: this.model.encoding.get("size"),
-      color: this.model.encoding.get("color"),
-      label: this.model.encoding.get("label"),
-      trail: this.model.encoding.get("trail")
+      frame: this.model.encoding.frame,
+      selected: this.model.encoding.selected,
+      highlighted: this.model.encoding.highlighted,
+      superHighlighted: this.model.encoding.superhighlighted,
+      y: this.model.encoding[this.state.alias.y || "y"],
+      x: this.model.encoding[this.state.alias.x || "x"],
+      size: this.model.encoding.size,
+      color: this.model.encoding.color,
+      label: this.model.encoding.label,
+      trail: this.model.encoding.trail
     };
   }
 
