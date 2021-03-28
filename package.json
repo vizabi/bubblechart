@@ -1,8 +1,9 @@
 {
   "name": "vizabi-bubblechart",
-  "version": "3.3.0",
+  "version": "3.3.1",
   "description": "Gapminder's bubble chart data visualisation tool. See it in action on gapminder.org/tools",
   "scripts": {
+    "prepublishOnly": "npm run build",
     "link": "npm link ../vizabi-shared-components",
     "start": "rollup -c",
     "build": "cross-env NODE_ENV=production rollup -c",

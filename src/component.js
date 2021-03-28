@@ -343,7 +343,7 @@ class _VizabiBubbleChart extends Chart {
   }
   
   _updateTrailStart(){
-    if (this.MDL.trail.show) this.MDL.trail.updateTrailStart(this.MDL.frame.framesAround[1]);
+    if (this.MDL.trail.show) this.MDL.trail.updateTrailStarts(this.MDL.frame.framesAround[1]);
   }
 
   _updateTrailsOnSelect() {
