@@ -86,13 +86,13 @@ export default class BubbleChart extends BaseComponent {
 
     config.services = {
       locale: new LocaleService(config.locale),
-      layout: new LayoutService({placeholder: config.placeholder})
+      layout: new LayoutService(config.layout)
     };
 
     //register locale service in the marker model
     config.model.config.markers.bubble.data.locale = observable({
-        get id() { return config.services.locale.id; }
-      });
+      get id() { return config.services.locale.id; }
+    });
 
     super(config);
   }
