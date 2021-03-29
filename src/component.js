@@ -321,7 +321,6 @@ class _VizabiBubbleChart extends Chart {
     this.addReaction(this._updateMarkerSizeLimits);
     this.addReaction(this._updateSizeScale);
     this.addReaction(this._updateTrailsOnSelect);
-    this.addReaction(this._updateTrailStart);
     //    this.addReaction(this._resetZoomMinMaxXReaction, this._resetZoomMinMaxX);
     //    this.addReaction(this._resetZoomMinMaxYReaction, this._resetZoomMinMaxY);
     this.addReaction(this._updateOpacity);
@@ -340,10 +339,6 @@ class _VizabiBubbleChart extends Chart {
     this.processFrameData();
     this._createAndDeleteBubbles();
     //this.redrawData();
-  }
-  
-  _updateTrailStart(){
-    if (this.MDL.trail.show) this.MDL.trail.updateTrailStarts(this.MDL.frame.framesAround[1]);
   }
 
   _updateTrailsOnSelect() {
