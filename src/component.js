@@ -113,10 +113,10 @@ class _VizabiBubbleChart extends Chart {
       </svg>
       <svg class="vzb-bubblechart-svg vzb-bubblechart-svg-main vzb-export">
           <g class="vzb-bc-graph">
-              <g class="vzb-bc-axis-x-title"></g>
+              <g class="vzb-bc-axis-x-title"><text></text></g>
               <g class="vzb-bc-axis-x-info vzb-noexport"></g>
 
-              <g class="vzb-bc-axis-y-title"></g>
+              <g class="vzb-bc-axis-y-title"><text></text></g>
               <g class="vzb-bc-axis-y-info vzb-noexport"></g>
               <svg class="vzb-bc-bubbles-crop">
                   <g class="vzb-zoom-selection"></g>
@@ -126,10 +126,10 @@ class _VizabiBubbleChart extends Chart {
                   <rect class="vzb-bc-forecastoverlay vzb-hidden" x="0" y="0" width="100%" height="100%" fill="url(#vzb-bc-pattern-lines)" pointer-events='none'></rect>
               </svg>
 
-              <g class="vzb-bc-axis-y-subtitle"></g>
-              <g class="vzb-bc-axis-x-subtitle"></g>
-              <g class="vzb-bc-axis-s-title"></g>
-              <g class="vzb-bc-axis-c-title"></g>
+              <g class="vzb-bc-axis-y-subtitle"><text></text></g>
+              <g class="vzb-bc-axis-x-subtitle"><text></text></g>
+              <g class="vzb-bc-axis-s-title"><text></text></g>
+              <g class="vzb-bc-axis-c-title"><text></text></g>
 
               <g class="vzb-data-warning vzb-noexport">
                   <svg></svg>
@@ -782,14 +782,10 @@ class _VizabiBubbleChart extends Chart {
       }
     };
 
-    ySubTitleEl.selectAll("text").data([0])
-      .join("text");
-    xSubTitleEl.selectAll("text").data([0])
-      .join("text");
+    const treemenu = this.root.findChild({type: "TreeMenu"});
 
-    yTitleEl.selectAll("text").data([0])
-      .join("text")
-    //.attr("y", "-6px")
+    yTitleEl
+      .classed("vzb-disabled", treemenu.state.ownReadiness !== Utils.STATUS.READY)
       .on("click", () => {
         this.root.findChild({type: "TreeMenu"})
           .encoding(this.__alias("y"))
@@ -799,8 +795,8 @@ class _VizabiBubbleChart extends Chart {
           .toggle();
       });
 
-    xTitleEl.selectAll("text").data([0])
-      .join("text")
+    xTitleEl
+      .classed("vzb-disabled", treemenu.state.ownReadiness !== Utils.STATUS.READY)
       .on("click", () => {
         this.root.findChild({type: "TreeMenu"})
           .encoding(this.__alias("x"))
@@ -810,9 +806,7 @@ class _VizabiBubbleChart extends Chart {
           .toggle();
       });
 
-    sTitleEl.selectAll("text").data([0])
-      .join("text")
-      .attr("text-anchor", "end");
+    sTitleEl.attr("text-anchor", "end");
 
     utils.setIcon(dataWarningEl, ICON_WARN).select("svg").attr("width", "0px").attr("height", "0px");
     dataWarningEl.append("text")
