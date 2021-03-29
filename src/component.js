@@ -1585,7 +1585,7 @@ class _VizabiBubbleChart extends Chart {
   }
 
   __labelWithFrame(d) {
-    return this.__labelWithoutFrame(d) + " " + this.localise(this.MDL.frame.value);
+    return this.__labelWithoutFrame(d) + " " + this.localise((d && d.frame) || this.MDL.frame.value);
   }
 
   __alias(x) {
