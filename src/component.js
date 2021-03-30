@@ -231,6 +231,7 @@ class _VizabiBubbleChart extends Chart {
     this._labels = this.findChild({type: "Labels"});
     this._panZoom = new PanZoom(this);
     this._initDataWarning();
+    this._initInfoElements();
   
     this.scrollableAncestor = utils.findScrollableAncestor(this.element);
 
@@ -295,6 +296,53 @@ class _VizabiBubbleChart extends Chart {
         this.updateDoubtOpacity();
       });
   }
+
+  _initInfoElements() {
+    const _this = this;
+    const dataNotesDialog = () => this.root.findChild({type: "DataNotes"});
+    const timeSlider = () => this.root.findChild({type: "TimeSlider"});
+
+    utils.setIcon(this.DOM.yInfoEl, ICON_QUESTION)
+      .on("click", () => {
+        dataNotesDialog().pin();
+      })
+      .on("mouseover", function() {
+        if (timeSlider().ui.dragging) return;
+        const rect = this.getBBox();
+        const coord = utils.makeAbsoluteContext(this, this.farthestViewportElement)(rect.x - 10, rect.y + rect.height + 10);
+        const toolRect = _this.root.element.node().getBoundingClientRect();
+        const chartRect = _this.element.node().getBoundingClientRect();
+        dataNotesDialog()
+          .setEncoding(_this.MDL.y)
+          .show()
+          .setPos(coord.x + chartRect.left - toolRect.left, coord.y);
+      })
+      .on("mouseout", () => {
+        if (timeSlider().ui.dragging) return;
+        dataNotesDialog().hide();
+      });
+
+    utils.setIcon(this.DOM.xInfoEl, ICON_QUESTION)
+      .on("click", () => {
+        dataNotesDialog().pin();
+      })
+      .on("mouseover", function() {
+        if (timeSlider().ui.dragging) return;
+        const rect = this.getBBox();
+        const coord = utils.makeAbsoluteContext(this, this.farthestViewportElement)(rect.x - 10, rect.y + rect.height + 10);
+        const toolRect = _this.root.element.node().getBoundingClientRect();
+        const chartRect = _this.element.node().getBoundingClientRect();
+        dataNotesDialog()
+          .setEncoding(_this.MDL.x)
+          .show()
+          .setPos(coord.x + chartRect.left - toolRect.left, coord.y);
+      })
+      .on("mouseout", () => {
+        if (timeSlider().ui.dragging) return;
+        dataNotesDialog().hide();
+      });
+  }
+
   get MDL(){
     return {
       frame: this.model.encoding.frame,
@@ -325,6 +373,7 @@ class _VizabiBubbleChart extends Chart {
     this.addReaction(this._updateColorScale);
     this.addReaction(this._updateUIStrings);
     this.addReaction(this._updateSize);
+    this.addReaction(this.updateInfoElements);
     this.addReaction(this._updateTrailsOnSelect);
     //    this.addReaction(this._resetZoomMinMaxXReaction, this._resetZoomMinMaxX);
     //    this.addReaction(this._resetZoomMinMaxYReaction, this._resetZoomMinMaxY);
@@ -747,11 +796,7 @@ class _VizabiBubbleChart extends Chart {
       xTitleEl,
       yTitleEl,
       sTitleEl,
-      xInfoEl,
-      yInfoEl
     } = this.DOM;
-
-    const _this = this;
 
     this.strings = {
       title: {
@@ -803,49 +848,6 @@ class _VizabiBubbleChart extends Chart {
       });
 
     sTitleEl.attr("text-anchor", "end");
-
-    utils.setIcon(yInfoEl, ICON_QUESTION)
-      .select("svg").attr("width", "0px").attr("height", "0px");
-
-    utils.setIcon(xInfoEl, ICON_QUESTION)
-      .select("svg").attr("width", "0px").attr("height", "0px");
-
-
-    //TODO: move away from UI strings, maybe to ready or ready once
-    yInfoEl.on("click", () => {
-      _this.root.findChild({type: "DataNotes"}).pin();
-    });
-    yInfoEl.on("mouseover", function() {
-      const rect = this.getBBox();
-      const coord = utils.makeAbsoluteContext(this, this.farthestViewportElement)(rect.x - 10, rect.y + rect.height + 10);
-      const toolRect = _this.root.element.node().getBoundingClientRect();
-      const chartRect = _this.element.node().getBoundingClientRect();
-      _this.root.findChild({type: "DataNotes"})
-        .setEncoding(_this.MDL.y)
-        .show()
-        .setPos(coord.x + chartRect.left - toolRect.left, coord.y);
-    });
-    yInfoEl.on("mouseout", () => {
-      _this.root.findChild({type: "DataNotes"}).hide();
-    });
-    xInfoEl.on("click", () => {
-      _this.root.findChild({type: "DataNotes"}).pin();
-    });
-    xInfoEl.on("mouseover", function() {
-      //if (_this.model.time.dragging) return;
-      const rect = this.getBBox();
-      const coord = utils.makeAbsoluteContext(this, this.farthestViewportElement)(rect.x - 10, rect.y + rect.height + 10);
-      const toolRect = _this.root.element.node().getBoundingClientRect();
-      const chartRect = _this.element.node().getBoundingClientRect();
-      _this.root.findChild({type: "DataNotes"})
-        .setEncoding(_this.MDL.x)
-        .show()
-        .setPos(coord.x + chartRect.left - toolRect.left, coord.y);
-    });
-    xInfoEl.on("mouseout", () => {
-      //if (_this.model.time.dragging) return;
-      _this.root.findChild({type: "DataNotes"}).hide();
-    });
   }
 
   _updateSize() {
@@ -873,9 +875,6 @@ class _VizabiBubbleChart extends Chart {
       xSubTitleEl,
       ySubTitleEl,
       xAxisGroupsEl,
-      xInfoEl,
-      yInfoEl
-
     } = this.DOM;
 
     const _this = this;
@@ -1041,40 +1040,6 @@ class _VizabiBubbleChart extends Chart {
     xAxisGroupsEl
       .style("font-size", infoElHeight * 0.8 + "px");
 
-    if (yInfoEl.select("svg").node()) {
-      const titleBBox = yTitleEl.node().getBBox();
-      const t = utils.transform(yTitleEl.node());
-      const hTranslate = isRTL ? (titleBBox.x + t.translateX - infoElHeight * 1.4) : (titleBBox.x + t.translateX + titleBBox.width + infoElHeight * 0.4);
-      const vTranslate = isRTL ? (t.translateY + infoElHeight * 1.4 + titleBBox.width * 0.5) : (t.translateY - infoElHeight * 0.4 - titleBBox.width * 0.5);
-      const conceptPropsY = y.data.conceptProps;
-
-      yInfoEl
-        .classed("vzb-hidden", !conceptPropsY.description && !conceptPropsY.sourceLink || this.services.layout.projector)
-        .select("svg")
-        .attr("width", infoElHeight + "px")
-        .attr("height", infoElHeight + "px");
-      yInfoEl.attr("transform", layoutProfile !== "SMALL" ?
-        "translate(" + (t.translateX - infoElHeight * 0.8) + "," + vTranslate + ") rotate(-90)"
-        :
-        "translate(" + hTranslate + "," + (t.translateY - infoElHeight * 0.8) + ")");
-    }
-
-    if (xInfoEl.select("svg").node()) {
-      const titleBBox = xTitleEl.node().getBBox();
-      const t = utils.transform(xTitleEl.node());
-      const hTranslate = isRTL ? (titleBBox.x + t.translateX - infoElHeight * 1.4) : (titleBBox.x + t.translateX + titleBBox.width + infoElHeight * 0.4);
-      const conceptPropsX = x.data.conceptProps;
-
-      xInfoEl
-        .classed("vzb-hidden", !conceptPropsX.description && !conceptPropsX.sourceLink || this.services.layout.projector)
-        .select("svg")
-        .attr("width", infoElHeight + "px")
-        .attr("height", infoElHeight + "px");
-      xInfoEl.attr("transform", "translate("
-        + hTranslate + ","
-        + (t.translateY - infoElHeight * 0.8) + ")");
-    }
-
     //this.services.layout.setHGrid([this.elementWidth - marginRightAdjusted]);
     //this.ui.margin.set("left", margin.left * this.profileConstants.leftMarginRatio, false, false);
 
@@ -1087,6 +1052,47 @@ class _VizabiBubbleChart extends Chart {
     //   _this._zoomedXYMinMax.x.zoomedMax,
     //   _this._zoomedXYMinMax.y.zoomedMin,
     //   _this._zoomedXYMinMax.y.zoomedMax);
+  }
+
+  updateInfoElements() {
+    this.services.layout.size;
+
+    const {xInfoEl, yInfoEl, xTitleEl, yTitleEl} = this.DOM;
+    const {x, y} = this.MDL;
+    const isRTL = this.services.locale.isRTL();
+    const infoElHeight = this.profileConstants.infoElHeight;
+    const layoutProfile = this.services.layout.profile;
+
+    if (yInfoEl.select("svg").node()) {
+      const titleBBox = yTitleEl.node().getBBox();
+      const t = utils.transform(yTitleEl.node());
+      const hTranslate = isRTL ? (titleBBox.x + t.translateX - infoElHeight * 1.4) : (titleBBox.x + t.translateX + titleBBox.width + infoElHeight * 0.4);
+      const vTranslate = isRTL ? (t.translateY + infoElHeight * 1.4 + titleBBox.width * 0.5) : (t.translateY - infoElHeight * 0.4 - titleBBox.width * 0.5);
+      const conceptPropsY = y.data.conceptProps;
+
+      yInfoEl
+        .classed("vzb-hidden", !conceptPropsY.description && !conceptPropsY.sourceLink || this.services.layout.projector)
+        .attr("transform", layoutProfile !== "SMALL" ?
+          `translate(${ t.translateX - infoElHeight * 0.8 }, ${ vTranslate }) rotate(-90)` :
+          `translate(${ hTranslate },${ t.translateY - infoElHeight * 0.8 })`)
+        .select("svg")
+        .attr("width", infoElHeight + "px")
+        .attr("height", infoElHeight + "px");
+    }
+
+    if (xInfoEl.select("svg").node()) {
+      const titleBBox = xTitleEl.node().getBBox();
+      const t = utils.transform(xTitleEl.node());
+      const hTranslate = isRTL ? (titleBBox.x + t.translateX - infoElHeight * 1.4) : (titleBBox.x + t.translateX + titleBBox.width + infoElHeight * 0.4);
+      const conceptPropsX = x.data.conceptProps;
+
+      xInfoEl
+        .classed("vzb-hidden", !conceptPropsX.description && !conceptPropsX.sourceLink || this.services.layout.projector)
+        .attr("transform", `translate(${ hTranslate }, ${ t.translateY - infoElHeight * 0.8 })`)
+        .select("svg")
+        .attr("width", infoElHeight + "px")
+        .attr("height", infoElHeight + "px");
+    }
   }
 
   _rangeBump(arg, undo) {
