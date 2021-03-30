@@ -309,6 +309,7 @@ class _VizabiBubbleChart extends Chart {
 
     //this.MDL.trail.config.show = false;
     //this.ui.cursorMode = "plus";
+    this.sScale = this.MDL.size.scale.d3Scale;
 
     this.TIMEDIM = this.MDL.frame.data.concept;
     this.KEYS = this.model.data.space.filter(dim => dim !== this.TIMEDIM);
@@ -318,8 +319,6 @@ class _VizabiBubbleChart extends Chart {
     this.addReaction(this._updateColorScale);
     this.addReaction(this._updateUIStrings);
     this.addReaction(this._updateSize);
-    this.addReaction(this._updateMarkerSizeLimits);
-    this.addReaction(this._updateSizeScale);
     this.addReaction(this._updateTrailsOnSelect);
     //    this.addReaction(this._resetZoomMinMaxXReaction, this._resetZoomMinMaxX);
     //    this.addReaction(this._resetZoomMinMaxYReaction, this._resetZoomMinMaxY);
@@ -337,6 +336,7 @@ class _VizabiBubbleChart extends Chart {
 
   drawData() {
     this.processFrameData();
+    this._updateMarkerSizeLimits();
     this._createAndDeleteBubbles();
     //this.redrawData();
   }
@@ -724,10 +724,6 @@ class _VizabiBubbleChart extends Chart {
     this.yScale = this.MDL.y.scale.d3Scale.copy();
     this.xScale = this.MDL.x.scale.d3Scale.copy();
     this._labels.setScales(this.xScale, this.yScale);
-  }
-
-  _updateSizeScale() {
-    this.sScale = this.MDL.size.scale.d3Scale.copy();
   }
 
   _updateColorScale() {
@@ -1237,12 +1233,15 @@ class _VizabiBubbleChart extends Chart {
 
   _updateMarkerSizeLimits() {
     this.services.layout.size;
+    this.MDL.size.scale.domain;
 
-    //if (!this.profileConstants) return utils.warn("updateMarkerSizeLimits() is called before ready(). This can happen if events get unfrozen and getFrame() still didn't return data");
     const {
       minRadiusPx,
       maxRadiusPx
     } = this.profileConstants;
+
+    //transfer min max radius to size dialog via root ui observable (probably a cleaner way is possible)
+    this.root.ui.minMaxRadius = {min: minRadiusPx, max: maxRadiusPx};
     
     const extent = this.MDL.size.scale.extent || [0, 1];
     
@@ -1250,9 +1249,9 @@ class _VizabiBubbleChart extends Chart {
     let maxArea = utils.radiusToArea(Math.max(maxRadiusPx * extent[1], minRadiusPx));
 
     let range = minArea === maxArea? [minArea, maxArea] :
-      d3.range(minArea, maxArea, (maxArea - minArea)/(this.MDL.size.scale.domain.length - 1)).concat(maxArea);
+      d3.range(minArea, maxArea, (maxArea - minArea)/(this.sScale.domain().length - 1)).concat(maxArea);
 
-    this.MDL.size.scale.config.range = range;
+    this.sScale.range(range);
   }
 
   _setTooltip(tooltipText, x, y, s, c, d) {
