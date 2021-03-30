@@ -130,11 +130,7 @@ class _VizabiBubbleChart extends Chart {
               <g class="vzb-bc-axis-x-subtitle"><text></text></g>
               <g class="vzb-bc-axis-s-title"><text></text></g>
               <g class="vzb-bc-axis-c-title"><text></text></g>
-
-              <g class="vzb-data-warning vzb-noexport">
-                  <svg></svg>
-                  <text></text>
-              </g>
+              <g class="vzb-data-warning vzb-noexport"></g>
 
               <rect class="vzb-bc-zoom-rect"></rect>
           </g>
@@ -196,7 +192,7 @@ class _VizabiBubbleChart extends Chart {
         cTitleEl: graph.select(".vzb-bc-axis-c-title"),
         yInfoEl: graph.select(".vzb-bc-axis-y-info"),
         xInfoEl: graph.select(".vzb-bc-axis-x-info"),
-        dataWarningEl: graph.select(".vzb-data-warning"),
+        dataWarning: graph.select(".vzb-data-warning"),
         trailsContainer: graph.select(".vzb-bc-trails"),
         bubbleContainer: graph.select(".vzb-bc-bubbles"),
         bubbleContainerCrop: graph.select(".vzb-bc-bubbles-crop"),
@@ -234,6 +230,7 @@ class _VizabiBubbleChart extends Chart {
     this._year = this.findChild({type: "DynamicBackground"});
     this._labels = this.findChild({type: "Labels"});
     this._panZoom = new PanZoom(this);
+    this._initDataWarning();
   
     this.scrollableAncestor = utils.findScrollableAncestor(this.element);
 
@@ -243,10 +240,6 @@ class _VizabiBubbleChart extends Chart {
 
     this.isCanvasPreviouslyExpanded = false;
     this.draggingNow = null;
-
-    this.wScale = d3.scaleLinear()
-      .domain(this.ui.datawarning.doubtDomain)
-      .range(this.ui.datawarning.doubtRange);
 
     this.hoverBubble = false;
 
@@ -289,6 +282,19 @@ class _VizabiBubbleChart extends Chart {
 
   }
 
+  _initDataWarning() {
+    utils.setIcon(this.DOM.dataWarning, ICON_WARN)
+      .append("text")
+      .on("click", () => {
+        this.root.findChild({type: "DataWarning"}).toggle();
+      })
+      .on("mouseover", () => {
+        this.updateDoubtOpacity(1);
+      })
+      .on("mouseout", () => {
+        this.updateDoubtOpacity();
+      });
+  }
   get MDL(){
     return {
       frame: this.model.encoding.frame,
@@ -331,7 +337,9 @@ class _VizabiBubbleChart extends Chart {
     this.addReaction(this._selectDataPoints);
     this.addReaction(this._highlightDataPoints);
     this.addReaction(this._blinkSuperHighlighted);
-    this.addReaction(this._updateDoubtOpacity);
+    this.addReaction(this.setupDataWarningDoubtScale);
+    this.addReaction(this.updateDataWarning);
+    this.addReaction(this.updateDoubtOpacity);
   }
 
   drawData() {
@@ -739,9 +747,6 @@ class _VizabiBubbleChart extends Chart {
       xTitleEl,
       yTitleEl,
       sTitleEl,
-      xSubTitleEl,
-      ySubTitleEl,
-      dataWarningEl,
       xInfoEl,
       yInfoEl
     } = this.DOM;
@@ -799,11 +804,6 @@ class _VizabiBubbleChart extends Chart {
 
     sTitleEl.attr("text-anchor", "end");
 
-    utils.setIcon(dataWarningEl, ICON_WARN).select("svg").attr("width", "0px").attr("height", "0px");
-    dataWarningEl.append("text")
-      .attr("text-anchor", "end")
-      .text(this.localise("hints/dataWarning"));
-
     utils.setIcon(yInfoEl, ICON_QUESTION)
       .select("svg").attr("width", "0px").attr("height", "0px");
 
@@ -846,16 +846,6 @@ class _VizabiBubbleChart extends Chart {
       //if (_this.model.time.dragging) return;
       _this.root.findChild({type: "DataNotes"}).hide();
     });
-    dataWarningEl
-      .on("click", () => {
-        _this.root.findChild({type: "DataWarning"}).toggle();
-      })
-      .on("mouseover", () => {
-        _this._updateDoubtOpacity(1);
-      })
-      .on("mouseout", () => {
-        _this._updateDoubtOpacity();
-      });
   }
 
   _updateSize() {
@@ -1085,8 +1075,6 @@ class _VizabiBubbleChart extends Chart {
         + (t.translateY - infoElHeight * 0.8) + ")");
     }
 
-    this._resizeDataWarning();
-
     //this.services.layout.setHGrid([this.elementWidth - marginRightAdjusted]);
     //this.ui.margin.set("left", margin.left * this.profileConstants.leftMarginRatio, false, false);
 
@@ -1159,14 +1147,20 @@ class _VizabiBubbleChart extends Chart {
     sTitleText.style("font-size", sTitleWidth > remainigHeight ? font + "px" : null);
   }
 
-  _resizeDataWarning() {
+  
+  updateDataWarning() {
+    this.services.layout.size;
+
     const {
-      dataWarningEl,
+      dataWarning,
       xTitleEl
     } = this.DOM;
 
     // reset font size to remove jumpy measurement
-    const dataWarningText = dataWarningEl.select("text").style("font-size", null);
+    const dataWarningText = dataWarning.select("text")
+      .attr("text-anchor", "end")
+      .text(this.localise("hints/dataWarning"))
+      .style("font-size", null);
 
     // reduce font size if the caption doesn't fit
     const dataWarningWidth = dataWarningText.node().getBBox().width + dataWarningText.node().getBBox().height * 3;
@@ -1176,18 +1170,18 @@ class _VizabiBubbleChart extends Chart {
 
     // position the warning icon
     const warnBB = dataWarningText.node().getBBox();
-    dataWarningEl.select("svg")
+    dataWarning.select("svg")
       .attr("width", warnBB.height * 0.75)
       .attr("height", warnBB.height * 0.75)
       .attr("x", -warnBB.width - warnBB.height * 1.2)
       .attr("y", -warnBB.height * 0.65);
 
-    dataWarningEl
+    dataWarning
       .classed("vzb-hidden", this.services.layout.projector)
       .attr("transform", "translate("
         + (this.services.locale.isRTL() ? warnBB.width + warnBB.height : this.width) + ","
         + (this.height + this.profileConstants.margin.bottom - this.profileConstants.xAxisTitleBottomMargin)
-        + ")");
+        + ")");          
   }
 
   processFrameData() {
@@ -1311,10 +1305,17 @@ class _VizabiBubbleChart extends Chart {
     return ui.opacityRegular;
   }
 
-  _updateDoubtOpacity(opacity) {
-    if (opacity == null) opacity = this.wScale(this.localise(this.MDL.frame.value));
+  setupDataWarningDoubtScale() {
+    this.wScale = this.MDL.frame.scale.d3Scale.copy()
+      .domain(this.ui.datawarning.doubtDomain.map(m => this.MDL.frame.parse("" + m)))
+      .range(this.ui.datawarning.doubtRange)
+      .clamp(true);
+  }
+
+  updateDoubtOpacity(opacity) {
+    if (opacity == null) opacity = this.wScale(this.MDL.frame.value);
     if (this.MDL.selected.data.filter.any()) opacity = 1;
-    this.DOM.dataWarningEl.style("opacity", opacity);
+    this.DOM.dataWarning.style("opacity", opacity);
   }
 
   _setBubbleCrown(x, y, r, glow, skipInnerFill) {
