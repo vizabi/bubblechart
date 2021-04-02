@@ -1313,7 +1313,7 @@ class _VizabiBubbleChart extends Chart {
 
   setupDataWarningDoubtScale() {
     this.wScale = this.MDL.frame.scale.d3Scale.copy()
-      .domain(this.ui.datawarning.doubtDomain.map(m => this.MDL.frame.parse("" + m)))
+      .domain(this.ui.datawarning.doubtDomain.map(m => this.MDL.frame.parseValue("" + m)))
       .range(this.ui.datawarning.doubtRange)
       .clamp(true);
   }
@@ -1569,8 +1569,11 @@ class _VizabiBubbleChart extends Chart {
     for (const key of selectedFilter.markers.keys()) {
       const cache = this._labels.cached[key];
 
-      const d = (trail.show ? this.model.getDataMapByFrameValue(trail.starts[key]) : this.model.dataMap)
-        .getByObjOrStr(null, key);
+      const datamap = (trail.show ? this.model.getDataMapByFrameValue(trail.starts[key]) : this.model.dataMap);
+      if (!datamap.hasByObjOrStr(null, key))
+        continue;
+
+      const d = datamap.getByObjOrStr(null, key);
       
       cache.labelText = this[(trail.show && this.ui.timeInTrails ? "__labelWithFrame" : "__labelWithoutFrame")](d);
       cache.labelX0 = d[this.__alias("x")];
