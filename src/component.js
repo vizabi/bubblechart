@@ -374,7 +374,6 @@ class _VizabiBubbleChart extends Chart {
     this.addReaction(this._updateUIStrings);
     this.addReaction(this._updateSize);
     this.addReaction(this.updateInfoElements);
-    this.addReaction(this._updateTrailsOnSelect);
     //    this.addReaction(this._resetZoomMinMaxXReaction, this._resetZoomMinMaxX);
     //    this.addReaction(this._resetZoomMinMaxYReaction, this._resetZoomMinMaxY);
     this.addReaction(this._updateOpacity);
@@ -396,27 +395,6 @@ class _VizabiBubbleChart extends Chart {
     this._updateMarkerSizeLimits();
     this._createAndDeleteBubbles();
     //this.redrawData();
-  }
-
-  _updateTrailsOnSelect() {
-    const selectedBubbles = this.MDL.selected.data.filter.markers;
-    runInAction(() => {
-      Object.keys(this.MDL.trail.config.starts).forEach(marker => {
-        if (!selectedBubbles.has(marker)) {
-          this.MDL.trail.deleteTrail({
-            [Symbol.for("key")]: marker
-          });
-        }
-      });
-      for (const [marker] of selectedBubbles) {
-        if (!this.MDL.trail.config.starts[marker]) {
-          this.MDL.trail.setTrail({
-            [Symbol.for("key")]: marker,
-            [this.MDL.trail.groupDim]: this.MDL.frame.value
-          });
-        }
-      }
-    });
   }
 
   _updateShowYear() {
@@ -1220,7 +1198,7 @@ class _VizabiBubbleChart extends Chart {
       click(d) {
         if (_this.draggingNow) return;
         // // const isSelected = d.isSelected;
-        if (!isTrailBubble(d)) _this.MDL.selected.data.filter.toggle(d);
+        if (!isTrailBubble(d)) _this.MDL.trail.toggleTrail(d);
         //_this.MDL.selected.data.filter.toggle(d);
         // // //return to highlighted state
         // // if (!utils.isTouchDevice()) {
