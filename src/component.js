@@ -1198,7 +1198,7 @@ class _VizabiBubbleChart extends Chart {
       click(d) {
         if (_this.draggingNow) return;
         // // const isSelected = d.isSelected;
-        if (!isTrailBubble(d)) _this.MDL.trail.toggleTrail(d);
+        if (!isTrailBubble(d)) _this.MDL.selected.data.filter.toggle(d);
         //_this.MDL.selected.data.filter.toggle(d);
         // // //return to highlighted state
         // // if (!utils.isTouchDevice()) {
@@ -1509,7 +1509,7 @@ class _VizabiBubbleChart extends Chart {
       //if (showhide && hidden && trail.show && trailStartTime && (trailStartTime < _this.time)) showhide = false;
       if (hidden && !trail.show) showhide = true;
 
-      if (trail.show) {
+      if (trail.show && key in trail.starts) {
         const trailStart = trail.starts[key];
         //console.log("trailstart", trailStart)
         // if this bubble is trail start bubble
@@ -1545,6 +1545,9 @@ class _VizabiBubbleChart extends Chart {
     const trail = this.MDL.trail;
 
     for (const key of selectedFilter.markers.keys()) {
+      if (!(key in trail.starts))
+        continue;
+
       const cache = this._labels.cached[key];
 
       const datamap = (trail.show ? this.model.getDataMapByFrameValue(trail.starts[key]) : this.model.dataMap);
