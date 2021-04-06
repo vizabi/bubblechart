@@ -20,7 +20,7 @@ const VERSION_INFO = { version: __VERSION, build: __BUILD };
 export default class BubbleChart extends BaseComponent {
 
   constructor(config){
-    const marker = config.splash(config.model.stores.markers.get("bubble"));
+    const marker = config.splash(config.model.markers.bubble);
 
     config.name = "bubblechart";
 
@@ -90,7 +90,7 @@ export default class BubbleChart extends BaseComponent {
     };
 
     //register locale service in the marker model
-    config.model.config.markers.bubble.data.locale = observable({
+    config.model.markers.bubble.data.config.locale = observable({
       get id() { return config.services.locale.id; }
     });
 
