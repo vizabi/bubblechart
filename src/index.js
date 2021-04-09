@@ -13,13 +13,15 @@ import {
   Repeater
 } from "VizabiSharedComponents";
 import {VizabiBubbleChart} from "./component.js";
-import { observable } from "mobx";
+import { isObservableArray } from "mobx";
 
 const VERSION_INFO = { version: __VERSION, build: __BUILD };
 
 export default class BubbleChart extends BaseComponent {
 
   constructor(config){
+    
+    applyDefaults(config.model.markers.bubble.config, BubbleChart.DEFAULT_CORE);    
     const marker = config.model.markers.bubble.encoding.frame.splash.marker;
 
     config.name = "bubblechart";
@@ -97,6 +99,53 @@ BubbleChart.DEFAULT_UI = {
   chart: {
   }
 };
+
+BubbleChart.DEFAULT_CORE = {
+  requiredEncodings: ["x", "y", "size"],
+  encoding: {
+    "selected": {
+        modelType: "selection",
+        data: { 
+            filter: { 
+                ref: "markers.bubble.encoding.trail.data.filter"
+            }
+        }
+    },
+    "highlighted": { modelType: "selection" },
+    "superhighlighted": { modelType: "selection" },
+    "x": { },
+    "y": { },
+    "order": { modelType: "order",
+        data: { concept: { 
+            ref: "markers.bubble.encoding.size.data.concept"
+        } }
+    },
+    "size": {
+        scale: {
+            modelType: 'size',
+            range: [0, 50]
+        }
+    },
+    "color": { scale: { modelType: "color" } },
+    "label": { data: { modelType: "entityPropertyDataConfig" } },
+    "frame": { modelType: "frame" },
+    "trail": { modelType: "trail" },             
+    "size_label": {
+      data: {
+        constant: "_default"
+      },
+      scale: {
+        modelType: "size",
+        allowedTypes: ["linear", "log", "genericLog", "pow", "point"]
+      }
+    },
+    "repeat": {
+      modelType: "repeat",
+      row: ["y"],
+      column: ["x"]
+    }
+  }
+}
 
 
 
@@ -215,3 +264,116 @@ const OldBubbleChart = {
 
   versionInfo: VERSION_INFO
 };
+
+
+// code from https://github.com/TehShrike/is-mergeable-object
+function isMergeableObject(value) {
+  return isNonNullObject(value) &&
+      !isSpecial(value)
+}
+
+function isNonNullObject(value) {
+  return !!value && typeof value === 'object'
+}
+
+function isSpecial(value) {
+  var stringValue = Object.prototype.toString.call(value)
+
+  return stringValue === '[object RegExp]' ||
+      stringValue === '[object Date]' ||
+      isObservableArray(value) ||
+      isReactElement(value)
+}
+
+// see https://github.com/facebook/react/blob/b5ac963fb791d1298e7f396236383bc955f916c1/src/isomorphic/classic/element/ReactElement.js#L21-L25
+var canUseSymbol = typeof Symbol === 'function' && Symbol.for
+var REACT_ELEMENT_TYPE = canUseSymbol ? Symbol.for('react.element') : 0xeac7
+
+function isReactElement(value) {
+  return value.$$typeof === REACT_ELEMENT_TYPE
+}
+
+// c merge and helpers
+// code from https://github.com/KyleAMathews/deepmerge
+function emptyTarget(val) {
+  return Array.isArray(val) ? [] : {}
+}
+
+function cloneUnlessOtherwiseSpecified(value, options) {
+  return (options.clone !== false && options.isMergeableObject(value)) ?
+      deepmerge(emptyTarget(value), value, options) :
+      value
+}
+
+function defaultArrayMerge(target, source, options) {
+  return target.concat(source).map(function(element) {
+      return cloneUnlessOtherwiseSpecified(element, options)
+  })
+}
+
+function mergeObject(target, source, options) {
+  var destination = {}
+  if (options.isMergeableObject(target)) {
+      Object.keys(target).forEach(function(key) {
+          destination[key] = cloneUnlessOtherwiseSpecified(target[key], options)
+      })
+  }
+  Object.keys(source).forEach(function(key) {
+      if (!options.isMergeableObject(source[key]) || !target[key]) {
+          destination[key] = cloneUnlessOtherwiseSpecified(source[key], options)
+      } else {
+          destination[key] = deepmerge(target[key], source[key], options)
+      }
+  })
+  return destination
+}
+
+const overwriteMerge = (destinationArray, sourceArray, options) => sourceArray
+
+function deepmerge(target, source, options) {
+  options = options || {}
+  options.arrayMerge = options.arrayMerge || overwriteMerge
+  options.isMergeableObject = options.isMergeableObject || isMergeableObject
+
+  var sourceIsArray = Array.isArray(source)
+  var targetIsArray = Array.isArray(target)
+  var sourceAndTargetTypesMatch = sourceIsArray === targetIsArray
+
+  if (!sourceAndTargetTypesMatch) {
+      return cloneUnlessOtherwiseSpecified(source, options)
+  } else if (sourceIsArray) {
+      return options.arrayMerge(target, source, options)
+  } else {
+      return mergeObject(target, source, options)
+  }
+}
+
+deepmerge.all = function deepmergeAll(array, options) {
+  if (!Array.isArray(array)) {
+      throw new Error('first argument should be an array')
+  }
+
+  return array.reduce(function(prev, next) {
+      return deepmerge(prev, next, options)
+  }, {})
+}
+
+function deepclone(object) {
+  return deepmerge({}, object);
+}
+
+function applyDefaults(config, defaults) {
+  const defaultProps = Object.keys(defaults);
+  defaultProps.forEach(prop => {
+      if (!config.hasOwnProperty(prop)) {
+          if (isMergeableObject(defaults[prop]))
+              config[prop] = deepclone(defaults[prop]); // object
+          else
+              config[prop] = defaults[prop]; // non object, i.e. value
+      } else if (isMergeableObject(defaults[prop])) {
+          if (isMergeableObject(config[prop]))
+              applyDefaults(config[prop], defaults[prop]);
+      }
+  })
+  return config;
+}
