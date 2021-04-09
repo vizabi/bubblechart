@@ -1571,13 +1571,18 @@ class _VizabiBubbleChart extends Chart {
   }
 
   __labelWithoutFrame(d) {
-    if (typeof d.label == "object") return Object.values(d.label).join(", ");
+    if (typeof d.label == "object") 
+      return Object.entries(d.label)
+        .filter(entry => entry[0] != this.MDL.frame.data.concept)
+        .map(entry => entry[1])
+        .join(", ");
     if (d.label != null) return "" + d.label;
     return d[Symbol.for("key")];
   }
 
   __labelWithFrame(d) {
-    return this.__labelWithoutFrame(d) + " " + this.localise((d && d.frame) || this.MDL.frame.value);
+    const frameConcept = this.MDL.frame.data.concept;
+    return this.__labelWithoutFrame(d) + " " + this.localise(d?.label?.[frameConcept] ?? d?.frame ?? this.MDL.frame.value);
   }
 
   __alias(x) {
