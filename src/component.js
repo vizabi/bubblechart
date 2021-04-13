@@ -1550,6 +1550,7 @@ class _VizabiBubbleChart extends Chart {
       if (!(key in trail.starts))
         continue;
 
+      if (!this._labels.cached[key]) this._labels.cached[key] = {};
       const cache = this._labels.cached[key];
 
       const datamap = (trail.show ? this.model.getDataMapByFrameValue(trail.starts[key]) : this.model.dataMap);
