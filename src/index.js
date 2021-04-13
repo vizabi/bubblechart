@@ -13,9 +13,6 @@ import {
   Repeater
 } from "VizabiSharedComponents";
 import {VizabiBubbleChart} from "./component.js";
-import { isObservableArray } from "mobx";
-
-const VERSION_INFO = { version: __VERSION, build: __BUILD };
 
 export default class BubbleChart extends BaseComponent {
 
@@ -104,27 +101,27 @@ BubbleChart.DEFAULT_CORE = {
   requiredEncodings: ["x", "y", "size"],
   encoding: {
     "selected": {
-        modelType: "selection",
-        data: { 
-            filter: { 
-                ref: "markers.bubble.encoding.trail.data.filter"
-            }
+      modelType: "selection",
+      data: { 
+        filter: { 
+          ref: "markers.bubble.encoding.trail.data.filter"
         }
+      }
     },
     "highlighted": { modelType: "selection" },
     "superhighlighted": { modelType: "selection" },
     "x": { },
     "y": { },
     "order": { modelType: "order",
-        data: { concept: { 
-            ref: "markers.bubble.encoding.size.data.concept"
-        } }
+      data: { concept: { 
+        ref: "markers.bubble.encoding.size.data.concept"
+      } }
     },
     "size": {
-        scale: {
-            modelType: 'size',
-            range: [0, 50]
-        }
+      scale: {
+        modelType: "size",
+        range: [0, 50]
+      }
     },
     "color": { scale: { modelType: "color" } },
     "label": { data: { modelType: "entityPropertyDataConfig" } },
@@ -145,122 +142,19 @@ BubbleChart.DEFAULT_CORE = {
       column: ["x"]
     }
   }
-}
+};
 
-
-
-
+BubbleChart.versionInfo = { version: __VERSION, build: __BUILD };
 
  
 const OldBubbleChart = {
 
   validate(model) {
-    model = this.model || model;
-
-    this._super(model);
 
     if (model.ui.chart.lockNonSelected && (!model.ui.splash || model.state.time.splash === false)) {
       const time = model.state.time.parse("" + model.ui.chart.lockNonSelected);
       if (time < model.state.time.start) model.ui.chart.lockNonSelected = model.state.time.formatDate(model.state.time.start);
       if (time > model.state.time.end) model.ui.chart.lockNonSelected = model.state.time.formatDate(model.state.time.end);
     }
-  },
-
-  /**
-   * Determines the default model of this tool
-   */
-  default_model: {
-    state: {
-      time: {
-        "autoconfig": {
-          "type": "time"
-        }
-      },
-      entities: {
-        "autoconfig": {
-          "type": "entity_domain",
-          "excludeIDs": ["tag"]
-        }
-      },
-      entities_colorlegend: {
-        "autoconfig": {
-          "type": "entity_domain",
-          "excludeIDs": ["tag"]
-        }
-      },
-      marker: {
-        limit: 5000,
-        space: ["entities", "time"],
-        axis_x: {
-          use: "indicator",
-          "autoconfig": {
-            index: 0,
-            type: "measure"
-          }
-        },
-        axis_y: {
-          use: "indicator",
-          "autoconfig": {
-            index: 1,
-            type: "measure"
-          }
-        },
-        label: {
-          use: "property",
-          "autoconfig": {
-            "includeOnlyIDs": ["name"],
-            "type": "string"
-          }
-        },
-        size: {
-          "autoconfig": {
-              index: 2,
-              type: "measure"
-            }
-        },
-        color: {
-          syncModels: ["marker_colorlegend"],
-          "autoconfig": {}
-        },
-        size_label: {
-          use: "constant",
-          which: "_default",
-          scaleType: "ordinal",
-          _important: false,
-          extent: [0, 0.33],
-          allow: {
-            names: ["_default"]
-          }
-        },
-      },
-      "marker_colorlegend": {
-        "space": ["entities_colorlegend"],
-        "label": {
-          "use": "property",
-          "which": "name"
-        },
-        "hook_rank": {
-          "use": "property",
-          "which": "rank"
-        },
-        "hook_geoshape": {
-          "use": "property",
-          "which": "shape_lores_svg"
-        }
-      }
-    },
-    locale: {},
-    ui: {
-      chart: {
-      },
-      buttons: ["colors", "find", "zoom", "trails", "lock", "moreoptions", "presentation", "sidebarcollapse", "fullscreen"],
-      dialogs: {
-        popup: ["colors", "find", "size", "zoom", "moreoptions"],
-        sidebar: ["colors", "find", "size", "zoom"],
-        moreoptions: ["opacity", "speed", "axes", "size", "colors", "label", "zoom", "presentation", "technical", "about"]
-      }
-    }
-  },
-
-  versionInfo: VERSION_INFO
+  }
 };
