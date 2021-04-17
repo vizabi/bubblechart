@@ -386,6 +386,7 @@ class _VizabiBubbleChart extends Chart {
     this.addReaction(this._highlightDataPoints);
     this.addReaction(this._blinkSuperHighlighted);
     this.addReaction(this._drawForecastOverlay);
+    this.addReaction(this._setupCursorMode);
     this.addReaction(this.setupDataWarningDoubtScale);
     this.addReaction(this.updateDataWarning);
     this.addReaction(this.updateDoubtOpacity);
@@ -432,12 +433,27 @@ class _VizabiBubbleChart extends Chart {
           .call(selection => {
             if(!utils.isTouchDevice()){
               selection
-                .on("mouseover", this._bubblesInteract().mouseover)
-                .on("mouseout", this._bubblesInteract().mouseout)
-                .on("click", this._bubblesInteract().click);
+                .on("mouseover", (d, i) => {
+                  if (this.ui.cursorMode !== "arrow" && this.ui.cursorMode !== "hand") return;
+                  if (this._labels.dragging) return;
+                  this._bubblesInteract().mouseover(d, i);
+                })
+                .on("mouseout", (d, i) => {
+                  if (this.ui.cursorMode !== "arrow" && this.ui.cursorMode !== "hand") return;
+                  if (this._labels.dragging) return;
+                  this._bubblesInteract().mouseout(d, i);
+                })
+                .on("click", (d, i) => {
+                  if (this.ui.cursorMode !== "arrow" && this.ui.cursorMode !== "hand") return;
+                  this._bubblesInteract().click(d, i);
+                });
             } else {
               selection
-                .on("tap", this._bubblesInteract().tap);
+                .onTap((d, i) => {
+                  d3.event.stopPropagation();
+                  this._bubblesInteract().click(d, i);
+                })
+                .onLongTap((d, i) => {});
             }
           })
           .each(function(d, index) {
@@ -1480,7 +1496,7 @@ class _VizabiBubbleChart extends Chart {
     const selectedFilter = this.MDL.selected.data.filter;
     
     if (utils.isTouchDevice()) {
-      _this.model.clearHighlighted();
+      _this.MDL.highlighted.data.filter.clear();
       _this._labels.showCloseCross(null, false);
     } else {
       //hide tooltip
@@ -1495,6 +1511,27 @@ class _VizabiBubbleChart extends Chart {
     _this.someSelected = selectedFilter.any();
     _this.nonSelectedOpacityZero = false;
 
+  }
+
+  _setupCursorMode() {
+    const svg = this.DOM.chartSvgAll;
+    if (this.ui.cursorMode === "plus") {
+      svg.classed("vzb-zoomin", true);
+      svg.classed("vzb-zoomout", false);
+      svg.classed("vzb-panhand", false);
+    } else if (this.ui.cursorMode === "minus") {
+      svg.classed("vzb-zoomin", false);
+      svg.classed("vzb-zoomout", true);
+      svg.classed("vzb-panhand", false);
+    } else if (this.ui.cursorMode === "hand") {
+      svg.classed("vzb-zoomin", false);
+      svg.classed("vzb-zoomout", false);
+      svg.classed("vzb-panhand", true);
+    } else {
+      svg.classed("vzb-zoomin", false);
+      svg.classed("vzb-zoomout", false);
+      svg.classed("vzb-panhand", false);
+    }
   }
 
   _updateLabel(d, x, y, duration, showhide, hidden) {
