@@ -64,14 +64,14 @@
     }
 
     &.vzb-sm-chart {
-      .vzb-data-warning {
+      .vzb-datawarning-button {
         visibility: hidden;
         pointer-events: none;
       }
     }
 
     &.vzb-sm-last-chart {
-      .vzb-data-warning {
+      .vzb-datawarning-button {
         visibility: visible;
         pointer-events: all;
       }

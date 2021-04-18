@@ -16,7 +16,7 @@ import {
 
 import {decorate, computed} from "mobx";
 
-const {ICON_WARN, ICON_QUESTION} = Icons;
+const {ICON_QUESTION} = Icons;
 const COLOR_WHITEISH = "rgb(253, 253, 253)";
 
 const marginScaleH = (marginMin, ratio = 0) => height => marginMin + height * ratio;
@@ -130,10 +130,10 @@ class _VizabiBubbleChart extends Chart {
               <g class="vzb-bc-axis-x-subtitle"><text></text></g>
               <g class="vzb-bc-axis-s-title"><text></text></g>
               <g class="vzb-bc-axis-c-title"><text></text></g>
-              <g class="vzb-data-warning vzb-noexport"></g>
 
               <rect class="vzb-bc-zoom-rect"></rect>
           </g>
+          <g class="vzb-datawarning-button vzb-noexport"></g>
       </svg>
       <svg class="vzb-bubblechart-svg vzb-bubblechart-svg-front vzb-export">
           <g class="vzb-bc-graph">
@@ -192,7 +192,6 @@ class _VizabiBubbleChart extends Chart {
         cTitleEl: graph.select(".vzb-bc-axis-c-title"),
         yInfoEl: graph.select(".vzb-bc-axis-y-info"),
         xInfoEl: graph.select(".vzb-bc-axis-x-info"),
-        dataWarning: graph.select(".vzb-data-warning"),
         trailsContainer: graph.select(".vzb-bc-trails"),
         bubbleContainer: graph.select(".vzb-bc-bubbles"),
         bubbleContainerCrop: graph.select(".vzb-bc-bubbles-crop"),
@@ -229,8 +228,7 @@ class _VizabiBubbleChart extends Chart {
 
     this._year = this.findChild({type: "DynamicBackground"});
     this._labels = this.findChild({type: "Labels"});
-    this._panZoom = new PanZoom(this);
-    this._initDataWarning();
+    this._panZoom = new PanZoom(this);    
     this._initInfoElements();
   
     this.scrollableAncestor = utils.findScrollableAncestor(this.element);
@@ -281,20 +279,6 @@ class _VizabiBubbleChart extends Chart {
         }
       });
 
-  }
-
-  _initDataWarning() {
-    utils.setIcon(this.DOM.dataWarning, ICON_WARN)
-      .append("text")
-      .on("click", () => {
-        this.root.findChild({type: "DataWarning"}).toggle();
-      })
-      .on("mouseover", () => {
-        this.updateDoubtOpacity(1);
-      })
-      .on("mouseout", () => {
-        this.updateDoubtOpacity();
-      });
   }
 
   _initInfoElements() {
@@ -387,9 +371,6 @@ class _VizabiBubbleChart extends Chart {
     this.addReaction(this._blinkSuperHighlighted);
     this.addReaction(this._drawForecastOverlay);
     this.addReaction(this._setupCursorMode);
-    this.addReaction(this.setupDataWarningDoubtScale);
-    this.addReaction(this.updateDataWarning);
-    this.addReaction(this.updateDoubtOpacity);
   }
 
   drawData() {
@@ -824,7 +805,7 @@ class _VizabiBubbleChart extends Chart {
     yTitleEl
       .classed("vzb-disabled", treemenu.state.ownReadiness !== Utils.STATUS.READY)
       .on("click", () => {
-        this.root.findChild({type: "TreeMenu"})
+        treemenu
           .encoding(this.__alias("y"))
           .alignX(this.services.locale.isRTL() ? "right" : "left")
           .alignY("top")
@@ -835,7 +816,7 @@ class _VizabiBubbleChart extends Chart {
     xTitleEl
       .classed("vzb-disabled", treemenu.state.ownReadiness !== Utils.STATUS.READY)
       .on("click", () => {
-        this.root.findChild({type: "TreeMenu"})
+        treemenu
           .encoding(this.__alias("x"))
           .alignX(this.services.locale.isRTL() ? "right" : "left")
           .alignY("bottom")
@@ -883,6 +864,7 @@ class _VizabiBubbleChart extends Chart {
 
     const margin = this.profileConstants.margin;
     const infoElHeight = this.profileConstants.infoElHeight;
+    const xAxisTitleBottomMargin = this.profileConstants.xAxisTitleBottomMargin;
 
     //labels
     this._labels.setCloseCrossHeight(_this.profileConstants.infoElHeight * 1.2);
@@ -1029,12 +1011,23 @@ class _VizabiBubbleChart extends Chart {
     xTitleEl
       .style("font-size", infoElHeight + "px")
       .attr("transform", layoutProfile !== "SMALL" ?
-        "translate(" + (width * 0.5) + "," + (height + margin.bottom - this.profileConstants.xAxisTitleBottomMargin) + ")"
+        "translate(" + (width * 0.5) + "," + (height + margin.bottom - xAxisTitleBottomMargin) + ")"
         :
-        "translate(" + (isRTL ? width : 0) + "," + (height + margin.bottom - this.profileConstants.xAxisTitleBottomMargin) + ")");
+        "translate(" + (isRTL ? width : 0) + "," + (height + margin.bottom - xAxisTitleBottomMargin) + ")");
     
     xAxisGroupsEl
       .style("font-size", infoElHeight * 0.8 + "px");
+
+    this.root.findChild({type: "_DataWarning"}).setOptions({
+      width: this.elementWidth,
+      height: this.elementHeight,
+      vertical: "bottom", 
+      horizontal: "right", 
+      right: margin.right,
+      bottom: xAxisTitleBottomMargin,
+      wLimit: (layoutProfile !== "SMALL" ? 0.5 : 1) *
+        (this.elementWidth - xTitleEl.node().getBBox().width - infoElHeight * 3)
+    });
 
     //this.services.layout.setHGrid([this.elementWidth - marginRightAdjusted]);
     //this.ui.margin.set("left", margin.left * this.profileConstants.leftMarginRatio, false, false);
@@ -1147,43 +1140,6 @@ class _VizabiBubbleChart extends Chart {
     const remainigHeight = this.height - 30;
     const font = parseInt(sTitleText.style("font-size")) * remainigHeight / sTitleWidth;
     sTitleText.style("font-size", sTitleWidth > remainigHeight ? font + "px" : null);
-  }
-
-  
-  updateDataWarning() {
-    this.services.layout.size;
-
-    const {
-      dataWarning,
-      xTitleEl
-    } = this.DOM;
-
-    // reset font size to remove jumpy measurement
-    const dataWarningText = dataWarning.select("text")
-      .attr("text-anchor", "end")
-      .text(this.localise("hints/dataWarning"))
-      .style("font-size", null);
-
-    // reduce font size if the caption doesn't fit
-    const dataWarningWidth = dataWarningText.node().getBBox().width + dataWarningText.node().getBBox().height * 3;
-    const remainingWidth = this.elementWidth - xTitleEl.node().getBBox().width - this.profileConstants.infoElHeight;
-    const font = parseInt(dataWarningText.style("font-size")) * remainingWidth / dataWarningWidth;
-    dataWarningText.style("font-size", dataWarningWidth > remainingWidth ? font + "px" : null);
-
-    // position the warning icon
-    const warnBB = dataWarningText.node().getBBox();
-    dataWarning.select("svg")
-      .attr("width", warnBB.height * 0.75)
-      .attr("height", warnBB.height * 0.75)
-      .attr("x", -warnBB.width - warnBB.height * 1.2)
-      .attr("y", -warnBB.height * 0.65);
-
-    dataWarning
-      .classed("vzb-hidden", this.services.layout.projector)
-      .attr("transform", "translate("
-        + (this.services.locale.isRTL() ? warnBB.width + warnBB.height : this.width) + ","
-        + (this.height + this.profileConstants.margin.bottom - this.profileConstants.xAxisTitleBottomMargin)
-        + ")");          
   }
 
   processFrameData() {
@@ -1305,19 +1261,6 @@ class _VizabiBubbleChart extends Chart {
     if (this.__someHighlighted) return ui.opacityHighlightDim;
 
     return ui.opacityRegular;
-  }
-
-  setupDataWarningDoubtScale() {
-    this.wScale = this.MDL.frame.scale.d3Scale.copy()
-      .domain(this.ui.datawarning.doubtDomain.map(m => this.MDL.frame.parseValue("" + m)))
-      .range(this.ui.datawarning.doubtRange)
-      .clamp(true);
-  }
-
-  updateDoubtOpacity(opacity) {
-    if (opacity == null) opacity = this.wScale(this.MDL.frame.value);
-    if (this.MDL.selected.data.filter.any()) opacity = 1;
-    this.DOM.dataWarning.style("opacity", opacity);
   }
 
   _setBubbleCrown(x, y, r, glow, skipInnerFill) {
@@ -1665,10 +1608,6 @@ _VizabiBubbleChart.DEFAULT_UI = {
   margin: {
     left: 0,
     top: 0
-  },
-  datawarning: {
-    doubtDomain: [],
-    doubtRange: []
   }
 };
 

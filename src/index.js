@@ -50,7 +50,9 @@ export default class BubbleChart extends BaseComponent {
     },{
       type: DataWarning,
       placeholder: ".vzb-datawarning",
-      model: marker
+      options: {button: ".vzb-datawarning-button"},
+      model: marker,
+      name: "data-warning"
     },{
       type: DataNotes,
       placeholder: ".vzb-datanotes",
@@ -68,8 +70,7 @@ export default class BubbleChart extends BaseComponent {
     }];
 
     config.template = `
-      <div class="vzb-repeater vzb-bubblechart">
-      </div>
+      <div class="vzb-repeater vzb-bubblechart"></div>
       <div class="vzb-animationcontrols">
         <div class="vzb-timeslider"></div>
         <div class="vzb-speedslider"></div>
