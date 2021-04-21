@@ -18,8 +18,11 @@ export default class BubbleChart extends BaseComponent {
 
   constructor(config){
     
-    Vizabi.utils.applyDefaults(config.model.markers.bubble.config, BubbleChart.DEFAULT_CORE);    
-    const marker = config.model.markers.bubble.encoding.frame.splash.marker;
+    const fullMarker = config.model.markers.bubble;
+    Vizabi.utils.applyDefaults(fullMarker.config, BubbleChart.DEFAULT_CORE);   
+
+    const frameType = Vizabi.stores.encodings.modelTypes.frame;
+    const { marker, splashMarker } = frameType.splashMarker(fullMarker);
 
     config.name = "bubblechart";
 
@@ -90,6 +93,8 @@ export default class BubbleChart extends BaseComponent {
     };
 
     super(config);
+
+    this.splashMarker = splashMarker;
   }
 }
 
