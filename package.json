@@ -1,7 +1,7 @@
 {
   "name": "vizabi-bubblechart",
-  "version": "3.4.3",
-  "description": "Gapminder's bubble chart data visualisation tool. See it in action on gapminder.org/tools",
+  "version": "3.4.4",
+  "description": "Vizabi bubble chart",
   "scripts": {
     "prepublishOnly": "npm run build",
     "link": "npm link ../vizabi-shared-components",
@@ -18,8 +18,26 @@
     "url": "git+https://github.com/vizabi/vizabi-bubblechart.git"
   },
   "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "author": {
+    "name": "Gapminder Foundation",
+    "url": "https://www.gapminder.org",
+    "email": "info@gapminder.org"
+  },
+  "contributors": [
+    {
+      "name": "Angie",
+      "url": "https://github.com/angieskazka"
+    },
+    {
+      "name": "Jasper",
+      "url": "https://github.com/jheeffer"
+    },
+    {
+      "name": "Dima",
+      "url": "https://github.com/dab2000"
+    }
+  ],
+  "license": "CC-BY-4.0",
   "bugs": {
     "url": "https://github.com/vizabi/vizabi-bubblechart/issues"
   },
@@ -28,6 +46,6 @@
     "cross-env": "^5.0.0",
     "css.escape": "^1.5.1",
     "vizabi-shared-components": "../vizabi-shared-components",
-    "vizabi-tool-bundler": "github:vizabi/vizabi-tool-bundler#switch_to_rollup"
+    "vizabi-tool-bundler": "1.0.2"
   }
 }

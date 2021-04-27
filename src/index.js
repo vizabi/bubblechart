@@ -10,7 +10,8 @@ import {
   SteppedSlider,
   Dialogs,
   ButtonList,
-  Repeater
+  Repeater,
+  versionInfo
 } from "VizabiSharedComponents";
 import {VizabiBubbleChart} from "./component.js";
 
@@ -150,7 +151,7 @@ BubbleChart.DEFAULT_CORE = {
   }
 };
 
-BubbleChart.versionInfo = { version: __VERSION, build: __BUILD };
+BubbleChart.versionInfo = { version: __VERSION, build: __BUILD, package: __PACKAGE_JSON_FIELDS, sharedComponents: versionInfo};
 
  
 const OldBubbleChart = {

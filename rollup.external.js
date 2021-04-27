@@ -1,1 +1,1 @@
-module.exports = require("vizabi-tool-bundler").bind(null, 'BubbleChart', 'bubblechart', __dirname);
+module.exports = require("vizabi-tool-bundler").bind(null, 'BubbleChart', 'bubblechart', __dirname, require("./package.json"));
