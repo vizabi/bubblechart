@@ -443,8 +443,8 @@ class _VizabiBubbleChart extends Chart {
             const node = isTrail ? this.children[0] : this;
             //console.log("enter", d, headTrail)
       
-            const valueX = d[_this.__alias("x")];
-            const valueY = d[_this.__alias("y")];
+            const valueX = d[_this._alias("x")];
+            const valueY = d[_this._alias("y")];
             const valueS = d.size;
             const valueC = d.color;
       
@@ -469,8 +469,8 @@ class _VizabiBubbleChart extends Chart {
               if (isTrail) {
                 const lineView = d3.select(node.nextSibling);
 
-                const scaledX0 = _this.xScale(dataNext[_this.__alias("x")]);
-                const scaledY0 = _this.yScale(dataNext[_this.__alias("y")]);
+                const scaledX0 = _this.xScale(dataNext[_this._alias("x")]);
+                const scaledY0 = _this.yScale(dataNext[_this._alias("y")]);
                 
                 lineView
                   .attr("x1", scaledX)
@@ -508,8 +508,8 @@ class _VizabiBubbleChart extends Chart {
             d.r = utils.areaToRadius(_this.sScale(valueS || 0));
             if (isTrail && !headTrail && !headTrail2) return;
       
-            const valueX = d[_this.__alias("x")];
-            const valueY = d[_this.__alias("y")];
+            const valueX = d[_this._alias("x")];
+            const valueY = d[_this._alias("y")];
             const valueC = d.color;
       
             //d.hidden = (!valueS && valueS !== 0) || valueX == null || valueY == null;
@@ -538,8 +538,8 @@ class _VizabiBubbleChart extends Chart {
               if (isTrail) {
                 const lineView = d3.select(node.nextSibling);
 
-                const scaledX0 = _this.xScale(dataNext[_this.__alias("x")]);
-                const scaledY0 = _this.yScale(dataNext[_this.__alias("y")]);
+                const scaledX0 = _this.xScale(dataNext[_this._alias("x")]);
+                const scaledY0 = _this.yScale(dataNext[_this._alias("y")]);
                 
                 lineView
                   .attr("x1", scaledX)
@@ -585,7 +585,7 @@ class _VizabiBubbleChart extends Chart {
               .remove();
             
             if (!isTrail) 
-              _this._updateLabel(d, d[_this.__alias("x")], d[_this.__alias("y")], duration, true, true);
+              _this._updateLabel(d, d[_this._alias("x")], d[_this._alias("y")], duration, true, true);
           })
       )
       .order();
@@ -608,8 +608,8 @@ class _VizabiBubbleChart extends Chart {
       const isTrail = isTrailBubble(d);
       const node = isTrail ? this.children[0] : this;
 
-      const valueX = d[_this.__alias("x")];
-      const valueY = d[_this.__alias("y")];
+      const valueX = d[_this._alias("x")];
+      const valueY = d[_this._alias("y")];
       const valueS = d.size;
       const valueC = d.color;
 
@@ -637,8 +637,8 @@ class _VizabiBubbleChart extends Chart {
           : d3.select(node.nextSibling).interrupt();
 
         const dataNext = data[index + 1];
-        const scaledX0 = _this.xScale(dataNext[_this.__alias("x")]);
-        const scaledY0 = _this.yScale(dataNext[_this.__alias("y")]);
+        const scaledX0 = _this.xScale(dataNext[_this._alias("x")]);
+        const scaledY0 = _this.yScale(dataNext[_this._alias("y")]);
 
         lineView
           .attr("x1", scaledX)
@@ -805,7 +805,7 @@ class _VizabiBubbleChart extends Chart {
       .classed("vzb-disabled", treemenu.state.ownReadiness !== Utils.STATUS.READY)
       .on("click", () => {
         treemenu
-          .encoding(this.__alias("y"))
+          .encoding(this._alias("y"))
           .alignX(this.services.locale.isRTL() ? "right" : "left")
           .alignY("top")
           .updateView()
@@ -816,7 +816,7 @@ class _VizabiBubbleChart extends Chart {
       .classed("vzb-disabled", treemenu.state.ownReadiness !== Utils.STATUS.READY)
       .on("click", () => {
         treemenu
-          .encoding(this.__alias("x"))
+          .encoding(this._alias("x"))
           .alignX(this.services.locale.isRTL() ? "right" : "left")
           .alignY("bottom")
           .updateView()
@@ -1209,8 +1209,8 @@ class _VizabiBubbleChart extends Chart {
     if (tooltipText) {
       const labelValues = {};
       if (d) {
-        labelValues.valueY = d[this.__alias("y")];
-        labelValues.valueX = d[this.__alias("x")];
+        labelValues.valueY = d[this._alias("y")];
+        labelValues.valueX = d[this._alias("x")];
         labelValues.valueS = d.size;
         labelValues.valueC = d.color;
         labelValues.valueLST = d.size_label || null;
@@ -1296,8 +1296,8 @@ class _VizabiBubbleChart extends Chart {
 
     if (d != null) {
 
-      const valueY = d[this.__alias("y")];
-      const valueX = d[this.__alias("x")];
+      const valueY = d[this._alias("y")];
+      const valueX = d[this._alias("x")];
       const radius = d.r;
 
       //if (!valueY && valueY !== 0 || !valueX && valueX !== 0 || !valueS && valueS !== 0) return;
@@ -1360,8 +1360,8 @@ class _VizabiBubbleChart extends Chart {
     if (highlightedFilter.markers.size === 1) {
       const highlightedKey = highlightedFilter.markers.keys().next().value;
       const d = Object.assign(this.model.dataMap.getByObjOrStr(null, highlightedKey));
-      const x = _this.xScale(d[_this.__alias("x")]);
-      const y = _this.yScale(d[_this.__alias("y")]);
+      const x = _this.xScale(d[_this._alias("x")]);
+      const y = _this.yScale(d[_this._alias("y")]);
       const s = d.r;
       const c = d.color != null ? this.cScale(d.color) : COLOR_WHITEISH;
       let entityOutOfView = false;
@@ -1498,8 +1498,8 @@ class _VizabiBubbleChart extends Chart {
           const trailData = this.model.getDataMapByFrameValue(trailStart).getByObjOrStr(null, key);
           
           cache.labelText = labelText = this.__labelWithFrame(trailData);
-          cache.labelX0 = trailData[this.__alias("x")];
-          cache.labelY0 = trailData[this.__alias("y")];
+          cache.labelX0 = trailData[this._alias("x")];
+          cache.labelY0 = trailData[this._alias("y")];
           cache.scaledC0 = trailData.color != null ? this.cScale(trailData.color) : COLOR_WHITEISH,
           cache.scaledS0 = (trailData.size || trailData.size === 0) ? utils.areaToRadius(this.sScale(trailData.size)) : null;
           cache.valueS0 = trailData.size;
@@ -1539,8 +1539,8 @@ class _VizabiBubbleChart extends Chart {
       const d = datamap.getByObjOrStr(null, key);
       
       cache.labelText = this[(trail.show && this.ui.timeInTrails ? "__labelWithFrame" : "__labelWithoutFrame")](d);
-      cache.labelX0 = d[this.__alias("x")];
-      cache.labelY0 = d[this.__alias("y")];
+      cache.labelX0 = d[this._alias("x")];
+      cache.labelY0 = d[this._alias("y")];
       cache.scaledC0 = d.color != null ? this.cScale(d.color) : COLOR_WHITEISH,
       cache.scaledS0 = (d.size || d.size === 0) ? utils.areaToRadius(this.sScale(d.size)) : null;
       cache.valueS0 = d.size;
@@ -1565,9 +1565,9 @@ class _VizabiBubbleChart extends Chart {
     return this.__labelWithoutFrame(d) + " " + this.localise(d && d.label && d.label[frameConcept] || d && d.frame || this.MDL.frame.value);
   }
 
-  __alias(x) {
-    return this.state.alias[x];
-  }  
+  _alias(enc) {
+    return this.state.alias[enc] || enc;
+  }
 }
 
 _VizabiBubbleChart.DEFAULT_UI = {

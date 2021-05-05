@@ -33,8 +33,8 @@ export default class BubbleChart extends BaseComponent {
       placeholder: ".vzb-repeater",
       model: marker,
       options: {
-        COMP_TYPE: VizabiBubbleChart,
-        COMP_CSSNAME: "vzb-bubblechart"
+        ComponentClass: VizabiBubbleChart,
+        componentCssName: "vzb-bubblechart"
       },
       name: "chart",
     },{
@@ -147,8 +147,7 @@ BubbleChart.DEFAULT_CORE = {
     },
     "repeat": {
       modelType: "repeat",
-      row: ["y"],
-      column: ["x"]
+      allowEnc: ["y", "x"]
     }
   }
 };
