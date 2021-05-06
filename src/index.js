@@ -19,12 +19,14 @@ import {VizabiBubbleChart} from "./component.js";
 export default class BubbleChart extends BaseComponent {
 
   constructor(config){
-    
+
     const fullMarker = config.model.markers.bubble;
     config.Vizabi.utils.applyDefaults(fullMarker.config, BubbleChart.DEFAULT_CORE);   
 
     const frameType = config.Vizabi.stores.encodings.modelTypes.frame;
     const { marker, splashMarker } = frameType.splashMarker(fullMarker);
+    
+    config.model.markers.bubble = marker;
 
     config.name = "bubblechart";
 

@@ -1359,7 +1359,7 @@ class _VizabiBubbleChart extends Chart {
 
     if (highlightedFilter.markers.size === 1) {
       const highlightedKey = highlightedFilter.markers.keys().next().value;
-      const d = Object.assign(this.model.dataMap.getByObjOrStr(null, highlightedKey));
+      const d = Object.assign(this.model.dataMap.getByStr(highlightedKey));
       const x = _this.xScale(d[_this._alias("x")]);
       const y = _this.yScale(d[_this._alias("y")]);
       const s = d.r;
@@ -1495,7 +1495,7 @@ class _VizabiBubbleChart extends Chart {
         //console.log("trailstart", trailStart)
         // if this bubble is trail start bubble
         if (trailStart >= this.MDL.frame.value || showhide) {
-          const trailData = this.model.getDataMapByFrameValue(trailStart).getByObjOrStr(null, key);
+          const trailData = this.model.getDataMapByFrameValue(trailStart).getByStr(key);
           
           cache.labelText = labelText = this.__labelWithFrame(trailData);
           cache.labelX0 = trailData[this._alias("x")];
@@ -1533,10 +1533,10 @@ class _VizabiBubbleChart extends Chart {
       const cache = this._labels.cached[key];
 
       const datamap = (trail.show ? this.model.getDataMapByFrameValue(trail.starts[key]) : this.model.dataMap);
-      if (!datamap.hasByObjOrStr(null, key))
+      if (!datamap.hasByStr(key))
         continue;
 
-      const d = datamap.getByObjOrStr(null, key);
+      const d = datamap.getByStr(key);
       
       cache.labelText = this[(trail.show && this.ui.timeInTrails ? "__labelWithFrame" : "__labelWithoutFrame")](d);
       cache.labelX0 = d[this._alias("x")];
