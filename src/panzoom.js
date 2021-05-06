@@ -36,9 +36,8 @@ export default class PanZoom {
 
   dragSubject() {
     const _this = this.context;
-    const self = this;
 
-    return function(d) {
+    return function() {
       /*
        * Do not drag if the Ctrl key, Meta key, or plus cursor mode is
        * not enabled. Also do not drag if zoom-pinching on touchmove
@@ -63,7 +62,7 @@ export default class PanZoom {
     const self = this;
 
     return {
-      start(d, i) {
+      start() {
         /*
          * Do not drag if the Ctrl key, Meta key, or plus cursor mode is
          * not enabled. Also do not drag if zoom-pinching on touchmove
@@ -84,23 +83,7 @@ export default class PanZoom {
         _this.DOM.zoomRect.classed("vzb-invisible", false);
       },
 
-      go(d, i) {
-        /*
-         * Cancel drag if drag lock is false, or when zoom-pinching via
-         * touchmove events.
-         */
-        // if (!self.dragLock || (d3.event.sourceEvent.type === "touchmove" || d3.event.sourceEvent.type === "touchstart") &&
-        //             (d3.event.sourceEvent.touches.length > 1 || d3.event.sourceEvent.targetTouches.length > 1)) {
-        //   self.dragLock = false;
-
-        //   _this.DOM.zoomRect
-        //     .attr("width", 0)
-        //     .attr("height", 0)
-        //     .classed("vzb-invisible", true);
-
-        //   return;
-        // }
-
+      go() {
         const origin = this.origin;
         const mouse = {
           x: d3.event.x,
@@ -114,7 +97,7 @@ export default class PanZoom {
           .attr("height", Math.abs(mouse.y - origin.y));
       },
 
-      stop(e) {
+      stop() {
         // if (!self.dragLock) return;
         // self.dragLock = false;
 
@@ -151,9 +134,8 @@ export default class PanZoom {
 
   zoomFilter() {
     const _this = this.context;
-    const self = this;
 
-    return function(d) {
+    return function() {
       const event = d3.event;
 
       if (event.ctrlKey || event.metaKey) return false;
@@ -192,56 +174,11 @@ export default class PanZoom {
           _this.DOM.chartSvg.classed("vzb-zooming", true);
         }
 
-        ////_this.model._data.marker.clearHighlighted();
-        ////_this._setTooltip();
-
       },
       go() {
 
         const sourceEvent = d3.event.sourceEvent;
 
-        //if (sourceEvent != null && (sourceEvent.ctrlKey || sourceEvent.metaKey)) return;
-
-        // Cancel drag lock when zoom-pinching via touchmove events.
-        // if (sourceEvent !== null &&
-        //             (sourceEvent.type === "touchmove" || sourceEvent.type === "touchstart") &&
-        //             (sourceEvent.touches.length > 1 || sourceEvent.targetTouches.length > 1)) {
-        //   self.dragLock = false;
-        // }
-
-        //if (self.dragLock) return;
-
-        //send the event to the page if fully zoomed our or page not scrolled into view
-//
-//                    if(d3.event.scale == 1)
-//
-//                    if(utils.getViewportPosition(_this.element.node()).y < 0 && d3.event.scale > 1) {
-//                        _this.scrollableAncestor.scrollTop += d3.event.sourceEvent.deltaY;
-//                        return;
-//                    }
-        /*
-         * Do not zoom on the chart if the scroll event is a wheel
-         * scroll. Instead, redirect the scroll event to the scrollable
-         * ancestor
-         */
-        // if (sourceEvent != null && (sourceEvent.type === "wheel" || sourceEvent.type === "mousewheel") &&
-        //             !_this.ui.zoomOnScrolling) {
-        //   if (_this.scrollableAncestor) {
-        //     _this.scrollableAncestor.scrollTop += (sourceEvent.deltaY || -sourceEvent.wheelDelta);
-        //   }
-        //   d3.event.scale = null;
-        //             //zoomer.scale(this.savedScale);
-        //   this.quitZoom = true;
-        //   return;
-        // }
-        // this.quitZoom = false;
-
-        //_this.model._data.marker.clearHighlighted();
-        //_this._setTooltip();
-
-        //var transform = d3.zoomTransform(self.zoomSelection.node())
-        //  .translate(, )
-        //.scale(d3.event.transform.k);
         let zoom = d3.event.transform.k;
 
         let pan = [d3.event.transform.x, d3.event.transform.y];//d3.event.translate;
@@ -271,7 +208,6 @@ export default class PanZoom {
           ratioY = 1;
         }
 
-//                if(isNaN(pan[0]) || isNaN(pan[1]) || pan[0] == null || pan[1] == null) pan = zoomer.translate();
         if (isNaN(pan[0]) || isNaN(pan[1]) || pan[0] == null || pan[1] == null) pan = [0, 0];
 
         // limit the zooming, so that it never goes below min value of zoom for any of the axes
@@ -636,10 +572,6 @@ export default class PanZoom {
         x1 - x2,
         y1 - y2
       );
-      // zoomer.translate([
-      //     zoomer.translate()[0] + x1 - x2,
-      //     zoomer.translate()[1] + y1 - y2
-      // ]);
     }
 
     const xRangeBounds = [0, _this.width];
@@ -694,13 +626,10 @@ export default class PanZoom {
     ];
 
     zoomer.dontFeedToState = dontFeedToState;
-    //zoomer.scale(zoom);
     zoomer.ratioY = ratioY || 1; //NaN defaults to 1
     zoomer.ratioX = ratioX || 1; //NaN defaults to 1
-    //zoomer.translate(pan);
     zoomer.duration = duration ? duration : 0;
 
-    //zoomer.event(element);
     this.zoomSelection.call(zoomer.transform, d3.zoomIdentity.translate(pan[0], pan[1]).scale(zoom));
   }
 
@@ -711,7 +640,6 @@ export default class PanZoom {
    * function dblclicked() and what it refers to
    */
   zoomByIncrement(direction, duration) {
-    const _this = this.context;
     const transform = d3.zoomTransform(this.zoomSelection.node());
 
     let ratio = transform.k;
@@ -740,11 +668,7 @@ export default class PanZoom {
     pan[0] += mouse[0] - locus[0];
     pan[1] += mouse[1] - locus[1];
 
-    //save changes to the zoom behavior and run the event
-    //this.zoomer.scale(ratio);
-    //this.zoomer.translate([pan[0], pan[1]]);
     this.zoomer.duration = duration || 0;
-    //this.zoomer.event(_this.element);
     this.zoomSelection.call(this.zoomer.transform, d3.zoomIdentity.translate(pan[0], pan[1]).scale(ratio));
 
   }
@@ -753,10 +677,8 @@ export default class PanZoom {
    * Reset zoom values without triggering a zoom event.
    */
   resetZoomState(element) {
-    //this.zoomer.scaleTo(element, 1);
     this.zoomer.ratioY = 1;
     this.zoomer.ratioX = 1;
-    //this.zoomer.translate([0, 0]);
     (element || this.zoomSelection).property("__zoom", d3.zoomIdentity);
   }
 
@@ -764,18 +686,13 @@ export default class PanZoom {
     const _this = this.context;
     _this.isCanvasPreviouslyExpanded = false;
 
-    //this.zoomer.scale(1);
     this.zoomer.ratioY = 1;
     this.zoomer.ratioX = 1;
-    //this.zoomer.translate([0, 0]);
     this.zoomer.duration = duration || 0;
-    //this.zoomer.event(element || _this.element);
     (element || this.zoomSelection).call(this.zoomer.transform, d3.zoomIdentity);
   }
 
   rerun(element) {
-    const _this = this.context;
-    //this.zoomer.event(element || _this.element);
     (element || this.zoomSelection).call(this.zoomer.scaleBy, 1);
   }
 
@@ -783,4 +700,4 @@ export default class PanZoom {
     this.zoomSelection = element;
   }
 
-};
+}

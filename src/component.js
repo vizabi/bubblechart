@@ -5,8 +5,7 @@ import {
   LegacyUtils as utils,
   axisSmart,
   Labels,
-  DynamicBackground,
-  Exporter as svgexport,
+  DynamicBackground
 } from "VizabiSharedComponents";
 import PanZoom from "./panzoom";
 
@@ -60,7 +59,7 @@ const PROFILE_CONSTANTS = (width, height, options) => ({
   }
 });
 
-const PROFILE_CONSTANTS_FOR_PROJECTOR = (width, height, options) => ({
+const PROFILE_CONSTANTS_FOR_PROJECTOR = (width, height) => ({
   MEDIUM: {
     margin: { top: 20, bottom: 55, left: 50, right: 20 },
     yAxisTitleBottomMargin: 3,
@@ -434,7 +433,7 @@ class _VizabiBubbleChart extends Chart {
                   d3.event.stopPropagation();
                   this._bubblesInteract().click(d, i);
                 })
-                .onLongTap((d, i) => {});
+                .onLongTap(() => {});
             }
           })
           .each(function(d, index) {
@@ -729,10 +728,10 @@ class _VizabiBubbleChart extends Chart {
 
   _drawForecastOverlay() {
     this.DOM.forecastOverlay.classed("vzb-hidden", 
-    !this.ui.showForecast || 
-    !this.ui.showForecastOverlay || 
-    !this.ui.endBeforeForecast || 
-      (this.MDL.frame.value <= this.MDL.frame.parseValue(this.ui.endBeforeForecast))
+      !this.ui.showForecast || 
+      !this.ui.showForecastOverlay || 
+      !this.ui.endBeforeForecast || 
+        (this.MDL.frame.value <= this.MDL.frame.parseValue(this.ui.endBeforeForecast))
     );
   }
 

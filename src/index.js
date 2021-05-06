@@ -6,6 +6,7 @@ import {
   DataWarning,
   LocaleService,
   LayoutService,
+  CapitalVizabiService,
   TreeMenu,
   SteppedSlider,
   Dialogs,
@@ -20,9 +21,9 @@ export default class BubbleChart extends BaseComponent {
   constructor(config){
     
     const fullMarker = config.model.markers.bubble;
-    Vizabi.utils.applyDefaults(fullMarker.config, BubbleChart.DEFAULT_CORE);   
+    config.Vizabi.utils.applyDefaults(fullMarker.config, BubbleChart.DEFAULT_CORE);   
 
-    const frameType = Vizabi.stores.encodings.modelTypes.frame;
+    const frameType = config.Vizabi.stores.encodings.modelTypes.frame;
     const { marker, splashMarker } = frameType.splashMarker(fullMarker);
 
     config.name = "bubblechart";
@@ -89,6 +90,7 @@ export default class BubbleChart extends BaseComponent {
     `;
 
     config.services = {
+      Vizabi: new CapitalVizabiService({Vizabi: config.Vizabi}),
       locale: new LocaleService(config.locale),
       layout: new LayoutService(config.layout)
     };
@@ -152,16 +154,3 @@ BubbleChart.DEFAULT_CORE = {
 };
 
 BubbleChart.versionInfo = { version: __VERSION, build: __BUILD, package: __PACKAGE_JSON_FIELDS, sharedComponents: versionInfo};
-
- 
-const OldBubbleChart = {
-
-  validate(model) {
-
-    if (model.ui.chart.lockNonSelected && (!model.ui.splash || model.state.time.splash === false)) {
-      const time = model.state.time.parse("" + model.ui.chart.lockNonSelected);
-      if (time < model.state.time.start) model.ui.chart.lockNonSelected = model.state.time.formatDate(model.state.time.start);
-      if (time > model.state.time.end) model.ui.chart.lockNonSelected = model.state.time.formatDate(model.state.time.end);
-    }
-  }
-};
