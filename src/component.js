@@ -13,7 +13,7 @@ import {
   runInAction
 } from "mobx";
 
-import {decorate, computed} from "mobx";
+import {decorate, computed, observable, action} from "mobx";
 
 const {ICON_QUESTION} = Icons;
 const COLOR_WHITEISH = "rgb(253, 253, 253)";
@@ -235,6 +235,7 @@ class _VizabiBubbleChart extends Chart {
     this.xAxis = axisSmart("bottom");
     this.yAxis = axisSmart("left");
 
+    this.axisTitleComplimentStrings = {Y: "", X: "", S: "", C: ""};
 
     this.isCanvasPreviouslyExpanded = false;
     this.draggingNow = null;
@@ -354,7 +355,8 @@ class _VizabiBubbleChart extends Chart {
     if (this._updateLayoutProfile()) return; //return if exists with error
     this.addReaction(this._updateScales);
     this.addReaction(this._updateColorScale);
-    this.addReaction(this._updateUIStrings);
+    this.addReaction(this.updateUIStrings);
+    this.addReaction(this.updateTreemenu);
     this.addReaction(this._updateSize);
     this.addReaction(this.updateInfoElements);
     //    this.addReaction(this._resetZoomMinMaxXReaction, this._resetZoomMinMaxX);
@@ -763,16 +765,10 @@ class _VizabiBubbleChart extends Chart {
     this.cScale = this.MDL.color.scale.d3Scale.copy();
   }
   
-  _updateUIStrings() {
+  updateUIStrings() {
     const {
       y, x, size, color
     } = this.MDL;
-
-    const {
-      xTitleEl,
-      yTitleEl,
-      sTitleEl,
-    } = this.DOM;
 
     this.strings = {
       title: {
@@ -799,9 +795,25 @@ class _VizabiBubbleChart extends Chart {
       }
     };
 
+    Promise.all([
+      Utils.getConceptNameCompliment(y),
+      Utils.getConceptNameCompliment(x),
+      Utils.getConceptNameCompliment(size),
+      Utils.getConceptNameCompliment(color)
+    ]).then(action(response => {        
+      [ 
+        this.axisTitleComplimentStrings.Y,
+        this.axisTitleComplimentStrings.X,
+        this.axisTitleComplimentStrings.S,
+        this.axisTitleComplimentStrings.C
+      ] = response;
+    }));
+  }
+
+  updateTreemenu(){
     const treemenu = this.root.findChild({type: "TreeMenu"});
 
-    yTitleEl
+    this.DOM.yTitleEl
       .classed("vzb-disabled", treemenu.state.ownReadiness !== Utils.STATUS.READY)
       .on("click", () => {
         treemenu
@@ -812,7 +824,7 @@ class _VizabiBubbleChart extends Chart {
           .toggle();
       });
 
-    xTitleEl
+    this.DOM.xTitleEl
       .classed("vzb-disabled", treemenu.state.ownReadiness !== Utils.STATUS.READY)
       .on("click", () => {
         treemenu
@@ -821,9 +833,7 @@ class _VizabiBubbleChart extends Chart {
           .alignY("bottom")
           .updateView()
           .toggle();
-      });
-
-    sTitleEl.attr("text-anchor", "end");
+      });    
   }
 
   _updateSize() {
@@ -967,17 +977,19 @@ class _VizabiBubbleChart extends Chart {
     // reduce font size if the caption doesn't fit
     this._updateSTitle();
     sTitleEl
+      .attr("text-anchor", "end")
       .attr("transform", "translate(" + width + "," + 20 + ") rotate(-90)");
 
+    const compl = this.axisTitleComplimentStrings;
     if (layoutProfile !== "SMALL") {
       ySubTitleEl.select("text").attr("dy", infoElHeight * 0.6).text(this.strings.subtitle.Y);
       xSubTitleEl.select("text").attr("dy", -infoElHeight * 0.3).text(this.strings.subtitle.X);
       
-      yTitleEl.select("text").text(this.strings.title_short.Y + " ")
+      yTitleEl.select("text").text(this.strings.title_short.Y + (compl.Y ? " · " + compl.Y : "") + " ")
         .append("tspan")
         .style("font-size", (infoElHeight * 0.7) + "px")
         .text("▼");
-      xTitleEl.select("text").text(this.strings.title_short.X + " ")
+      xTitleEl.select("text").text(this.strings.title_short.X + (compl.X ? " · " + compl.X : "") + " ")
         .append("tspan")
         .style("font-size", (infoElHeight * 0.7) + "px")
         .text("▼");
@@ -985,11 +997,11 @@ class _VizabiBubbleChart extends Chart {
       ySubTitleEl.select("text").text("");
       xSubTitleEl.select("text").text("");
 
-      const yTitleText = yTitleEl.select("text").text(this.strings.title.Y);
-      if (yTitleText.node().getBBox().width > width) yTitleText.text(this.strings.title_short.Y);
+      const yTitleText = yTitleEl.select("text").text(this.strings.title.Y + (compl.Y ? " · " + compl.Y : ""));
+      if (yTitleText.node().getBBox().width > width) yTitleText.text(this.strings.title_short.Y + (compl.Y ? " · " + compl.Y : ""));
     
-      const xTitleText = xTitleEl.select("text").text(this.strings.title.X);
-      if (xTitleText.node().getBBox().width > width - 100) xTitleText.text(this.strings.title_short.X);      
+      const xTitleText = xTitleEl.select("text").text(this.strings.title.X + (compl.X ? " · " + compl.X : ""));
+      if (xTitleText.node().getBBox().width > width - 100) xTitleText.text(this.strings.title_short.X) + (compl.X ? " · " + compl.X : "");      
     }
 
     const isRTL = this.services.locale.isRTL();
@@ -1044,6 +1056,8 @@ class _VizabiBubbleChart extends Chart {
 
   updateInfoElements() {
     this.services.layout.size;
+    this.axisTitleComplimentStrings.X;
+    this.axisTitleComplimentStrings.Y;
 
     const {xInfoEl, yInfoEl, xTitleEl, yTitleEl} = this.DOM;
     const {x, y} = this.MDL;
@@ -1115,6 +1129,7 @@ class _VizabiBubbleChart extends Chart {
       size,
       color
     } = this.MDL;
+    const compl = this.axisTitleComplimentStrings;
     // vertical text about size and color
     if (this.profileConstants.hideSTitle
       && this.root.ui.dialogs.dialogs.sidebar.indexOf("colors") > -1
@@ -1132,8 +1147,10 @@ class _VizabiBubbleChart extends Chart {
       .style("font-size", null)
       .text(
         (sTitleContentON ? this.localise("buttons/size") + ": " + (titleS ? titleS : this.strings.title.S) : "") +
+        (compl.S ? " · " + compl.S : "") +
         (sTitleContentON && cTitleContentON ? ", " : "") +
-        (cTitleContentON ? this.localise("buttons/colors") + ": " + (titleC ? titleC : this.strings.title.C) : "")
+        (cTitleContentON ? this.localise("buttons/colors") + ": " + (titleC ? titleC : this.strings.title.C) : "") +
+        (compl.C ? " · " + compl.C : "")
       );
     const sTitleWidth = sTitleText.node().getBBox().width;
     const remainigHeight = this.height - 30;
@@ -1612,7 +1629,8 @@ _VizabiBubbleChart.DEFAULT_UI = {
 
 //export default BubbleChart;
 export const VizabiBubbleChart = decorate(_VizabiBubbleChart, {
-  "MDL": computed
+  "MDL": computed,
+  "axisTitleComplimentStrings": observable
 });
 
 Chart.add("bubblechart", VizabiBubbleChart);
