@@ -401,13 +401,16 @@ class _VizabiBubbleChart extends Chart {
       .join(
         enter => enter
           .append(d => {
-            if (isTrailBubble(d)) {
-              const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
-              g.appendChild(document.createElementNS("http://www.w3.org/2000/svg", "circle"));
-              g.appendChild(document.createElementNS("http://www.w3.org/2000/svg", "line"));
-              return g;
-            }
-            return document.createElementNS("http://www.w3.org/2000/svg", "circle");
+            const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
+            const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+            const trailLine = document.createElementNS("http://www.w3.org/2000/svg", "line");
+            const diagonalLine = document.createElementNS("http://www.w3.org/2000/svg", "line");
+            trailLine.classList.add("vzb-trail-line");
+            diagonalLine.classList.add("vzb-diagonal-line");
+            g.appendChild(circle);
+            g.appendChild(diagonalLine);
+            if (isTrailBubble(d)) g.appendChild(trailLine);
+            return g;
           })
           .attr("class", "vzb-bc-entity")
           .attr("id", d => `vzb-bc-bubble-${d[Symbol.for("key")]}-${this.id}`)
@@ -441,9 +444,11 @@ class _VizabiBubbleChart extends Chart {
           .each(function(d, index) {
             const dataNext = data[index + 1] || {};
             const isTrail = isTrailBubble(d);
+            const isExtrapolated = d[Symbol.for("extrapolated")];
             const headTrail = isTrail && !dataNext[Symbol.for("trailHeadKey")];
-            const node = isTrail ? this.children[0] : this;
-            //console.log("enter", d, headTrail)
+            const view = d3.select(this);
+            const circle = view.select("circle");
+            const diagonalLine = view.select(".vzb-diagonal-line");
       
             const valueX = d[_this._alias("x")];
             const valueY = d[_this._alias("y")];
@@ -458,23 +463,31 @@ class _VizabiBubbleChart extends Chart {
             const scaledY = _this.yScale(valueY);
             const scaledC = valueC != null ? _this.cScale(valueC) : COLOR_WHITEISH;
       
-            const view = d3.select(node);
             if (!duration || !headTrail) {
-              view
+              circle
                 .attr("r", d.r)
                 .attr("fill", scaledC)
                 .attr("cy", scaledY)
                 .attr("cx", scaledX);
               //.transition(transition)
+
+              if(isExtrapolated)
+                diagonalLine
+                  .attr("x1", scaledX + d.r/Math.sqrt(2))
+                  .attr("y1", scaledY + d.r/Math.sqrt(2))
+                  .attr("x2", scaledX - d.r/Math.sqrt(2))
+                  .attr("y2", scaledY - d.r/Math.sqrt(2));
+              diagonalLine
+                .classed("vzb-hidden", !isExtrapolated);
       
               //trail line
               if (isTrail) {
-                const lineView = d3.select(node.nextSibling);
+                const trailLine = view.select(".vzb-trail-line");
 
                 const scaledX0 = _this.xScale(dataNext[_this._alias("x")]);
                 const scaledY0 = _this.yScale(dataNext[_this._alias("y")]);
                 
-                lineView
+                trailLine
                   .attr("x1", scaledX)
                   .attr("y1", scaledY)
                   .attr("x2", scaledX0)
@@ -501,6 +514,7 @@ class _VizabiBubbleChart extends Chart {
           .each(function(d, index) {
             
             const isTrail = isTrailBubble(d);
+            const isExtrapolated = d[Symbol.for("extrapolated")];
             const dataNext = data[index + 1] || {};
             const dataNext2 = data[index + 2] || {};
             const headTrail = isTrail && !dataNext[Symbol.for("trailHeadKey")];
@@ -522,44 +536,59 @@ class _VizabiBubbleChart extends Chart {
             const scaledC = valueC != null ? _this.cScale(valueC) : COLOR_WHITEISH;
       
             if (!duration || !headTrail) {
-              const node = isTrail ? this.children[0] : this;
               const view = duration && !isTrail ?
-                d3.select(node).transition(transition)
+                d3.select(this).transition(transition)
                 :
-                d3.select(node).interrupt();
-          
-              view
+                d3.select(this).interrupt();
+
+              view.select("circle")
                 .attr("r", d.r)
                 .attr("fill", scaledC)
                 .attr("cy", scaledY)
                 .attr("cx", scaledX);
-
+                
+              const diagonalLine = d3.select(this).select(".vzb-diagonal-line");
+              diagonalLine
+                .classed("vzb-hidden", !isExtrapolated);
+              if(isExtrapolated){
+                if (duration && !isTrail){
+                  diagonalLine.transition(transition)
+                    .attr("x1", scaledX + d.r/Math.sqrt(2))
+                    .attr("y1", scaledY + d.r/Math.sqrt(2))
+                    .attr("x2", scaledX - d.r/Math.sqrt(2))
+                    .attr("y2", scaledY - d.r/Math.sqrt(2));
+                } else {
+                  diagonalLine.interrupt()
+                    .attr("x1", scaledX + d.r/Math.sqrt(2))
+                    .attr("y1", scaledY + d.r/Math.sqrt(2))
+                    .attr("x2", scaledX - d.r/Math.sqrt(2))
+                    .attr("y2", scaledY - d.r/Math.sqrt(2));
+                }
+              }
               
-            
               //trail line
               if (isTrail) {
-                const lineView = d3.select(node.nextSibling);
-
+                const trailLine = d3.select(this).select(".vzb-trail-line");
                 const scaledX0 = _this.xScale(dataNext[_this._alias("x")]);
                 const scaledY0 = _this.yScale(dataNext[_this._alias("y")]);
                 
-                lineView
+                trailLine
                   .attr("x1", scaledX)
                   .attr("y1", scaledY);
                 if (duration && !data[index + 2][Symbol.for("trailHeadKey")]) {
-                  lineView
+                  trailLine
                     .attr("x2", scaledX)
                     .attr("y2", scaledY)
                     .transition(transition)
                     .attr("x2", scaledX0)
                     .attr("y2", scaledY0);
                 } else {
-                  lineView.interrupt()
+                  trailLine.interrupt()
                     .attr("x2", scaledX0)
                     .attr("y2", scaledY0);
                 }
       
-                lineView
+                trailLine
                   .style("stroke", scaledC)
                   .attr("stroke-dasharray", Math.abs(scaledX - scaledX0) + Math.abs(scaledY - scaledY0))
                   .attr("stroke-dashoffset", -d.r);
@@ -573,15 +602,13 @@ class _VizabiBubbleChart extends Chart {
         exit => exit
           .each(function(d) {
             const isTrail = isTrailBubble(d);
-            const node = this;
-            //console.log("exit", d)
             
             const view = duration && !isTrail ?
-              d3.select(node).transition(transition)
+              d3.select(this).transition(transition)
                 .duration(duration*0.9)
                 .style("opacity", 0)
               :
-              d3.select(node).interrupt();
+              d3.select(this).interrupt();
       
             view
               .remove();
@@ -608,7 +635,7 @@ class _VizabiBubbleChart extends Chart {
 
     if (this.bubbles) this.bubbles.each(function(d, index) {
       const isTrail = isTrailBubble(d);
-      const node = isTrail ? this.children[0] : this;
+      const isExtrapolated = d[Symbol.for("extrapolated")];
 
       const valueX = d[_this._alias("x")];
       const valueY = d[_this._alias("y")];
@@ -621,28 +648,49 @@ class _VizabiBubbleChart extends Chart {
       const scaledC = valueC != null ? _this.cScale(valueC) : COLOR_WHITEISH;
 
       const view = duration ? 
-        d3.select(node)
+        d3.select(this)
           .transition()
           .duration(duration)
-        : d3.select(node).interrupt();
-      view
+        : d3.select(this).interrupt();
+
+      view.select("circle")
         .attr("r", d.r)
         .attr("fill", scaledC)
         .attr("cy", scaledY)
         .attr("cx", scaledX);
 
+      const diagonalLine = d3.select(this).select(".vzb-diagonal-line");
+      diagonalLine
+        .classed("vzb-hidden", !isExtrapolated);
+      if(isExtrapolated){
+        if (duration){
+          diagonalLine.transition().duration(duration)
+            .attr("x1", scaledX + d.r/Math.sqrt(2))
+            .attr("y1", scaledY + d.r/Math.sqrt(2))
+            .attr("x2", scaledX - d.r/Math.sqrt(2))
+            .attr("y2", scaledY - d.r/Math.sqrt(2));
+        } else {
+          diagonalLine.interrupt()
+            .attr("x1", scaledX + d.r/Math.sqrt(2))
+            .attr("y1", scaledY + d.r/Math.sqrt(2))
+            .attr("x2", scaledX - d.r/Math.sqrt(2))
+            .attr("y2", scaledY - d.r/Math.sqrt(2));
+        }
+      }
+      
+
       if (isTrail) {
-        const lineView = duration ? 
-          d3.select(node.nextSibling)
+        const trailLine = duration ? 
+          d3.select(this).select(".vzb-trail-line")
             .transition()
             .duration(duration)
-          : d3.select(node.nextSibling).interrupt();
+          : d3.select(this).select(".vzb-trail-line").interrupt();
 
         const dataNext = data[index + 1];
         const scaledX0 = _this.xScale(dataNext[_this._alias("x")]);
         const scaledY0 = _this.yScale(dataNext[_this._alias("y")]);
 
-        lineView
+        trailLine
           .attr("x1", scaledX)
           .attr("y1", scaledY)
           .attr("x2", scaledX0)
