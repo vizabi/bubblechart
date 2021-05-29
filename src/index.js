@@ -124,9 +124,9 @@ BubbleChart.DEFAULT_CORE = {
     "x": { },
     "y": { },
     "order": { modelType: "order",
-      data: { concept: { 
-        ref: "markers.bubble.encoding.size.data.concept"
-      } }
+      data: { 
+        ref: "markers.bubble.encoding.size.data.config"
+      }
     },
     "size": {
       scale: {
