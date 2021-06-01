@@ -395,6 +395,7 @@ class _VizabiBubbleChart extends Chart {
     const duration = this._getDuration();
     const transition = this._getTransition(duration);
     const data = this.__dataProcessed;
+    this.MDL.color.scale.isDiscrete();
 
     this.bubbles = this.DOM.bubbleContainer.selectAll(".vzb-bc-entity")
       .data(this.__dataProcessed, d => d[Symbol.for("key")])
@@ -810,7 +811,7 @@ class _VizabiBubbleChart extends Chart {
   }
 
   _updateColorScale() {
-    this.cScale = this.MDL.color.scale.d3Scale.copy();
+    this.cScale = this.MDL.color.scale.d3Scale;
   }
   
   updateUIStrings() {
