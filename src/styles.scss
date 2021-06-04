@@ -308,8 +308,8 @@
         .vzb-bc-x-axis-groups {
           text {
             fill: $vzb-color-grey;
-            dominant-baseline: ideographic;
             text-transform: uppercase;
+            pointer-events: visible;
           }
 
           line {

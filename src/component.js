@@ -9,6 +9,8 @@ import {
 } from "VizabiSharedComponents";
 import PanZoom from "./panzoom";
 
+import BCDecorations from "./decorations.js";
+
 import {
   runInAction
 } from "mobx";
@@ -102,12 +104,6 @@ class _VizabiBubbleChart extends Chart {
               <svg class="vzb-bc-axis-y"><g></g></svg>
               <line class="vzb-bc-projection-x"></line>
               <line class="vzb-bc-projection-y"></line>
-              <svg class="vzb-bc-bubbles-crop">
-                  <g class="vzb-bc-decorations">
-                      <line class="vzb-bc-line-equal-xy vzb-invisible"></line>
-                      <g class="vzb-bc-x-axis-groups"></g>
-                  </g>    
-              </svg>
           </g>
       </svg>
       <svg class="vzb-bubblechart-svg vzb-bubblechart-svg-main vzb-export">
@@ -137,6 +133,10 @@ class _VizabiBubbleChart extends Chart {
       <svg class="vzb-bubblechart-svg vzb-bubblechart-svg-front vzb-export">
           <g class="vzb-bc-graph">
               <svg class="vzb-bc-bubbles-crop">
+                  <g class="vzb-bc-decorations">
+                      <line class="vzb-bc-line-equal-xy vzb-invisible"></line>
+                      <g class="vzb-bc-x-axis-groups"></g>
+                  </g>   
                   <g class="vzb-bc-lines"></g>
                   <g class="vzb-bc-bubble-crown vzb-hidden">
                       <circle class="vzb-crown-glow"></circle>
@@ -197,15 +197,18 @@ class _VizabiBubbleChart extends Chart {
         zoomSelection: graph.select(".vzb-zoom-selection"),
       })
     );
-    this.DOM.chartSvgFront.select(".vzb-bc-graph").call(graphFront => 
+    this.DOM.chartSvgFront.select(".vzb-bc-graph").call(graphFront => {
       Object.assign(this.DOM, {
         graphFront: graphFront,
         labelsContainer: graphFront.select(".vzb-bc-labels"),
         labelsContainerCrop: graphFront.select(".vzb-bc-labels-crop"),
         linesContainer: graphFront.select(".vzb-bc-lines"),
-        bubbleCrown: graphFront.select(".vzb-bc-bubble-crown")
-      })
-    );
+        bubbleCrown: graphFront.select(".vzb-bc-bubble-crown"),
+        decorationsEl: graphFront.select(".vzb-bc-decorations"),
+      });
+      this.DOM.lineEqualXY = this.DOM.decorationsEl.select(".vzb-bc-line-equal-xy");
+      this.DOM.xAxisGroupsEl = this.DOM.decorationsEl.select(".vzb-bc-x-axis-groups");
+    });
     this.DOM.chartSvgBack.select(".vzb-bc-graph").call(graphBack => {
       Object.assign(this.DOM, {
         yAxisElContainer: graphBack.select(".vzb-bc-axis-y"),
@@ -213,12 +216,9 @@ class _VizabiBubbleChart extends Chart {
         yearEl: graphBack.select(".vzb-bc-year"),
         projectionX: graphBack.select(".vzb-bc-projection-x"),
         projectionY: graphBack.select(".vzb-bc-projection-y"),
-        decorationsEl: graphBack.select(".vzb-bc-decorations"),
       });
       this.DOM.yAxisEl = this.DOM.yAxisElContainer.select("g");
       this.DOM.xAxisEl = this.DOM.xAxisElContainer.select("g");
-      this.DOM.lineEqualXY = this.DOM.decorationsEl.select(".vzb-bc-line-equal-xy");
-      this.DOM.xAxisGroupsEl = this.DOM.decorationsEl.select(".vzb-bc-x-axis-groups");
     });
 
     //set filter
@@ -228,6 +228,7 @@ class _VizabiBubbleChart extends Chart {
     this._year = this.findChild({type: "DynamicBackground"});
     this._labels = this.findChild({type: "Labels"});
     this._panZoom = new PanZoom(this);    
+    this.decorations = new BCDecorations(this);
     this._initInfoElements();
   
     this.scrollableAncestor = utils.findScrollableAncestor(this.element);
@@ -354,7 +355,6 @@ class _VizabiBubbleChart extends Chart {
 
     if (this._updateLayoutProfile()) return; //return if exists with error
     this.addReaction(this._updateScales);
-    this.addReaction(this._updateColorScale);
     this.addReaction(this.updateUIStrings);
     this.addReaction(this.updateTreemenu);
     this.addReaction(this._updateSize);
@@ -372,6 +372,7 @@ class _VizabiBubbleChart extends Chart {
     this.addReaction(this._blinkSuperHighlighted);
     this.addReaction(this._drawForecastOverlay);
     this.addReaction(this._setupCursorMode);
+    this.addReaction(this.updateDecorations);
   }
 
   drawData() {
@@ -1539,6 +1540,13 @@ class _VizabiBubbleChart extends Chart {
       svg.classed("vzb-zoomout", false);
       svg.classed("vzb-panhand", false);
     }
+  }
+
+  updateDecorations(){
+    this.services.layout.size;
+    this.MDL.x.scale.zoomed;
+    this.MDL.y.scale.zoomed;
+    this.decorations.update.bind(this)(this._getDuration());
   }
 
   _updateLabel(d, x, y, duration, showhide, hidden) {
