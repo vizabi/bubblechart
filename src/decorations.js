@@ -44,8 +44,8 @@ export default class BCDecorations{
         calcs.textHeight = text.node().getBBox().height;
         calcs.textWidth = text.node().getBBox().width;
         
-        calcs.boundaryMinX_px = _this.xScale(d.min || d.min === 0? d.min : d3.min(_this.xScale.domain()));
-        calcs.boundaryMaxX_px = _this.xScale(d.max || d.max === 0? d.max : d3.max(_this.xScale.domain()));
+        calcs.boundaryMinX_px = _this.xScale(d.min || d.min === 0? d.min : d3.min(_this.xScale.domain())) || 0;
+        calcs.boundaryMaxX_px = _this.xScale(d.max || d.max === 0? d.max : d3.max(_this.xScale.domain())) || 0;
         
         calcs.centerX_px = (calcs.boundaryMinX_px + calcs.boundaryMaxX_px) / 2;
         calcs.marginX_px = (Math.abs(calcs.boundaryMinX_px - calcs.boundaryMaxX_px) - calcs.textWidth) / 2;
@@ -148,10 +148,10 @@ export default class BCDecorations{
       this.DOM.lineEqualXY
         .transition()
         .duration(duration || 0)
-        .attr("y1", this.yScale(min))
-        .attr("y2", this.yScale(max))
-        .attr("x1", this.xScale(min))
-        .attr("x2", this.xScale(max));
+        .attr("y1", this.yScale(min) || 0)
+        .attr("y2", this.yScale(max) || 0)
+        .attr("x1", this.xScale(min) || 0)
+        .attr("x2", this.xScale(max) || 0);
     }
   }
 }
