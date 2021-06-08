@@ -144,7 +144,7 @@ BubbleChart.DEFAULT_CORE = {
       },
       scale: {
         modelType: "size",
-        allowedTypes: ["linear", "log", "genericLog", "pow", "point"]
+        allowedTypes: ["linear", "log", "genericLog", "pow", "point", "ordinal"]
       }
     },
     "repeat": {
