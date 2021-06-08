@@ -1019,8 +1019,9 @@ class _VizabiBubbleChart extends Chart {
     yAxisEl.call(this.yAxis);
     xAxisEl.call(this.xAxis);
 
-    projectionX.attr("y1", _this.yScale.range()[0] + this.profileConstants.maxRadiusPx / 2);
-    projectionY.attr("x2", _this.xScale.range()[0] - this.profileConstants.maxRadiusPx / 2);
+    const rangeBump = this.profileConstants.maxRadiusPx;
+    projectionX.attr("y1", _this.yScale.range()[0] + rangeBump);
+    projectionY.attr("x2", _this.xScale.range()[0] - rangeBump);
 
 
     // reduce font size if the caption doesn't fit
@@ -1147,7 +1148,7 @@ class _VizabiBubbleChart extends Chart {
   }
 
   _rangeBump(arg, undo) {
-    const bump = this.profileConstants.maxRadiusPx / 2;
+    const bump = this.profileConstants.maxRadiusPx;
     undo = undo ? -1 : 1;
     if (utils.isArray(arg) && arg.length > 1) {
       let z1 = arg[0];
