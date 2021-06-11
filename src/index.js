@@ -4,6 +4,7 @@ import {
   TimeSlider,
   DataNotes,
   DataWarning,
+  SpaceConfig,
   LocaleService,
   LayoutService,
   CapitalVizabiService,
@@ -74,6 +75,12 @@ export default class BubbleChart extends BaseComponent {
       placeholder: ".vzb-buttonlist",
       model: marker,
       name: "buttons"
+    },{
+      type: SpaceConfig,
+      placeholder: ".vzb-spaceconfig",
+      options: {button: ".vzb-spaceconfig-button"},
+      model: marker,
+      name: "space-config"
     }];
 
     config.template = `
@@ -88,6 +95,7 @@ export default class BubbleChart extends BaseComponent {
       </div>
       <div class="vzb-treemenu"></div>
       <div class="vzb-datawarning"></div>
+      <div class="vzb-spaceconfig"></div>
       <div class="vzb-datanotes"></div>
     `;
 
