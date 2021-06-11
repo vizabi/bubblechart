@@ -27,13 +27,15 @@ function isTrailBubble(d){
   return !!d[Symbol.for("trailHeadKey")];
 }
 
-const PROFILE_CONSTANTS = (width, height, options) => ({
+const MAX_RADIUS_EM = 0.05;
+
+const PROFILE_CONSTANTS = (width, height) => ({
   SMALL: {
     margin: { top: 30, bottom: 35, left: 30, right: 10},
     leftMarginRatio: 1,
     padding: 2,
     minRadiusPx: 0.5,
-    maxRadiusEm: options.ui.maxRadiusEm || 0.05,
+    maxRadiusPx: Math.max(0.5, MAX_RADIUS_EM * utils.hypotenuse(width, height)),
     infoElHeight: 16,
     yAxisTitleBottomMargin: 6,
     xAxisTitleBottomMargin: 4
@@ -43,7 +45,7 @@ const PROFILE_CONSTANTS = (width, height, options) => ({
     leftMarginRatio: 1.6,
     padding: 2,
     minRadiusPx: 1,
-    maxRadiusEm: options.ui.maxRadiusEm || 0.05,
+    maxRadiusPx: Math.max(0.5, MAX_RADIUS_EM * utils.hypotenuse(width, height)),
     infoElHeight: 20,
     yAxisTitleBottomMargin: 3,
     xAxisTitleBottomMargin: 4
@@ -53,7 +55,7 @@ const PROFILE_CONSTANTS = (width, height, options) => ({
     leftMarginRatio: 1.8,
     padding: 2,
     minRadiusPx: 1,
-    maxRadiusEm: options.ui.maxRadiusEm || 0.05,
+    maxRadiusPx: Math.max(0.5, MAX_RADIUS_EM * utils.hypotenuse(width, height)),
     infoElHeight: 22,
     yAxisTitleBottomMargin: 3,//marginScaleH(4, 0.01)(height),
     xAxisTitleBottomMargin: marginScaleH(0, 0.01)(height),
@@ -793,11 +795,11 @@ class _VizabiBubbleChart extends Chart {
     this.elementWidth = (this.element.node().clientWidth) || 0;
 
     this.profileConstants = this.services.layout.getProfileConstants(
-      PROFILE_CONSTANTS(this.elementWidth, this.elementHeight, { ui: this.ui }), 
-      PROFILE_CONSTANTS_FOR_PROJECTOR(this.elementWidth, this.elementHeight, { ui: this.ui }));
+      PROFILE_CONSTANTS(this.elementWidth, this.elementHeight), 
+      PROFILE_CONSTANTS_FOR_PROJECTOR(this.elementWidth, this.elementHeight)
+    );
 
     if (!this.elementHeight || !this.elementWidth) return utils.warn("Chart _updateProfile() abort: container is too little or has display:none");
-
   }
 
   _getDuration() {
@@ -915,10 +917,6 @@ class _VizabiBubbleChart extends Chart {
     const _this = this;
 
     const layoutProfile = this.services.layout.profile;
-    this.profileConstants.maxRadiusPx = Math.max(
-      this.profileConstants.minRadiusPx,
-      this.profileConstants.maxRadiusEm * utils.hypotenuse(this.elementWidth, this.elementHeight)
-    );
 
     const margin = this.profileConstants.margin;
     const infoElHeight = this.profileConstants.infoElHeight;
