@@ -248,19 +248,19 @@ class _VizabiBubbleChart extends Chart {
     const _this = this;
     //keyboard listeners
     d3.select("body")
-      .on("keydown", () => {
+      .on("keydown", (event) => {
         if (_this.ui.cursorMode !== "arrow" && _this.ui.cursorMode !== "hand") return;
-        if (d3.event.metaKey || d3.event.ctrlKey) _this.DOM.chartSvgAll.classed("vzb-zoomin", true);
+        if (event.metaKey || event.ctrlKey) _this.DOM.chartSvgAll.classed("vzb-zoomin", true);
       })
-      .on("keyup", () => {
+      .on("keyup", (event) => {
         if (_this.ui.cursorMode !== "arrow" && _this.ui.cursorMode !== "hand") return;
-        if (!d3.event.metaKey && !d3.event.ctrlKey) _this.DOM.chartSvgAll.classed("vzb-zoomin", false);
+        if (!event.metaKey && !event.ctrlKey) _this.DOM.chartSvgAll.classed("vzb-zoomin", false);
       })
       //this is for the case when user would press ctrl and move away from the browser tab or window
       //keyup event would happen somewhere else and won't be captured, so zoomin class would get stuck
-      .on("mouseenter", () => {
+      .on("mouseenter", (event) => {
         if (_this.ui.cursorMode !== "arrow" && _this.ui.cursorMode !== "hand") return;
-        if (!d3.event.metaKey && !d3.event.ctrlKey) _this.DOM.chartSvgAll.classed("vzb-zoomin", false);
+        if (!event.metaKey && !event.ctrlKey) _this.DOM.chartSvgAll.classed("vzb-zoomin", false);
       });
   
     this.root.element.on("custom-resetZoom", () => {
@@ -275,10 +275,10 @@ class _VizabiBubbleChart extends Chart {
       .on("mouseup", () => {
         _this.draggingNow = false;
       })
-      .on("click", () => {
+      .on("click", (event) => {
         const cursor = _this.ui.cursorMode;
-        if (!d3.event.defaultPrevented && cursor !== "arrow" && cursor !== "hand") {
-          _this._panZoom.zoomByIncrement(cursor, 500);
+        if (!event.defaultPrevented && cursor !== "arrow" && cursor !== "hand") {
+          _this._panZoom.zoomByIncrement(event, cursor, 500);
         }
       });
 
@@ -421,25 +421,25 @@ class _VizabiBubbleChart extends Chart {
           .call(selection => {
             if(!utils.isTouchDevice()){
               selection
-                .on("mouseover", (d, i) => {
+                .on("mouseover", (event, d) => {
                   if (this.ui.cursorMode !== "arrow" && this.ui.cursorMode !== "hand") return;
                   if (this._labels.dragging) return;
-                  this._bubblesInteract().mouseover(d, i);
+                  this._bubblesInteract().mouseover(event, d);
                 })
-                .on("mouseout", (d, i) => {
+                .on("mouseout", (event, d) => {
                   if (this.ui.cursorMode !== "arrow" && this.ui.cursorMode !== "hand") return;
                   if (this._labels.dragging) return;
-                  this._bubblesInteract().mouseout(d, i);
+                  this._bubblesInteract().mouseout(event, d);
                 })
-                .on("click", (d, i) => {
+                .on("click", (event, d) => {
                   if (this.ui.cursorMode !== "arrow" && this.ui.cursorMode !== "hand") return;
-                  this._bubblesInteract().click(d, i);
+                  this._bubblesInteract().click(event, d);
                 });
             } else {
               selection
-                .onTap((d, i) => {
-                  d3.event.stopPropagation();
-                  this._bubblesInteract().click(d, i);
+                .onTap((event, d) => {
+                  event.stopPropagation();
+                  this._bubblesInteract().click(event, d);
                 })
                 .onLongTap(() => {});
             }
@@ -1220,20 +1220,20 @@ class _VizabiBubbleChart extends Chart {
     const _this = this;
 
     return {
-      mouseover(d) {
+      mouseover(event, d) {
         _this.hoverBubble = true;
         _this.MDL.highlighted.data.filter.set(d);
         _this._labels.showCloseCross(d, true);
       },
 
-      mouseout(d) {
+      mouseout(event, d) {
         _this.hoverBubble = false;
         _this.MDL.highlighted.data.filter.delete(d);
         //_this._setTooltip();
         _this._labels.showCloseCross(d, false);
       },
 
-      click(d) {
+      click(event, d) {
         if (_this.draggingNow) return;
         // // const isSelected = d.isSelected;
         if (!isTrailBubble(d)) _this.MDL.selected.data.filter.toggle(d);

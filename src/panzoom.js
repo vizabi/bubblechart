@@ -37,22 +37,22 @@ export default class PanZoom {
   dragSubject() {
     const _this = this.context;
 
-    return function() {
+    return function(event) {
       /*
        * Do not drag if the Ctrl key, Meta key, or plus cursor mode is
        * not enabled. Also do not drag if zoom-pinching on touchmove
        * events.
        */
-      if (!(d3.event.sourceEvent.ctrlKey || d3.event.sourceEvent.metaKey ||
+      if (!(event.sourceEvent.ctrlKey || event.sourceEvent.metaKey ||
         _this.ui.cursorMode === "plus") || (_this.ui.cursorMode === "minus") ||
-        (d3.event.sourceEvent.type === "touchmove" || d3.event.sourceEvent.type === "touchstart") &&
-        (d3.event.sourceEvent.touches.length > 1 || d3.event.sourceEvent.targetTouches.length > 1)) {
+        (event.sourceEvent.type === "touchmove" || event.sourceEvent.type === "touchstart") &&
+        (event.sourceEvent.touches.length > 1 || event.sourceEvent.targetTouches.length > 1)) {
         return null;
       }
 
       return {
-        x: d3.mouse(this)[0],
-        y: d3.mouse(this)[1]
+        x: d3.pointer(event)[0],
+        y: d3.pointer(event)[1]
       };
     };
   }
@@ -62,32 +62,32 @@ export default class PanZoom {
     const self = this;
 
     return {
-      start() {
+      start(event) {
         /*
          * Do not drag if the Ctrl key, Meta key, or plus cursor mode is
          * not enabled. Also do not drag if zoom-pinching on touchmove
          * events.
          */
-        //   if(!(d3.event.sourceEvent.ctrlKey || d3.event.sourceEvent.metaKey ||
+        //   if(!(event.sourceEvent.ctrlKey || event.sourceEvent.metaKey ||
         //          _this.ui.cursorMode === "plus") ||
-        //          (d3.event.sourceEvent.type === "touchmove" || d3.event.sourceEvent.type === "touchstart") &&
-        //          (d3.event.sourceEvent.touches.length > 1 || d3.event.sourceEvent.targetTouches.length > 1)) {
+        //          (event.sourceEvent.type === "touchmove" || event.sourceEvent.type === "touchstart") &&
+        //          (event.sourceEvent.touches.length > 1 || event.sourceEvent.targetTouches.length > 1)) {
         //         return;
         //     }
 
         // self.dragLock = true;
         this.origin = {
-          x: d3.mouse(this)[0],
-          y: d3.mouse(this)[1]
+          x: d3.pointer(event)[0],
+          y: d3.pointer(event)[1]
         };
         _this.DOM.zoomRect.classed("vzb-invisible", false);
       },
 
-      go() {
+      go(event) {
         const origin = this.origin;
         const mouse = {
-          x: d3.event.x,
-          y: d3.event.y
+          x: event.x,
+          y: event.y
         };
 
         _this.DOM.zoomRect
@@ -97,7 +97,7 @@ export default class PanZoom {
           .attr("height", Math.abs(mouse.y - origin.y));
       },
 
-      stop() {
+      stop(event) {
         // if (!self.dragLock) return;
         // self.dragLock = false;
 
@@ -107,8 +107,8 @@ export default class PanZoom {
           .classed("vzb-invisible", true);
 
         this.target = {
-          x: d3.mouse(this)[0],
-          y: d3.mouse(this)[1]
+          x: d3.pointer(event)[0],
+          y: d3.pointer(event)[1]
         };
         if (Math.abs(this.origin.x - this.target.x) < 10 || Math.abs(this.origin.y - this.target.y) < 10) return;
 
@@ -116,8 +116,8 @@ export default class PanZoom {
          * Only compensate for dragging when the Ctrl key or Meta key
          * are pressed, or if the cursorMode is not in plus mode.
          */
-        const compensateDragging = d3.event.sourceEvent.ctrlKey ||
-          d3.event.sourceEvent.metaKey ||
+        const compensateDragging = event.sourceEvent.ctrlKey ||
+          event.sourceEvent.metaKey ||
           _this.ui.cursorMode === "plus";
 
         self._zoomOnRectangle(
@@ -135,8 +135,7 @@ export default class PanZoom {
   zoomFilter() {
     const _this = this.context;
 
-    return function() {
-      const event = d3.event;
+    return function(event) {
 
       if (event.ctrlKey || event.metaKey) return false;
 
@@ -149,7 +148,7 @@ export default class PanZoom {
         // if (_this.scrollableAncestor) {
         //   _this.scrollableAncestor.scrollTop -= (event.deltaY || -event.wheelDelta);
         // }
-        // d3.event.scale = null;
+        // event.scale = null;
         //zoomer.scale(this.savedScale);
         return true;
       }
@@ -175,13 +174,13 @@ export default class PanZoom {
         }
 
       },
-      go() {
+      go(event) {
 
-        const sourceEvent = d3.event.sourceEvent;
+        const sourceEvent = event.sourceEvent;
 
-        let zoom = d3.event.transform.k;
+        let zoom = event.transform.k;
 
-        let pan = [d3.event.transform.x, d3.event.transform.y];//d3.event.translate;
+        let pan = [event.transform.x, event.transform.y];//event.translate;
         let ratioY = zoomer.ratioY;
         let ratioX = zoomer.ratioX;
 
@@ -639,13 +638,13 @@ export default class PanZoom {
    * for the original code see https://github.com/mbostock/d3/blob/master/src/behavior/zoom.js
    * function dblclicked() and what it refers to
    */
-  zoomByIncrement(direction, duration) {
+  zoomByIncrement(event, direction, duration) {
     const transform = d3.zoomTransform(this.zoomSelection.node());
 
     let ratio = transform.k;
     const pan = [transform.x, transform.y];
 
-    const mouse = d3.mouse(this.zoomSelection.node());
+    const mouse = d3.pointer(event);
     let k = Math.log(ratio) / Math.LN2;
 
     //change factor direction based on the input. default is no direction supplied

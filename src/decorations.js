@@ -1,3 +1,7 @@
+import {
+  Utils
+} from "VizabiSharedComponents";
+
 export default class BCDecorations{
   constructor(){
   }
@@ -17,7 +21,7 @@ export default class BCDecorations{
     
     this.DOM.xAxisGroupsEl.classed("vzb-invisible", !showxAxisGroups);
     if (showxAxisGroups) {
-      const axisGroupsData = uiSetting.xAxisGroups[this.MDL.x.data.concept];
+      const axisGroupsData = Utils.injectIndexes(uiSetting.xAxisGroups[this.MDL.x.data.concept]);
       let xAxisGroups = this.DOM.xAxisGroupsEl.selectAll(".vzb-bc-x-axis-group").data(axisGroupsData);
       
       xAxisGroups.exit().remove();
@@ -102,8 +106,8 @@ export default class BCDecorations{
           .attr("x", calcs.boundaryMaxX_px);
       });
       
-      xAxisGroups.select("text.vzb-bc-x-axis-group-text").on("mouseenter", function(d, i) {
-        const calcs = xAxisGroups_calcs[i];
+      xAxisGroups.select("text.vzb-bc-x-axis-group-text").on("mouseenter", function(event, d) {
+        const calcs = xAxisGroups_calcs[d.i];
         const parentView = d3.select(this.parentNode);
   
         d3.select(this).attr("font-weight", "bold");

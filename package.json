@@ -1,6 +1,6 @@
 {
   "name": "vizabi-bubblechart",
-  "version": "3.10.0",
+  "version": "3.11.0",
   "description": "Vizabi bubble chart",
   "scripts": {
     "prepublishOnly": "npm run build",
@@ -42,6 +42,10 @@
     "url": "https://github.com/vizabi/vizabi-bubblechart/issues"
   },
   "homepage": "https://github.com/vizabi/vizabi-bubblechart#readme",
+  "peerDependencies": {
+    "mobx": "^5.15.7",
+    "d3": "^6.7.0"
+  },
   "devDependencies": {
     "cross-env": "^5.0.0",
     "css.escape": "^1.5.1",
