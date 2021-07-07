@@ -1,5 +1,5 @@
 {
-  "name": "vizabi-bubblechart",
+  "name": "@vizabi/bubblechart",
   "version": "3.11.0",
   "description": "Vizabi bubble chart",
   "scripts": {
@@ -13,6 +13,9 @@
   "files": [
     "build"
   ],
+  "publishConfig": {
+    "access": "public"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/vizabi/vizabi-bubblechart.git"
@@ -49,7 +52,7 @@
   "devDependencies": {
     "cross-env": "^5.0.0",
     "css.escape": "^1.5.1",
-    "vizabi-shared-components": "../vizabi-shared-components",
+    "vizabi-shared-components": "../shared-components",
     "vizabi-tool-bundler": "1.1.1"
   }
 }
