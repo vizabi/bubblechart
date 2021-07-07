@@ -1,10 +1,10 @@
 {
   "name": "@vizabi/bubblechart",
-  "version": "3.11.0",
+  "version": "3.11.1",
   "description": "Vizabi bubble chart",
   "scripts": {
     "prepublishOnly": "npm run build",
-    "link": "npm link ../@vizabi/shared-components",
+    "link": "npm link ../shared-components",
     "start": "rollup -c",
     "build": "cross-env NODE_ENV=production rollup -c",
     "deploy": "tool-deploy"
@@ -18,7 +18,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/@vizabi/bubblechart.git"
+    "url": "git+https://github.com/vizabi/bubblechart.git"
   },
   "keywords": [],
   "author": {
@@ -42,9 +42,9 @@
   ],
   "license": "CC-BY-4.0",
   "bugs": {
-    "url": "https://github.com/@vizabi/bubblechart/issues"
+    "url": "https://github.com/vizabi/bubblechart/issues"
   },
-  "homepage": "https://github.com/@vizabi/bubblechart#readme",
+  "homepage": "https://github.com/vizabi/bubblechart#readme",
   "peerDependencies": {
     "mobx": "^5.15.7",
     "d3": "^6.7.0"
