@@ -1,7 +1,7 @@
 @import "../node_modules/bourbon/core/_bourbon.scss";
-@import "../node_modules/vizabi-shared-components/src/styles/vizabi-old/_mixins.scss";
-@import "../node_modules/vizabi-shared-components/src/styles/vizabi-old/_common.scss";
-@import "../node_modules/vizabi-shared-components/src/styles/vizabi-old/_chart.scss";
+@import "../node_modules/@vizabi/shared-components/src/styles/vizabi-old/_mixins.scss";
+@import "../node_modules/@vizabi/shared-components/src/styles/vizabi-old/_common.scss";
+@import "../node_modules/@vizabi/shared-components/src/styles/vizabi-old/_chart.scss";
 
 .vzb-tool {
   $vzb-bc-margin: 10px;
