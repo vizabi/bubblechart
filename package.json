@@ -1,6 +1,6 @@
 {
   "name": "@vizabi/bubblechart",
-  "version": "3.11.1",
+  "version": "3.11.2",
   "description": "Vizabi bubble chart",
   "scripts": {
     "prepublishOnly": "npm run build",
@@ -50,9 +50,9 @@
     "d3": "^6.7.0"
   },
   "devDependencies": {
+    "@vizabi/shared-components": "../shared-components",
     "cross-env": "^5.0.0",
     "css.escape": "^1.5.1",
-    "@vizabi/shared-components": "../shared-components",
-    "vizabi-tool-bundler": "1.1.1"
+    "vizabi-tool-bundler": "^1.2.1"
   }
 }
