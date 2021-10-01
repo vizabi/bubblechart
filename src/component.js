@@ -5,7 +5,7 @@ import {
   LegacyUtils as utils,
   axisSmart,
   Labels,
-  DynamicBackground
+  DateTimeBackground
 } from "VizabiSharedComponents";
 import PanZoom from "./panzoom";
 
@@ -94,14 +94,14 @@ class _VizabiBubbleChart extends Chart {
       },
       name: "labels"
     },{
-      type: DynamicBackground,
-      placeholder: ".vzb-bc-year"
+      type: DateTimeBackground,
+      placeholder: ".vzb-bc-date"
     }];
 
     config.template = `
       <svg class="vzb-bubblechart-svg vzb-bubblechart-svg-back vzb-export">
           <g class="vzb-bc-graph">
-              <g class="vzb-bc-year"></g>
+              <g class="vzb-bc-date"></g>
               <svg class="vzb-bc-axis-x"><g></g></svg>
               <svg class="vzb-bc-axis-y"><g></g></svg>
               <line class="vzb-bc-projection-x"></line>
@@ -215,7 +215,7 @@ class _VizabiBubbleChart extends Chart {
       Object.assign(this.DOM, {
         yAxisElContainer: graphBack.select(".vzb-bc-axis-y"),
         xAxisElContainer: graphBack.select(".vzb-bc-axis-x"),
-        yearEl: graphBack.select(".vzb-bc-year"),
+        date: graphBack.select(".vzb-bc-date"),
         projectionX: graphBack.select(".vzb-bc-projection-x"),
         projectionY: graphBack.select(".vzb-bc-projection-y"),
       });
@@ -227,7 +227,7 @@ class _VizabiBubbleChart extends Chart {
     this.DOM.bubbleCrown.selectAll(".vzb-crown-glow")
       .attr("filter", "url(" + location.pathname + "#vzb-glow-filter)");
 
-    this._year = this.findChild({type: "DynamicBackground"});
+    this._date = this.findChild({type: "DateTimeBackground"});
     this._labels = this.findChild({type: "Labels"});
     this._panZoom = new PanZoom(this);    
     this.decorations = new BCDecorations(this);
@@ -385,12 +385,12 @@ class _VizabiBubbleChart extends Chart {
   }
 
   _updateShowYear() {
-    this.DOM.yearEl.classed("vzb-hidden", !this.ui.timeInBackground);
+    this.DOM.date.classed("vzb-hidden", !this.ui.timeInBackground);
   }
 
   _updateYear() {
     const duration = this._getDuration();
-    this._year.setText(this.MDL.frame.value, duration);    
+    this._date.setText(this.MDL.frame.value, duration);    
   }
 
   _createAndDeleteBubbles() {
@@ -940,9 +940,7 @@ class _VizabiBubbleChart extends Chart {
     graphAll
       .attr("transform", "translate(" + (margin.left * this.profileConstants.leftMarginRatio) + "," + margin.top + ")");
 
-    this._year.resizeText(width, height);
-    //this.yearEl.classed("vzb-hidden", !this.ui.timeInBackground);
-    //this.year.resize(width, height);
+    this._date.resizeText(width, height);
     
     eventArea
       .attr("width", width)
