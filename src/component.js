@@ -390,7 +390,7 @@ class _VizabiBubbleChart extends Chart {
 
   _updateYear() {
     const duration = this._getDuration();
-    this._year.setText(this.localise(this.MDL.frame.value), duration);    
+    this._year.setText(this.MDL.frame.value, duration);    
   }
 
   _createAndDeleteBubbles() {
