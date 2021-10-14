@@ -346,7 +346,7 @@ class _VizabiBubbleChart extends Chart {
   }
 
   draw() {
-    this.localise = this.services.locale.auto();
+    this.localise = this.services.locale.auto(this.MDL.frame.interval);
 
     //this.MDL.trail.config.show = false;
     //this.ui.cursorMode = "plus";
