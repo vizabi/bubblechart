@@ -335,7 +335,6 @@
         stroke-width: 1px;
       }
       .vzb-bc-date {
-        @include opacity(.3);
         font-size: $vzb-bc-date-size;
         fill: $vzb-color-grey;
         text-anchor: middle;
