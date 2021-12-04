@@ -1447,7 +1447,7 @@ class _VizabiBubbleChart extends Chart {
       let text = "";
       
       text = isSelected ? 
-        !trailShow || isTailTrail || (!isTrail && !this.hoverBubble) ? "": this.localise(d.label[trailGroupDim])
+        !trailShow || isTailTrail || (!isTrail && !this.hoverBubble) ? "": this.localise(d[trailGroupDim])
         : 
         this.__labelWithoutFrame(d);
       
