@@ -120,7 +120,7 @@ class _VizabiBubbleChart extends Chart {
                   <rect class="vzb-bc-eventarea"></rect>
                   <g class="vzb-bc-trails"></g>
                   <g class="vzb-bc-bubbles"></g>
-                  <rect class="vzb-bc-forecastoverlay vzb-hidden" x="0" y="0" width="100%" height="100%" fill="url(#vzb-bc-pattern-lines)" pointer-events='none'></rect>
+                  <rect class="vzb-bc-forecastoverlay vzb-hidden" x="0" y="0" width="100%" height="100%" fill="url(#vzb-bc-pattern-lines-${config.id})" pointer-events='none'></rect>
               </svg>
 
               <g class="vzb-bc-axis-y-subtitle"><text></text></g>
@@ -152,10 +152,10 @@ class _VizabiBubbleChart extends Chart {
       </svg>
       <svg width="0" height="0">
           <defs>
-              <filter id="vzb-glow-filter" x="-50%" y="-50%" width="200%" height="200%">
+              <filter id="vzb-glow-filter-${config.id}" x="-50%" y="-50%" width="200%" height="200%">
                   <feGaussianBlur in="SourceGraphic" stdDeviation="2"></feGaussianBlur>
               </filter>
-            <pattern id="vzb-bc-pattern-lines" x="0" y="0" patternUnits="userSpaceOnUse" width="50" height="50" viewBox="0 0 10 10"> 
+            <pattern id="vzb-bc-pattern-lines-${config.id}" x="0" y="0" patternUnits="userSpaceOnUse" width="50" height="50" viewBox="0 0 10 10"> 
                 <path d='M-1,1 l2,-2M0,10 l10,-10M9,11 l2,-2' stroke='black' stroke-width='3' opacity='0.08'/>
               </pattern> 
           </defs>
@@ -225,7 +225,7 @@ class _VizabiBubbleChart extends Chart {
 
     //set filter
     this.DOM.bubbleCrown.selectAll(".vzb-crown-glow")
-      .attr("filter", "url(" + location.pathname + "#vzb-glow-filter)");
+      .attr("filter", `url(${location.pathname}#vzb-glow-filter-${this.id})`);
 
     this._date = this.findChild({type: "DateTimeBackground"});
     this._labels = this.findChild({type: "Labels"});
