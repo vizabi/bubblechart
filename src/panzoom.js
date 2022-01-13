@@ -51,8 +51,8 @@ export default class PanZoom {
       }
 
       return {
-        x: d3.pointer(event)[0],
-        y: d3.pointer(event)[1]
+        x: d3.pointer(event, this)[0],
+        y: d3.pointer(event, this)[1]
       };
     };
   }
@@ -77,8 +77,8 @@ export default class PanZoom {
 
         // self.dragLock = true;
         this.origin = {
-          x: d3.pointer(event)[0],
-          y: d3.pointer(event)[1]
+          x: d3.pointer(event, this)[0],
+          y: d3.pointer(event, this)[1]
         };
         _this.DOM.zoomRect.classed("vzb-invisible", false);
       },
@@ -107,8 +107,8 @@ export default class PanZoom {
           .classed("vzb-invisible", true);
 
         this.target = {
-          x: d3.pointer(event)[0],
-          y: d3.pointer(event)[1]
+          x: d3.pointer(event, this)[0],
+          y: d3.pointer(event, this)[1]
         };
         if (Math.abs(this.origin.x - this.target.x) < 10 || Math.abs(this.origin.y - this.target.y) < 10) return;
 
@@ -644,7 +644,7 @@ export default class PanZoom {
     let ratio = transform.k;
     const pan = [transform.x, transform.y];
 
-    const mouse = d3.pointer(event);
+    const mouse = d3.pointer(event, this.zoomSelection.node());
     let k = Math.log(ratio) / Math.LN2;
 
     //change factor direction based on the input. default is no direction supplied
