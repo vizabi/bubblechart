@@ -13,6 +13,7 @@ export default class PanZoom {
     // this.dragLock = false;
 
     this.dragRectangle
+      .filter(event => !event.button)
       .subject(this.dragSubject())
       .on("start", this.drag().start)
       .on("drag", this.drag().go)
