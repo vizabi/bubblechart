@@ -922,10 +922,6 @@ class _VizabiBubbleChart extends Chart {
     const infoElHeight = this.profileConstants.infoElHeight;
     const xAxisTitleBottomMargin = this.profileConstants.xAxisTitleBottomMargin;
 
-    //labels
-    this._labels.setCloseCrossHeight(_this.profileConstants.infoElHeight * 1.2);
-    this._labels.setTooltipFontSize(_this.profileConstants.infoElHeight + "px");
-    
     //stage
     const height = this.height = (this.elementHeight - margin.top - margin.bottom) || 0;
     const width = this.width = (this.elementWidth - margin.left * this.profileConstants.leftMarginRatio - margin.right) || 0;
