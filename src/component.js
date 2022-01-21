@@ -180,7 +180,8 @@ class _VizabiBubbleChart extends Chart {
       zoomRect: this.element.select(".vzb-bc-zoom-rect"),
       eventArea: this.element.select(".vzb-bc-eventarea"),
       forecastOverlay: this.element.select(".vzb-bc-forecastoverlay"),
-      tooltipMobile: this.element.select(".vzb-tooltip-mobile")
+      tooltipMobile: this.element.select(".vzb-tooltip-mobile"),
+      defs: this.element.select("defs")
     };
     this.DOM.chartSvg.select(".vzb-bc-graph").call(graph => 
       Object.assign(this.DOM, {
@@ -364,6 +365,7 @@ class _VizabiBubbleChart extends Chart {
     //    this.addReaction(this._resetZoomMinMaxXReaction, this._resetZoomMinMaxX);
     //    this.addReaction(this._resetZoomMinMaxYReaction, this._resetZoomMinMaxY);
     this.addReaction(this._updateOpacity);
+    this.addReaction(this.updateColorPatterns);
     this.addReaction(this._updateShowYear);
     this.addReaction(this._updateYear);
     this.addReaction(this.drawData);
@@ -384,6 +386,41 @@ class _VizabiBubbleChart extends Chart {
     //this.redrawData();
   }
 
+  updateColorPatterns() {
+    if (this.MDL.color.scale.isPattern) {
+      const colorConcept = this.MDL.color.data.concept;
+      this.DOM.defs.selectAll(".flag")
+        .data(this.MDL.color.data.domainData, d => d[0])
+        .enter()
+        .append("pattern")
+        .attr("id", d => `flag-${d[0]}-${this.id}`)
+        .attr("class", "flag")
+        .attr("width", "100%")
+        .attr("height", "100%")
+        .attr("patternContentUnits", "objectBoundingBox")
+        .html(d => d[1][colorConcept])
+        .each(function() {
+          const svg = d3.select(this).select("svg");
+          if (svg.empty()) return;
+          
+          if (!svg.attr("viewBox"))
+            svg.attr("viewBox", `0 0 ${svg.attr("width")} ${svg.attr("height")}`);
+
+          // xMidYMid: center the image in the circle
+          // slice: scale the image to fill the circle
+          if (!svg.attr("preserveAspectRatio"))
+            svg.attr("preserveAspectRatio", "xMidYMid slice")
+
+          svg.attr("width", 1).attr("height", 1);
+        });
+          // .attr("xlink:href", function(d) {
+          //   return "flags/" + d.CountryCode + ".svg";
+          // });
+    } else {
+      this.DOM.defs.selectAll(".flag").remove();
+    }
+  }
+
   _updateShowYear() {
     this.DOM.date.classed("vzb-hidden", !this.ui.timeInBackground);
   }
@@ -391,6 +428,10 @@ class _VizabiBubbleChart extends Chart {
   _updateYear() {
     const duration = this._getDuration();
     this._date.setText(this.MDL.frame.value, duration);    
+  }
+
+  __getColor(key, valueC) {
+    return valueC != null ? (this.MDL.color.scale.isPattern ? `url(#flag-${key}-${this.id})` : this.cScale(valueC)) : COLOR_WHITEISH;
   }
 
   _createAndDeleteBubbles() {
@@ -464,7 +505,7 @@ class _VizabiBubbleChart extends Chart {
             d.r = utils.areaToRadius(_this.sScale(valueS || 0));
             const scaledX = _this.xScale(valueX);
             const scaledY = _this.yScale(valueY);
-            const scaledC = valueC != null ? _this.cScale(valueC) : COLOR_WHITEISH;
+            const scaledC = _this.__getColor(d[Symbol.for(isTrail ? "trailHeadKey" : "key")], valueC);
       
             if (!duration || !headTrail) {
               circle
@@ -494,10 +535,10 @@ class _VizabiBubbleChart extends Chart {
                   .attr("x1", scaledX)
                   .attr("y1", scaledY)
                   .attr("x2", scaledX0)
-                  .attr("y2", scaledY0)
-                  .style("stroke", scaledC)
+                  .attr("y2", scaledY0)                  
                   .attr("stroke-dasharray", Math.abs(scaledX - scaledX0) + Math.abs(scaledY - scaledY0))
-                  .attr("stroke-dashoffset", -d.r);
+                  .attr("stroke-dashoffset", -d.r)
+                  .style("stroke", _this.MDL.color.scale.isPattern ? null : scaledC);
               }
             }
       
@@ -536,7 +577,7 @@ class _VizabiBubbleChart extends Chart {
             //view.classed("vzb-hidden", d.hidden);
             const scaledX = _this.xScale(valueX);
             const scaledY = _this.yScale(valueY);
-            const scaledC = valueC != null ? _this.cScale(valueC) : COLOR_WHITEISH;
+            const scaledC = _this.__getColor(d[Symbol.for(isTrail ? "trailHeadKey" : "key")], valueC);
       
             if (!duration || !headTrail) {
               const view = duration && !isTrail ?
@@ -592,7 +633,7 @@ class _VizabiBubbleChart extends Chart {
                 }
       
                 trailLine
-                  .style("stroke", scaledC)
+                  .style("stroke", _this.MDL.color.scale.isPattern ? null : scaledC)
                   .attr("stroke-dasharray", Math.abs(scaledX - scaledX0) + Math.abs(scaledY - scaledY0))
                   .attr("stroke-dashoffset", -d.r);
               }
@@ -648,7 +689,7 @@ class _VizabiBubbleChart extends Chart {
       d.r = utils.areaToRadius(_this.sScale(valueS || 0));
       const scaledX = _this.xScale(valueX);
       const scaledY = _this.yScale(valueY);
-      const scaledC = valueC != null ? _this.cScale(valueC) : COLOR_WHITEISH;
+      const scaledC = _this.__getColor(d[Symbol.for(isTrail ? "trailHeadKey" : "key")], valueC);
 
       const view = duration ? 
         d3.select(this)
@@ -698,7 +739,7 @@ class _VizabiBubbleChart extends Chart {
           .attr("y1", scaledY)
           .attr("x2", scaledX0)
           .attr("y2", scaledY0)
-          .style("stroke", scaledC)
+          .style("stroke", _this.MDL.color.scale.isPattern ? null : scaledC)
           .attr("stroke-dasharray", Math.abs(scaledX - scaledX0) + Math.abs(scaledY - scaledY0))
           .attr("stroke-dashoffset", -d.r);
       }
@@ -1419,10 +1460,12 @@ class _VizabiBubbleChart extends Chart {
     if (highlightedFilter.markers.size === 1) {
       const highlightedKey = highlightedFilter.markers.keys().next().value;
       const d = Object.assign(this.model.dataMap.getByStr(highlightedKey));
+      const selectedKey = d[Symbol.for("trailHeadKey")] || d[Symbol.for("key")];
+
       const x = _this.xScale(d[_this._alias("x")]);
       const y = _this.yScale(d[_this._alias("y")]);
       const s = d.r;
-      const c = d.color != null ? this.cScale(d.color) : COLOR_WHITEISH;
+      const c = _this.__getColor(selectedKey, d.color);
       let entityOutOfView = false;
 
       ////const titles = _this._formatSTitleValues(values.size[utils.getKey(d, dataKeys.size)], values.color[utils.getKey(d, dataKeys.color)]);
@@ -1432,7 +1475,6 @@ class _VizabiBubbleChart extends Chart {
       }
 
       //show tooltip
-      const selectedKey = d[Symbol.for("trailHeadKey")] || d[Symbol.for("key")];
       // const trailShow = this.MDL.trail.show;
       // const trailStarts = this.MDL.trail.starts;
       // const trailGroupDim = this.MDL.trail.groupDim;
