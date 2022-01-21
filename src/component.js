@@ -365,7 +365,7 @@ class _VizabiBubbleChart extends Chart {
     //    this.addReaction(this._resetZoomMinMaxXReaction, this._resetZoomMinMaxX);
     //    this.addReaction(this._resetZoomMinMaxYReaction, this._resetZoomMinMaxY);
     this.addReaction(this._updateOpacity);
-    this.addReaction(this._checkPatternOnColor);
+    this.addReaction(this.updateColorPatterns);
     this.addReaction(this._updateShowYear);
     this.addReaction(this._updateYear);
     this.addReaction(this.drawData);
@@ -386,15 +386,8 @@ class _VizabiBubbleChart extends Chart {
     //this.redrawData();
   }
 
-  _checkPatternOnColor() {
-    console.log("_checkPatternOnColor");
-    const colorDataDomain = this.MDL.color.data.domain;
-    this.patternOnColor = (colorDataDomain && colorDataDomain.length && colorDataDomain.some(color => color && color.length && color[0] == "<")) ? true : false;
-    this._createPatterns();
-  }
-
-  _createPatterns() {
-    if (this.patternOnColor) {
+  updateColorPatterns() {
+    if (this.MDL.color.scale.isPattern) {
       const colorConcept = this.MDL.color.data.concept;
       this.DOM.defs.selectAll(".flag")
         .data(this.MDL.color.data.domainData, d => d[0])
@@ -410,13 +403,15 @@ class _VizabiBubbleChart extends Chart {
           const svg = d3.select(this).select("svg");
           if (svg.empty()) return;
           
-          if (!svg.attr("viewBox")) {
+          if (!svg.attr("viewBox"))
             svg.attr("viewBox", `0 0 ${svg.attr("width")} ${svg.attr("height")}`);
-          }
-          svg.attr("width", 1).attr("height", 1)
-            // xMidYMid: center the image in the circle
-            // slice: scale the image to fill the circle
-            .attr("preserveAspectRatio", "xMidYMid slice")
+
+          // xMidYMid: center the image in the circle
+          // slice: scale the image to fill the circle
+          if (!svg.attr("preserveAspectRatio"))
+            svg.attr("preserveAspectRatio", "xMidYMid slice")
+
+          svg.attr("width", 1).attr("height", 1);
         });
           // .attr("xlink:href", function(d) {
           //   return "flags/" + d.CountryCode + ".svg";
@@ -436,7 +431,7 @@ class _VizabiBubbleChart extends Chart {
   }
 
   __getColor(key, valueC) {
-    return valueC != null ? (this.patternOnColor ? `url(#flag-${key}-${this.id})` : this.cScale(valueC)) : COLOR_WHITEISH;
+    return valueC != null ? (this.MDL.color.scale.isPattern ? `url(#flag-${key}-${this.id})` : this.cScale(valueC)) : COLOR_WHITEISH;
   }
 
   _createAndDeleteBubbles() {
@@ -511,7 +506,6 @@ class _VizabiBubbleChart extends Chart {
             const scaledX = _this.xScale(valueX);
             const scaledY = _this.yScale(valueY);
             const scaledC = _this.__getColor(d[Symbol.for(isTrail ? "trailHeadKey" : "key")], valueC);
-            //valueC != null ? _this.cScale(valueC) : COLOR_WHITEISH;
       
             if (!duration || !headTrail) {
               circle
@@ -543,9 +537,8 @@ class _VizabiBubbleChart extends Chart {
                   .attr("x2", scaledX0)
                   .attr("y2", scaledY0)                  
                   .attr("stroke-dasharray", Math.abs(scaledX - scaledX0) + Math.abs(scaledY - scaledY0))
-                  .attr("stroke-dashoffset", -d.r);
-                
-                if (!_this.patternOnColor) trailLine.style("stroke", scaledC);
+                  .attr("stroke-dashoffset", -d.r)
+                  .style("stroke", _this.MDL.color.scale.isPattern ? null : scaledC);
               }
             }
       
@@ -585,7 +578,6 @@ class _VizabiBubbleChart extends Chart {
             const scaledX = _this.xScale(valueX);
             const scaledY = _this.yScale(valueY);
             const scaledC = _this.__getColor(d[Symbol.for(isTrail ? "trailHeadKey" : "key")], valueC);
-            //valueC != null ? _this.cScale(valueC) : COLOR_WHITEISH;
       
             if (!duration || !headTrail) {
               const view = duration && !isTrail ?
@@ -641,7 +633,7 @@ class _VizabiBubbleChart extends Chart {
                 }
       
                 trailLine
-                  .style("stroke", _this.patternOnColor ? null : scaledC)
+                  .style("stroke", _this.MDL.color.scale.isPattern ? null : scaledC)
                   .attr("stroke-dasharray", Math.abs(scaledX - scaledX0) + Math.abs(scaledY - scaledY0))
                   .attr("stroke-dashoffset", -d.r);
               }
@@ -747,7 +739,7 @@ class _VizabiBubbleChart extends Chart {
           .attr("y1", scaledY)
           .attr("x2", scaledX0)
           .attr("y2", scaledY0)
-          .style("stroke", _this.patternOnColor ? null : scaledC)
+          .style("stroke", _this.MDL.color.scale.isPattern ? null : scaledC)
           .attr("stroke-dasharray", Math.abs(scaledX - scaledX0) + Math.abs(scaledY - scaledY0))
           .attr("stroke-dashoffset", -d.r);
       }
