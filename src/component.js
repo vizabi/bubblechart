@@ -407,7 +407,13 @@ class _VizabiBubbleChart extends Chart {
         .attr("patternContentUnits", "objectBoundingBox")
         .html(d => d[1][colorConcept])
         .each(function() {
-          d3.select(this).select("svg").attr("width", 1).attr("height", 1)
+          const svg = d3.select(this).select("svg");
+          if (svg.empty()) return;
+          
+          if (!svg.attr("viewBox")) {
+            svg.attr("viewBox", `0 0 ${svg.attr("width")} ${svg.attr("height")}`);
+          }
+          svg.attr("width", 1).attr("height", 1)
             // xMidYMid: center the image in the circle
             // slice: scale the image to fill the circle
             .attr("preserveAspectRatio", "xMidYMid slice")
