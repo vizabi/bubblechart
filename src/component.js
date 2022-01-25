@@ -370,6 +370,7 @@ class _VizabiBubbleChart extends Chart {
     this.addReaction(this._updateYear);
     this.addReaction(this.drawData);
     this.addReaction(this._zoomToMarkerMaxMin);
+    this.addReaction(this.redrawData);
 
     this.addReaction(this._selectDataPoints);
     this.addReaction(this._highlightDataPoints);
@@ -671,9 +672,9 @@ class _VizabiBubbleChart extends Chart {
 
 
   redrawData(duration) {
-    this.services.layout.size;
-    this.MDL.x.scale.type;
-    this.MDL.y.scale.type;
+    //this.services.layout.size;
+    //this.MDL.x.scale.type;
+    //this.MDL.y.scale.type;
     this.MDL.color.scale.type;
     this.MDL.size.scale.type;
     this.MDL.size.scale.extent;
