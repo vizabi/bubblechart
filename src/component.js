@@ -580,16 +580,20 @@ class _VizabiBubbleChart extends Chart {
             const scaledC = _this.__getColor(d[Symbol.for(isTrail ? "trailHeadKey" : "key")], valueC);
       
             if (!duration || !headTrail) {
-              const view = duration && !isTrail ?
-                d3.select(this).transition(transition)
-                :
-                d3.select(this).interrupt();
-
-              view.select("circle")
-                .attr("r", d.r)
-                .attr("fill", scaledC)
-                .attr("cy", scaledY)
-                .attr("cx", scaledX);
+              const circle = d3.select(this).select("circle");
+              if (duration && !isTrail) {
+                circle.transition(transition)
+                  .attr("r", d.r)
+                  .attr("fill", scaledC)
+                  .attr("cy", scaledY)
+                  .attr("cx", scaledX);
+              } else {
+                circle.interrupt()
+                  .attr("r", d.r)
+                  .attr("fill", scaledC)
+                  .attr("cy", scaledY)
+                  .attr("cx", scaledX);
+              }
                 
               const diagonalLine = d3.select(this).select(".vzb-diagonal-line");
               diagonalLine
@@ -691,17 +695,20 @@ class _VizabiBubbleChart extends Chart {
       const scaledY = _this.yScale(valueY);
       const scaledC = _this.__getColor(d[Symbol.for(isTrail ? "trailHeadKey" : "key")], valueC);
 
-      const view = duration ? 
-        d3.select(this)
-          .transition()
-          .duration(duration)
-        : d3.select(this).interrupt();
-
-      view.select("circle")
-        .attr("r", d.r)
-        .attr("fill", scaledC)
-        .attr("cy", scaledY)
-        .attr("cx", scaledX);
+      const circle = d3.select(this).select("circle");                            
+      if (duration) {
+        circle.transition(transition)
+          .attr("r", d.r)
+          .attr("fill", scaledC)
+          .attr("cy", scaledY)
+          .attr("cx", scaledX);
+      } else {
+        circle.interrupt()
+          .attr("r", d.r)
+          .attr("fill", scaledC)
+          .attr("cy", scaledY)
+          .attr("cx", scaledX);
+      }
 
       const diagonalLine = d3.select(this).select(".vzb-diagonal-line");
       diagonalLine
