@@ -580,8 +580,9 @@ class _VizabiBubbleChart extends Chart {
             const scaledY = _this.yScale(valueY);
             const scaledC = _this.__getColor(d[Symbol.for(isTrail ? "trailHeadKey" : "key")], valueC);
       
+            const group = d3.select(this);
             if (!duration || !headTrail) {
-              const circle = d3.select(this).select("circle");
+              const circle = group.select("circle");
               if (duration && !isTrail) {
                 circle.transition(transition)
                   .attr("r", d.r)
@@ -596,7 +597,7 @@ class _VizabiBubbleChart extends Chart {
                   .attr("cx", scaledX);
               }
                 
-              const diagonalLine = d3.select(this).select(".vzb-diagonal-line");
+              const diagonalLine = group.select(".vzb-diagonal-line");
               diagonalLine
                 .classed("vzb-hidden", !isExtrapolated);
               if(isExtrapolated){
@@ -617,7 +618,7 @@ class _VizabiBubbleChart extends Chart {
               
               //trail line
               if (isTrail) {
-                const trailLine = d3.select(this).select(".vzb-trail-line");
+                const trailLine = group.select(".vzb-trail-line");
                 const scaledX0 = _this.xScale(dataNext[_this._alias("x")]);
                 const scaledY0 = _this.yScale(dataNext[_this._alias("y")]);
                 
@@ -696,7 +697,8 @@ class _VizabiBubbleChart extends Chart {
       const scaledY = _this.yScale(valueY);
       const scaledC = _this.__getColor(d[Symbol.for(isTrail ? "trailHeadKey" : "key")], valueC);
 
-      const circle = d3.select(this).select("circle");                            
+      const group = d3.select(this);
+      const circle = group.select("circle");                            
       if (duration) {
         circle.transition(transition)
           .attr("r", d.r)
@@ -711,7 +713,7 @@ class _VizabiBubbleChart extends Chart {
           .attr("cx", scaledX);
       }
 
-      const diagonalLine = d3.select(this).select(".vzb-diagonal-line");
+      const diagonalLine = group.select(".vzb-diagonal-line");
       diagonalLine
         .classed("vzb-hidden", !isExtrapolated);
       if(isExtrapolated){
@@ -733,10 +735,10 @@ class _VizabiBubbleChart extends Chart {
 
       if (isTrail) {
         const trailLine = duration ? 
-          d3.select(this).select(".vzb-trail-line")
+          group.select(".vzb-trail-line")
             .transition()
             .duration(duration)
-          : d3.select(this).select(".vzb-trail-line").interrupt();
+          : group.select(".vzb-trail-line").interrupt();
 
         const dataNext = data[index + 1];
         const scaledX0 = _this.xScale(dataNext[_this._alias("x")]);
