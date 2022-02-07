@@ -682,9 +682,12 @@ class _VizabiBubbleChart extends Chart {
 
     const _this = this;
     const data = this.__dataProcessed;
+    const transition = this._getTransition(duration);
 
     if (this.bubbles) this.bubbles.each(function(d, index) {
       const isTrail = isTrailBubble(d);
+      const dataNext = data[index + 1] || {};
+      const headTrail = isTrail && !dataNext[Symbol.for("trailHeadKey")];
       const isExtrapolated = d[Symbol.for("extrapolated")];
 
       const valueX = d[_this._alias("x")];
@@ -698,8 +701,15 @@ class _VizabiBubbleChart extends Chart {
       const scaledC = _this.__getColor(d[Symbol.for(isTrail ? "trailHeadKey" : "key")], valueC);
 
       const group = d3.select(this);
+
+      if (duration && headTrail) {
+        group.style("opacity", 0)
+          .transition().delay(duration).duration(0)
+          .style("opacity", d[Symbol.for("opacity")]);
+      }
+
       const circle = group.select("circle");                            
-      if (duration) {
+      if (duration && !headTrail) {
         circle.transition(transition)
           .attr("r", d.r)
           .attr("fill", scaledC)
@@ -717,8 +727,8 @@ class _VizabiBubbleChart extends Chart {
       diagonalLine
         .classed("vzb-hidden", !isExtrapolated);
       if(isExtrapolated){
-        if (duration){
-          diagonalLine.transition().duration(duration)
+        if (duration && !headTrail){
+          diagonalLine.transition(transition)
             .attr("x1", scaledX + d.r/Math.sqrt(2))
             .attr("y1", scaledY + d.r/Math.sqrt(2))
             .attr("x2", scaledX - d.r/Math.sqrt(2))
@@ -734,10 +744,9 @@ class _VizabiBubbleChart extends Chart {
       
 
       if (isTrail) {
-        const trailLine = duration ? 
+        const trailLine = (duration  && !headTrail) ? 
           group.select(".vzb-trail-line")
-            .transition()
-            .duration(duration)
+            .transition(transition)
           : group.select(".vzb-trail-line").interrupt();
 
         const dataNext = data[index + 1];
