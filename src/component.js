@@ -764,7 +764,7 @@ class _VizabiBubbleChart extends Chart {
       }
     });
 
-    _this._updateLabels();
+    runInAction(() => _this._updateLabels(duration));
   }
 
   __getZoomed(type, zoomed, domain) {
@@ -1646,7 +1646,7 @@ class _VizabiBubbleChart extends Chart {
     }
   }
   
-  _updateLabels() {
+  _updateLabels(duration) {
     //console.log("updateLabels");
 
     const selectedFilter = this.MDL.selected.data.filter;
@@ -1673,7 +1673,7 @@ class _VizabiBubbleChart extends Chart {
       cache.valueS0 = d.size;
       cache.initTextBBox = null;
       cache.initFontSize = null;
-      this._labels.updateLabel({ [Symbol.for("key")]: key }, null, null, null, null, null, null, d.size_label);
+      this._labels.updateLabel({ [Symbol.for("key")]: key }, null, null, null, null, null, null, d.size_label, duration);
     }
   }
 
