@@ -245,6 +245,7 @@ class _VizabiBubbleChart extends Chart {
     this.draggingNow = null;
 
     this.hoverBubble = false;
+    this.__lastStep = 0;
 
     const _this = this;
     //keyboard listeners
@@ -440,6 +441,11 @@ class _VizabiBubbleChart extends Chart {
     const duration = this._getDuration();
     const transition = this._getTransition(duration);
     const data = this.__dataProcessed;
+    let trailRedrawDate;
+
+    runInAction(()=>{
+      trailRedrawDate = this.MDL.frame.stepScale.invert(Math.min(this.__lastStep, this.__lastStep = this.MDL.frame.step << 0) - 1);
+    })
 
     this.bubbles = this.DOM.bubbleContainer.selectAll(".vzb-bc-entity")
       .data(this.__dataProcessed, d => d[Symbol.for("key")])
@@ -561,13 +567,11 @@ class _VizabiBubbleChart extends Chart {
             const isTrail = isTrailBubble(d);
             const isExtrapolated = d[Symbol.for("extrapolated")];
             const dataNext = data[index + 1] || {};
-            const dataNext2 = data[index + 2] || {};
             const headTrail = isTrail && !dataNext[Symbol.for("trailHeadKey")];
-            const headTrail2 = isTrail && !dataNext2[Symbol.for("trailHeadKey")];
       
             const valueS = d.size;
             d.r = utils.areaToRadius(_this.sScale(valueS || 0));
-            if (isTrail && !headTrail && !headTrail2) return;
+            if (isTrail && d["frame"] < trailRedrawDate) return;
       
             const valueX = d[_this._alias("x")];
             const valueY = d[_this._alias("y")];
