@@ -245,6 +245,7 @@ class _VizabiBubbleChart extends Chart {
     this.draggingNow = null;
 
     this.hoverBubble = false;
+    this.__lastStep = 0;
 
     const _this = this;
     //keyboard listeners
@@ -370,6 +371,7 @@ class _VizabiBubbleChart extends Chart {
     this.addReaction(this._updateYear);
     this.addReaction(this.drawData);
     this.addReaction(this._zoomToMarkerMaxMin);
+    this.addReaction(this.redrawData);
 
     this.addReaction(this._selectDataPoints);
     this.addReaction(this._highlightDataPoints);
@@ -439,6 +441,11 @@ class _VizabiBubbleChart extends Chart {
     const duration = this._getDuration();
     const transition = this._getTransition(duration);
     const data = this.__dataProcessed;
+    let trailRedrawDate;
+
+    runInAction(()=>{
+      trailRedrawDate = this.MDL.frame.stepScale.invert(Math.min(this.__lastStep, this.__lastStep = this.MDL.frame.step << 0) - 1);
+    })
 
     this.bubbles = this.DOM.bubbleContainer.selectAll(".vzb-bc-entity")
       .data(this.__dataProcessed, d => d[Symbol.for("key")])
@@ -560,13 +567,11 @@ class _VizabiBubbleChart extends Chart {
             const isTrail = isTrailBubble(d);
             const isExtrapolated = d[Symbol.for("extrapolated")];
             const dataNext = data[index + 1] || {};
-            const dataNext2 = data[index + 2] || {};
             const headTrail = isTrail && !dataNext[Symbol.for("trailHeadKey")];
-            const headTrail2 = isTrail && !dataNext2[Symbol.for("trailHeadKey")];
       
             const valueS = d.size;
             d.r = utils.areaToRadius(_this.sScale(valueS || 0));
-            if (isTrail && !headTrail && !headTrail2) return;
+            if (isTrail && d["frame"] < trailRedrawDate) return;
       
             const valueX = d[_this._alias("x")];
             const valueY = d[_this._alias("y")];
@@ -579,19 +584,24 @@ class _VizabiBubbleChart extends Chart {
             const scaledY = _this.yScale(valueY);
             const scaledC = _this.__getColor(d[Symbol.for(isTrail ? "trailHeadKey" : "key")], valueC);
       
+            const group = d3.select(this);
             if (!duration || !headTrail) {
-              const view = duration && !isTrail ?
-                d3.select(this).transition(transition)
-                :
-                d3.select(this).interrupt();
-
-              view.select("circle")
-                .attr("r", d.r)
-                .attr("fill", scaledC)
-                .attr("cy", scaledY)
-                .attr("cx", scaledX);
+              const circle = group.select("circle");
+              if (duration && !isTrail) {
+                circle.transition(transition)
+                  .attr("r", d.r)
+                  .attr("fill", scaledC)
+                  .attr("cy", scaledY)
+                  .attr("cx", scaledX);
+              } else {
+                circle.interrupt()
+                  .attr("r", d.r)
+                  .attr("fill", scaledC)
+                  .attr("cy", scaledY)
+                  .attr("cx", scaledX);
+              }
                 
-              const diagonalLine = d3.select(this).select(".vzb-diagonal-line");
+              const diagonalLine = group.select(".vzb-diagonal-line");
               diagonalLine
                 .classed("vzb-hidden", !isExtrapolated);
               if(isExtrapolated){
@@ -612,7 +622,7 @@ class _VizabiBubbleChart extends Chart {
               
               //trail line
               if (isTrail) {
-                const trailLine = d3.select(this).select(".vzb-trail-line");
+                const trailLine = group.select(".vzb-trail-line");
                 const scaledX0 = _this.xScale(dataNext[_this._alias("x")]);
                 const scaledY0 = _this.yScale(dataNext[_this._alias("y")]);
                 
@@ -667,18 +677,21 @@ class _VizabiBubbleChart extends Chart {
 
 
   redrawData(duration) {
-    this.services.layout.size;
-    this.MDL.x.scale.type;
-    this.MDL.y.scale.type;
+    //this.services.layout.size;
+    //this.MDL.x.scale.type;
+    //this.MDL.y.scale.type;
     this.MDL.color.scale.type;
     this.MDL.size.scale.type;
     this.MDL.size.scale.extent;
 
     const _this = this;
     const data = this.__dataProcessed;
+    const transition = this._getTransition(duration);
 
     if (this.bubbles) this.bubbles.each(function(d, index) {
       const isTrail = isTrailBubble(d);
+      const dataNext = data[index + 1] || {};
+      const headTrail = isTrail && !dataNext[Symbol.for("trailHeadKey")];
       const isExtrapolated = d[Symbol.for("extrapolated")];
 
       const valueX = d[_this._alias("x")];
@@ -691,24 +704,35 @@ class _VizabiBubbleChart extends Chart {
       const scaledY = _this.yScale(valueY);
       const scaledC = _this.__getColor(d[Symbol.for(isTrail ? "trailHeadKey" : "key")], valueC);
 
-      const view = duration ? 
-        d3.select(this)
-          .transition()
-          .duration(duration)
-        : d3.select(this).interrupt();
+      const group = d3.select(this);
 
-      view.select("circle")
-        .attr("r", d.r)
-        .attr("fill", scaledC)
-        .attr("cy", scaledY)
-        .attr("cx", scaledX);
+      if (duration && headTrail) {
+        group.style("opacity", 0)
+          .transition().delay(duration).duration(0)
+          .style("opacity", d[Symbol.for("opacity")]);
+      }
 
-      const diagonalLine = d3.select(this).select(".vzb-diagonal-line");
+      const circle = group.select("circle");                            
+      if (duration && !headTrail) {
+        circle.transition(transition)
+          .attr("r", d.r)
+          .attr("fill", scaledC)
+          .attr("cy", scaledY)
+          .attr("cx", scaledX);
+      } else {
+        circle.interrupt()
+          .attr("r", d.r)
+          .attr("fill", scaledC)
+          .attr("cy", scaledY)
+          .attr("cx", scaledX);
+      }
+
+      const diagonalLine = group.select(".vzb-diagonal-line");
       diagonalLine
         .classed("vzb-hidden", !isExtrapolated);
       if(isExtrapolated){
-        if (duration){
-          diagonalLine.transition().duration(duration)
+        if (duration && !headTrail){
+          diagonalLine.transition(transition)
             .attr("x1", scaledX + d.r/Math.sqrt(2))
             .attr("y1", scaledY + d.r/Math.sqrt(2))
             .attr("x2", scaledX - d.r/Math.sqrt(2))
@@ -724,11 +748,10 @@ class _VizabiBubbleChart extends Chart {
       
 
       if (isTrail) {
-        const trailLine = duration ? 
-          d3.select(this).select(".vzb-trail-line")
-            .transition()
-            .duration(duration)
-          : d3.select(this).select(".vzb-trail-line").interrupt();
+        const trailLine = (duration  && !headTrail) ? 
+          group.select(".vzb-trail-line")
+            .transition(transition)
+          : group.select(".vzb-trail-line").interrupt();
 
         const dataNext = data[index + 1];
         const scaledX0 = _this.xScale(dataNext[_this._alias("x")]);
@@ -745,7 +768,7 @@ class _VizabiBubbleChart extends Chart {
       }
     });
 
-    _this._updateLabels();
+    runInAction(() => _this._updateLabels(duration));
   }
 
   __getZoomed(type, zoomed, domain) {
@@ -1627,7 +1650,7 @@ class _VizabiBubbleChart extends Chart {
     }
   }
   
-  _updateLabels() {
+  _updateLabels(duration) {
     //console.log("updateLabels");
 
     const selectedFilter = this.MDL.selected.data.filter;
@@ -1654,7 +1677,7 @@ class _VizabiBubbleChart extends Chart {
       cache.valueS0 = d.size;
       cache.initTextBBox = null;
       cache.initFontSize = null;
-      this._labels.updateLabel({ [Symbol.for("key")]: key }, null, null, null, null, null, null, d.size_label);
+      this._labels.updateLabel({ [Symbol.for("key")]: key }, null, null, null, null, null, null, d.size_label, duration);
     }
   }
 
