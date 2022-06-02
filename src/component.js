@@ -99,68 +99,69 @@ class _VizabiBubbleChart extends Chart {
     }];
 
     config.template = `
-      <svg class="vzb-bubblechart-svg vzb-bubblechart-svg-back vzb-export">
-          <g class="vzb-bc-graph">
-              <g class="vzb-bc-date"></g>
-              <svg class="vzb-bc-axis-x"><g></g></svg>
-              <svg class="vzb-bc-axis-y"><g></g></svg>
-              <line class="vzb-bc-projection-x"></line>
-              <line class="vzb-bc-projection-y"></line>
-          </g>
-      </svg>
-      <svg class="vzb-bubblechart-svg vzb-bubblechart-svg-main vzb-export">
-          <g class="vzb-bc-graph">
-              <g class="vzb-bc-axis-x-title"><text></text></g>
-              <g class="vzb-bc-axis-x-info vzb-noexport"></g>
+      <svg class="vzb-bubblechart-svg vzb-export">
+          <svg class="vzb-bubblechart-svg-back">
+              <g class="vzb-bc-graph">
+                  <g class="vzb-bc-date"></g>
+                  <svg class="vzb-bc-axis-x"><g></g></svg>
+                  <svg class="vzb-bc-axis-y"><g></g></svg>
+                  <line class="vzb-bc-projection-x"></line>
+                  <line class="vzb-bc-projection-y"></line>
+              </g>
+          </svg>
+          <svg class="vzb-bubblechart-svg-main">
+              <g class="vzb-bc-graph">
+                  <g class="vzb-bc-axis-x-title"><text></text></g>
+                  <g class="vzb-bc-axis-x-info vzb-noexport"></g>
 
-              <g class="vzb-bc-axis-y-title"><text></text></g>
-              <g class="vzb-bc-axis-y-info vzb-noexport"></g>
-              <svg class="vzb-bc-bubbles-crop">
-                  <g class="vzb-zoom-selection"></g>
-                  <rect class="vzb-bc-eventarea"></rect>
-                  <g class="vzb-bc-trails"></g>
-                  <g class="vzb-bc-bubbles"></g>
-                  <rect class="vzb-bc-forecastoverlay vzb-hidden" x="0" y="0" width="100%" height="100%" fill="url(#vzb-bc-pattern-lines-${config.id})" pointer-events='none'></rect>
-              </svg>
+                  <g class="vzb-bc-axis-y-title"><text></text></g>
+                  <g class="vzb-bc-axis-y-info vzb-noexport"></g>
+                  <svg class="vzb-bc-bubbles-crop">
+                      <g class="vzb-zoom-selection"></g>
+                      <rect class="vzb-bc-eventarea"></rect>
+                      <g class="vzb-bc-trails"></g>
+                      <g class="vzb-bc-bubbles"></g>
+                      <rect class="vzb-bc-forecastoverlay vzb-hidden" x="0" y="0" width="100%" height="100%" fill="url(#vzb-bc-pattern-lines-${config.id})" pointer-events='none'></rect>
+                  </svg>
 
-              <g class="vzb-bc-axis-y-subtitle"><text></text></g>
-              <g class="vzb-bc-axis-x-subtitle"><text></text></g>
-              <g class="vzb-bc-axis-s-title"><text></text></g>
-              <g class="vzb-bc-axis-c-title"><text></text></g>
+                  <g class="vzb-bc-axis-y-subtitle"><text></text></g>
+                  <g class="vzb-bc-axis-x-subtitle"><text></text></g>
+                  <g class="vzb-bc-axis-s-title"><text></text></g>
+                  <g class="vzb-bc-axis-c-title"><text></text></g>
 
-              <rect class="vzb-bc-zoom-rect"></rect>
-          </g>
-          <g class="vzb-datawarning-button vzb-noexport"></g>
+                  <rect class="vzb-bc-zoom-rect"></rect>
+              </g>
+              <g class="vzb-datawarning-button vzb-noexport"></g>
+          </svg>
+          <svg class="vzb-bubblechart-svg-front">
+              <g class="vzb-bc-graph">
+                  <svg class="vzb-bc-bubbles-crop">
+                      <g class="vzb-bc-decorations">
+                          <line class="vzb-bc-line-equal-xy vzb-invisible"></line>
+                          <g class="vzb-bc-x-axis-groups"></g>
+                      </g>   
+                      <g class="vzb-bc-lines"></g>
+                      <g class="vzb-bc-bubble-crown vzb-hidden">
+                          <circle class="vzb-crown-glow"></circle>
+                          <circle class="vzb-crown"></circle>
+                      </g>        
+                  </svg>
+                  <svg class="vzb-bc-labels-crop">
+                      <g class="vzb-bc-labels"></g>
+                  </svg>
+              </g>
+          </svg>
+          <svg width="0" height="0">
+              <defs>
+                  <filter class="vzb-noexport" id="vzb-glow-filter-${config.id}" x="-50%" y="-50%" width="200%" height="200%">
+                      <feGaussianBlur in="SourceGraphic" stdDeviation="2"></feGaussianBlur>
+                  </filter>
+                  <pattern class="vzb-noexport" id="vzb-bc-pattern-lines-${config.id}" x="0" y="0" patternUnits="userSpaceOnUse" width="50" height="50" viewBox="0 0 10 10"> 
+                      <path d='M-1,1 l2,-2M0,10 l10,-10M9,11 l2,-2' stroke='black' stroke-width='3' opacity='0.08'/>
+                  </pattern> 
+              </defs>
+          </svg>
       </svg>
-      <svg class="vzb-bubblechart-svg vzb-bubblechart-svg-front vzb-export">
-          <g class="vzb-bc-graph">
-              <svg class="vzb-bc-bubbles-crop">
-                  <g class="vzb-bc-decorations">
-                      <line class="vzb-bc-line-equal-xy vzb-invisible"></line>
-                      <g class="vzb-bc-x-axis-groups"></g>
-                  </g>   
-                  <g class="vzb-bc-lines"></g>
-                  <g class="vzb-bc-bubble-crown vzb-hidden">
-                      <circle class="vzb-crown-glow"></circle>
-                      <circle class="vzb-crown"></circle>
-                  </g>        
-              </svg>
-              <svg class="vzb-bc-labels-crop">
-                  <g class="vzb-bc-labels"></g>
-              </svg>
-          </g>
-      </svg>
-      <svg width="0" height="0">
-          <defs>
-              <filter id="vzb-glow-filter-${config.id}" x="-50%" y="-50%" width="200%" height="200%">
-                  <feGaussianBlur in="SourceGraphic" stdDeviation="2"></feGaussianBlur>
-              </filter>
-            <pattern id="vzb-bc-pattern-lines-${config.id}" x="0" y="0" patternUnits="userSpaceOnUse" width="50" height="50" viewBox="0 0 10 10"> 
-                <path d='M-1,1 l2,-2M0,10 l10,-10M9,11 l2,-2' stroke='black' stroke-width='3' opacity='0.08'/>
-              </pattern> 
-          </defs>
-      </svg>
-      <!-- This could possibly be another component -->
       <div class="vzb-tooltip vzb-hidden vzb-tooltip-mobile"></div>
     `;
 
@@ -1093,10 +1094,12 @@ class _VizabiBubbleChart extends Chart {
       
       yTitleEl.select("text").text(this.strings.title_short.Y + (compl.Y ? " · " + compl.Y : "") + " ")
         .append("tspan")
+        .classed("vzb-noexport", true)
         .style("font-size", (infoElHeight * 0.7) + "px")
         .text("▼");
       xTitleEl.select("text").text(this.strings.title_short.X + (compl.X ? " · " + compl.X : "") + " ")
         .append("tspan")
+        .classed("vzb-noexport", true)
         .style("font-size", (infoElHeight * 0.7) + "px")
         .text("▼");
     } else {
