@@ -53,6 +53,6 @@
     "@vizabi/shared-components": "../shared-components",
     "cross-env": "^5.0.0",
     "css.escape": "^1.5.1",
-    "vizabi-tool-bundler": "^1.2.2"
+    "vizabi-tool-bundler": "^1.2.3"
   }
 }
