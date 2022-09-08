@@ -22,7 +22,7 @@ export default class BubbleChart extends BaseComponent {
 
   constructor(config){
 
-    const markerName = config.options.markerName || "bubble";
+    const markerName = config.options?.markerNames?.bubble || "bubble";
     const fullMarker = config.model.markers[markerName];
     config.Vizabi.utils.applyDefaults(fullMarker.config, BubbleChart.DEFAULT_CORE(markerName));   
 
