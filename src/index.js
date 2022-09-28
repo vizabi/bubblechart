@@ -124,6 +124,8 @@ BubbleChart.DEFAULT_UI = {
   }
 };
 
+BubbleChart.mainComponent = VizabiBubbleChart;
+
 BubbleChart.DEFAULT_CORE = (markerName) => ({
   requiredEncodings: ["x", "y", "size"],
   encoding: {

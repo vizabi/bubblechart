@@ -339,8 +339,8 @@ class _VizabiBubbleChart extends Chart {
       selected: this.model.encoding.selected,
       highlighted: this.model.encoding.highlighted,
       superHighlighted: this.model.encoding.superhighlighted,
-      y: this.model.encoding[this.state.alias.y || "y"],
-      x: this.model.encoding[this.state.alias.x || "x"],
+      y: this.model.encoding[this.state.alias?.y || "y"],
+      x: this.model.encoding[this.state.alias?.x || "x"],
       size: this.model.encoding.size,
       color: this.model.encoding.color,
       label: this.model.encoding.label,
@@ -1700,7 +1700,7 @@ class _VizabiBubbleChart extends Chart {
   }
 
   _alias(enc) {
-    return this.state.alias[enc] || enc;
+    return this.state.alias?.[enc] || enc;
   }
 }
 
