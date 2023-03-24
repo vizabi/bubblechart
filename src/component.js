@@ -73,7 +73,7 @@ const PROFILE_CONSTANTS_FOR_PROJECTOR = (width, height) => ({
   LARGE: {
     margin: { top: 30, bottom: marginScaleH(45, 0.03)(height), left: marginScaleW(35, 0.025)(width), right: 30 },
     yAxisTitleBottomMargin: 3,//marginScaleH(4, 0.01)(height),
-    xAxisTitleBottomMargin: marginScaleH(-10, 0.01)(height),
+    xAxisTitleBottomMargin: marginScaleH(-5, 0.01)(height),
     infoElHeight: 32,
     hideSTitle: true
   }
