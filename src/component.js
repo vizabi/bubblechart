@@ -227,7 +227,7 @@ class _VizabiBubbleChart extends Chart {
 
     //set filter
     this.DOM.bubbleCrown.selectAll(".vzb-crown-glow")
-      .attr("filter", `url(${location.pathname}#vzb-glow-filter-${this.id})`);
+      .attr("filter", `url(#vzb-glow-filter-${this.id})`);
 
     this._date = this.findChild({type: "DateTimeBackground"});
     this._labels = this.findChild({type: "Labels"});
