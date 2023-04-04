@@ -107,6 +107,8 @@ export default class BubbleChart extends BaseComponent {
       <div class="vzb-errormessage"></div>
     `;
 
+    config.locale.Vizabi = config.Vizabi;
+    config.layout.Vizabi = config.Vizabi;
     config.services = {
       Vizabi: new CapitalVizabiService({Vizabi: config.Vizabi}),
       locale: new LocaleService(config.locale),
