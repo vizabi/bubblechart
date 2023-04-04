@@ -413,13 +413,10 @@ class _VizabiBubbleChart extends Chart {
           // xMidYMid: center the image in the circle
           // slice: scale the image to fill the circle
           if (!svg.attr("preserveAspectRatio"))
-            svg.attr("preserveAspectRatio", "xMidYMid slice")
+            svg.attr("preserveAspectRatio", "xMidYMid slice");
 
           svg.attr("width", 1).attr("height", 1);
         });
-          // .attr("xlink:href", function(d) {
-          //   return "flags/" + d.CountryCode + ".svg";
-          // });
     } else {
       this.DOM.defs.selectAll(".flag").remove();
     }
@@ -447,7 +444,7 @@ class _VizabiBubbleChart extends Chart {
 
     runInAction(()=>{
       trailRedrawDate = this.MDL.frame.stepScale.invert(Math.min(this.__lastStep, this.__lastStep = this.MDL.frame.step << 0) - 1);
-    })
+    });
 
     this.bubbles = this.DOM.bubbleContainer.selectAll(".vzb-bc-entity")
       .data(this.__dataProcessed, d => d[Symbol.for("key")])
