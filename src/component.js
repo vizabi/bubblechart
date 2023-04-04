@@ -6,8 +6,9 @@ import {
   axisSmart,
   Labels,
   DateTimeBackground
-} from "VizabiSharedComponents";
+} from "@vizabi/shared-components";
 import PanZoom from "./panzoom";
+import * as d3 from "d3";
 
 import BCDecorations from "./decorations.js";
 

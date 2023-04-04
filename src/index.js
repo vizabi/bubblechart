@@ -15,7 +15,7 @@ import {
   ButtonList,
   Repeater,
   versionInfo
-} from "VizabiSharedComponents";
+} from "@vizabi/shared-components";
 import {VizabiBubbleChart} from "./component.js";
 
 export default class BubbleChart extends BaseComponent {
