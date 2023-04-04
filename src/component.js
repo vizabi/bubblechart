@@ -236,8 +236,6 @@ class _VizabiBubbleChart extends Chart {
     this.decorations = new BCDecorations(this);
     this._initInfoElements();
   
-    this.scrollableAncestor = utils.findScrollableAncestor(this.element);
-
     this.xAxis = axisSmart("bottom");
     this.yAxis = axisSmart("left");
 

@@ -147,11 +147,6 @@ export default class PanZoom {
 
       if ((event.type === "wheel" || event.type === "mousewheel") &&
         _this.ui.zoomOnScrolling) {
-        // if (_this.scrollableAncestor) {
-        //   _this.scrollableAncestor.scrollTop -= (event.deltaY || -event.wheelDelta);
-        // }
-        // event.scale = null;
-        //zoomer.scale(this.savedScale);
         return true;
       }
 
