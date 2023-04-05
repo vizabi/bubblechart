@@ -1713,7 +1713,6 @@ _VizabiBubbleChart.DEFAULT_UI = {
   timeInBackground: true,
   timeInTrails: true,
   lockNonSelected: 0,
-  numberFormatSIPrefix: true,
   panWithArrow: false,
   adaptMinMaxZoom: false,
   cursorMode: "arrow",
