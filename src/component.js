@@ -1368,7 +1368,10 @@ class _VizabiBubbleChart extends Chart {
     this.__someHighlighted = this.__highlightedMarkers.size != 0;
 
     const _selection = selection || this.bubbles;
-    if (_selection) _selection.style("opacity", d => this._getBubbleOpacity(d, this.ui));
+    if(!_selection) return;
+    _selection
+      .style("opacity", d => this._getBubbleOpacity(d, this.ui))
+      .style("pointer-events", d => this._getBubbleOpacity(d, this.ui) === 0 ? "none" : "visible");
   }
 
   _getBubbleOpacity(d) { 
