@@ -431,10 +431,10 @@ class _VizabiBubbleChart extends Chart {
   }
 
   __getColor(key, valueC) {
-    return valueC != null && !isNaN(valueC) ? (this.MDL.color.scale.isPattern ? `url(#flag-${key}-${this.id})` : this.cScale(valueC)) : COLOR_WHITEISH;
+    return valueC != null && !utils.isNaN(valueC) ? (this.MDL.color.scale.isPattern ? `url(#flag-${key}-${this.id})` : this.cScale(valueC)) : COLOR_WHITEISH;
   }
   __getColorForTrail(key, valueC) {
-    return valueC != null && !isNaN(valueC) ? (this.MDL.color.scale.isPattern ? `url(#flag-${key}-${this.id})` : this.cScale(valueC)) : COLOR_BLACKISH;
+    return valueC != null && !utils.isNaN(valueC) ? (this.MDL.color.scale.isPattern ? `url(#flag-${key}-${this.id})` : this.cScale(valueC)) : COLOR_BLACKISH;
   }
 
   _createAndDeleteBubbles() {
