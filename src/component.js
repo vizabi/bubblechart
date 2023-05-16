@@ -20,6 +20,7 @@ import {decorate, computed, observable, action} from "mobx";
 
 const {ICON_QUESTION} = Icons;
 const COLOR_WHITEISH = "rgb(253, 253, 253)";
+const COLOR_BLACKISH = "rgb(51, 51, 51)";
 
 const marginScaleH = (marginMin, ratio = 0) => height => marginMin + height * ratio;
 const marginScaleW = (marginMin, ratio = 0) => width => marginMin + width * ratio;
@@ -432,6 +433,9 @@ class _VizabiBubbleChart extends Chart {
   __getColor(key, valueC) {
     return valueC != null && !isNaN(valueC) ? (this.MDL.color.scale.isPattern ? `url(#flag-${key}-${this.id})` : this.cScale(valueC)) : COLOR_WHITEISH;
   }
+  __getColorForTrail(key, valueC) {
+    return valueC != null && !isNaN(valueC) ? (this.MDL.color.scale.isPattern ? `url(#flag-${key}-${this.id})` : this.cScale(valueC)) : COLOR_BLACKISH;
+  }
 
   _createAndDeleteBubbles() {
     const _this = this;
@@ -534,6 +538,7 @@ class _VizabiBubbleChart extends Chart {
 
                 const scaledX0 = _this.xScale(dataNext[_this._alias("x")]);
                 const scaledY0 = _this.yScale(dataNext[_this._alias("y")]);
+                const scaledCT = _this.__getColorForTrail(dataNext[Symbol.for(isTrail ? "trailHeadKey" : "key")], dataNext.color);
                 
                 trailLine
                   .attr("x1", scaledX)
@@ -542,7 +547,7 @@ class _VizabiBubbleChart extends Chart {
                   .attr("y2", scaledY0)                  
                   .attr("stroke-dasharray", Math.abs(scaledX - scaledX0) + Math.abs(scaledY - scaledY0))
                   .attr("stroke-dashoffset", -d.r)
-                  .style("stroke", _this.MDL.color.scale.isPattern ? null : scaledC);
+                  .style("stroke", _this.MDL.color.scale.isPattern ? null : scaledCT);
               }
             }
       
@@ -622,6 +627,7 @@ class _VizabiBubbleChart extends Chart {
                 const trailLine = group.select(".vzb-trail-line");
                 const scaledX0 = _this.xScale(dataNext[_this._alias("x")]);
                 const scaledY0 = _this.yScale(dataNext[_this._alias("y")]);
+                const scaledCT = _this.__getColorForTrail(dataNext[Symbol.for(isTrail ? "trailHeadKey" : "key")], dataNext.color);
                 
                 trailLine
                   .attr("x1", scaledX)
@@ -640,7 +646,7 @@ class _VizabiBubbleChart extends Chart {
                 }
       
                 trailLine
-                  .style("stroke", _this.MDL.color.scale.isPattern ? null : scaledC)
+                  .style("stroke", _this.MDL.color.scale.isPattern ? null : scaledCT)
                   .attr("stroke-dasharray", Math.abs(scaledX - scaledX0) + Math.abs(scaledY - scaledY0))
                   .attr("stroke-dashoffset", -d.r);
               }
@@ -753,13 +759,14 @@ class _VizabiBubbleChart extends Chart {
         const dataNext = data[index + 1];
         const scaledX0 = _this.xScale(dataNext[_this._alias("x")]);
         const scaledY0 = _this.yScale(dataNext[_this._alias("y")]);
+        const scaledCT = _this.__getColorForTrail(dataNext[Symbol.for(isTrail ? "trailHeadKey" : "key")], dataNext.color);
 
         trailLine
           .attr("x1", scaledX)
           .attr("y1", scaledY)
           .attr("x2", scaledX0)
           .attr("y2", scaledY0)
-          .style("stroke", _this.MDL.color.scale.isPattern ? null : scaledC)
+          .style("stroke", _this.MDL.color.scale.isPattern ? null : scaledCT)
           .attr("stroke-dasharray", Math.abs(scaledX - scaledX0) + Math.abs(scaledY - scaledY0))
           .attr("stroke-dashoffset", -d.r);
       }
