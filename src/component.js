@@ -431,10 +431,13 @@ class _VizabiBubbleChart extends Chart {
   }
 
   __getColor(key, valueC) {
-    return valueC != null && !utils.isNaN(valueC) ? (this.MDL.color.scale.isPattern ? `url(#flag-${key}-${this.id})` : this.cScale(valueC)) : COLOR_WHITEISH;
+    return valueC != null && !utils.isNaN(valueC) 
+      ? (this.MDL.color.scale.isPattern ? `url(#flag-${key}-${this.id})` : this.cScale(valueC)) 
+      : COLOR_WHITEISH;
   }
-  __getColorForTrail(key, valueC) {
-    return valueC != null && !utils.isNaN(valueC) ? (this.MDL.color.scale.isPattern ? `url(#flag-${key}-${this.id})` : this.cScale(valueC)) : COLOR_BLACKISH;
+  __getColorForTrail(valueC) {
+    if(valueC == null || utils.isNaN(valueC) || this.MDL.color.scale.isPattern) return COLOR_BLACKISH; 
+    return this.MDL.color.scale.palette.getColorShade({colorID: valueC}) || COLOR_BLACKISH;
   }
 
   _createAndDeleteBubbles() {
@@ -538,7 +541,7 @@ class _VizabiBubbleChart extends Chart {
 
                 const scaledX0 = _this.xScale(dataNext[_this._alias("x")]);
                 const scaledY0 = _this.yScale(dataNext[_this._alias("y")]);
-                const scaledCT = _this.__getColorForTrail(dataNext[Symbol.for(isTrail ? "trailHeadKey" : "key")], dataNext.color);
+                const scaledCT = _this.__getColorForTrail(dataNext.color);
 
                 const nextR = utils.areaToRadius(_this.sScale(dataNext.size || 0));
                 const length = Math.sqrt( (scaledX - scaledX0)**2 + (scaledY - scaledY0)**2 ) - d.r - nextR;
@@ -549,7 +552,7 @@ class _VizabiBubbleChart extends Chart {
                   .attr("x2", scaledX0)
                   .attr("y2", scaledY0)                  
                   .attr("stroke-dasharray", `0 ${d.r} ${length > 0 ? length : 0} ${nextR}`)
-                  .style("stroke", _this.MDL.color.scale.isPattern ? null : scaledCT);
+                  .style("stroke", scaledCT);
               }
             }
       
@@ -629,7 +632,7 @@ class _VizabiBubbleChart extends Chart {
                 const trailLine = group.select(".vzb-trail-line");
                 const scaledX0 = _this.xScale(dataNext[_this._alias("x")]);
                 const scaledY0 = _this.yScale(dataNext[_this._alias("y")]);
-                const scaledCT = _this.__getColorForTrail(dataNext[Symbol.for(isTrail ? "trailHeadKey" : "key")], dataNext.color);
+                const scaledCT = _this.__getColorForTrail(dataNext.color);
                 
                 trailLine
                   .attr("x1", scaledX)
@@ -651,7 +654,7 @@ class _VizabiBubbleChart extends Chart {
                 const length = Math.sqrt( (scaledX - scaledX0)**2 + (scaledY - scaledY0)**2 ) - d.r - nextR;
 
                 trailLine
-                  .style("stroke", _this.MDL.color.scale.isPattern ? null : scaledCT)
+                  .style("stroke", scaledCT)
                   .attr("stroke-dasharray", `0 ${d.r} ${length > 0 ? length : 0} ${nextR}`);
               }
             }
@@ -763,7 +766,7 @@ class _VizabiBubbleChart extends Chart {
         const dataNext = data[index + 1];
         const scaledX0 = _this.xScale(dataNext[_this._alias("x")]);
         const scaledY0 = _this.yScale(dataNext[_this._alias("y")]);
-        const scaledCT = _this.__getColorForTrail(dataNext[Symbol.for(isTrail ? "trailHeadKey" : "key")], dataNext.color);
+        const scaledCT = _this.__getColorForTrail(dataNext.color);
 
         const nextR = utils.areaToRadius(_this.sScale(dataNext.size || 0));
         const length = Math.sqrt( (scaledX - scaledX0)**2 + (scaledY - scaledY0)**2 ) - d.r - nextR;
@@ -773,7 +776,7 @@ class _VizabiBubbleChart extends Chart {
           .attr("y1", scaledY)
           .attr("x2", scaledX0)
           .attr("y2", scaledY0)
-          .style("stroke", _this.MDL.color.scale.isPattern ? null : scaledCT)
+          .style("stroke", scaledCT)
           .attr("stroke-dasharray", `0 ${d.r} ${length > 0 ? length : 0} ${nextR}`);
       }
     });
