@@ -539,14 +539,16 @@ class _VizabiBubbleChart extends Chart {
                 const scaledX0 = _this.xScale(dataNext[_this._alias("x")]);
                 const scaledY0 = _this.yScale(dataNext[_this._alias("y")]);
                 const scaledCT = _this.__getColorForTrail(dataNext[Symbol.for(isTrail ? "trailHeadKey" : "key")], dataNext.color);
+
+                const nextR = utils.areaToRadius(_this.sScale(dataNext.size || 0));
+                const length = Math.sqrt( (scaledX - scaledX0)**2 + (scaledY - scaledY0)**2 ) - d.r - nextR;
                 
                 trailLine
                   .attr("x1", scaledX)
                   .attr("y1", scaledY)
                   .attr("x2", scaledX0)
                   .attr("y2", scaledY0)                  
-                  .attr("stroke-dasharray", Math.abs(scaledX - scaledX0) + Math.abs(scaledY - scaledY0))
-                  .attr("stroke-dashoffset", -d.r)
+                  .attr("stroke-dasharray", `0 ${d.r} ${length > 0 ? length : 0} ${nextR}`)
                   .style("stroke", _this.MDL.color.scale.isPattern ? null : scaledCT);
               }
             }
@@ -645,10 +647,12 @@ class _VizabiBubbleChart extends Chart {
                     .attr("y2", scaledY0);
                 }
       
+                const nextR = utils.areaToRadius(_this.sScale(dataNext.size || 0));
+                const length = Math.sqrt( (scaledX - scaledX0)**2 + (scaledY - scaledY0)**2 ) - d.r - nextR;
+
                 trailLine
                   .style("stroke", _this.MDL.color.scale.isPattern ? null : scaledCT)
-                  .attr("stroke-dasharray", Math.abs(scaledX - scaledX0) + Math.abs(scaledY - scaledY0))
-                  .attr("stroke-dashoffset", -d.r);
+                  .attr("stroke-dasharray", `0 ${d.r} ${length > 0 ? length : 0} ${nextR}`);
               }
             }
             
@@ -761,14 +765,16 @@ class _VizabiBubbleChart extends Chart {
         const scaledY0 = _this.yScale(dataNext[_this._alias("y")]);
         const scaledCT = _this.__getColorForTrail(dataNext[Symbol.for(isTrail ? "trailHeadKey" : "key")], dataNext.color);
 
+        const nextR = utils.areaToRadius(_this.sScale(dataNext.size || 0));
+        const length = Math.sqrt( (scaledX - scaledX0)**2 + (scaledY - scaledY0)**2 ) - d.r - nextR;
+
         trailLine
           .attr("x1", scaledX)
           .attr("y1", scaledY)
           .attr("x2", scaledX0)
           .attr("y2", scaledY0)
           .style("stroke", _this.MDL.color.scale.isPattern ? null : scaledCT)
-          .attr("stroke-dasharray", Math.abs(scaledX - scaledX0) + Math.abs(scaledY - scaledY0))
-          .attr("stroke-dashoffset", -d.r);
+          .attr("stroke-dasharray", `0 ${d.r} ${length > 0 ? length : 0} ${nextR}`);
       }
     });
 
