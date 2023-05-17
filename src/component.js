@@ -21,6 +21,7 @@ import {decorate, computed, observable, action} from "mobx";
 const {ICON_QUESTION} = Icons;
 const COLOR_WHITEISH = "rgb(253, 253, 253)";
 const COLOR_BLACKISH = "rgb(51, 51, 51)";
+const THICK_LINE_THRESHOLD_FOR_DARKER_COLOR = 3;
 
 const marginScaleH = (marginMin, ratio = 0) => height => marginMin + height * ratio;
 const marginScaleW = (marginMin, ratio = 0) => width => marginMin + width * ratio;
@@ -38,6 +39,8 @@ const PROFILE_CONSTANTS = (width, height) => ({
     padding: 2,
     minRadiusPx: 0.5,
     maxRadiusPx: Math.max(0.5, MAX_RADIUS_EM * utils.hypotenuse(width, height)),
+    minTrailThicknessPx: 1,
+    maxTrailThicknessPx: 4,
     infoElHeight: 16,
     yAxisTitleBottomMargin: 6,
     xAxisTitleBottomMargin: 4
@@ -48,6 +51,8 @@ const PROFILE_CONSTANTS = (width, height) => ({
     padding: 2,
     minRadiusPx: 1,
     maxRadiusPx: Math.max(0.5, MAX_RADIUS_EM * utils.hypotenuse(width, height)),
+    minTrailThicknessPx: 2,
+    maxTrailThicknessPx: 6,
     infoElHeight: 20,
     yAxisTitleBottomMargin: 3,
     xAxisTitleBottomMargin: 4
@@ -58,6 +63,8 @@ const PROFILE_CONSTANTS = (width, height) => ({
     padding: 2,
     minRadiusPx: 1,
     maxRadiusPx: Math.max(0.5, MAX_RADIUS_EM * utils.hypotenuse(width, height)),
+    minTrailThicknessPx: 2,
+    maxTrailThicknessPx: 8,
     infoElHeight: 22,
     yAxisTitleBottomMargin: 3,//marginScaleH(4, 0.01)(height),
     xAxisTitleBottomMargin: marginScaleH(0, 0.01)(height),
@@ -354,6 +361,7 @@ class _VizabiBubbleChart extends Chart {
     //this.MDL.trail.config.show = false;
     //this.ui.cursorMode = "plus";
     this.sScale = this.MDL.size.scale.d3Scale;
+    this.trailSizeScale = this.MDL.size.scale.d3Scale.copy();
 
     this.TIMEDIM = this.MDL.frame.data.concept;
     this.KEYS = this.model.data.space.filter(dim => dim !== this.TIMEDIM);
@@ -435,8 +443,9 @@ class _VizabiBubbleChart extends Chart {
       ? (this.MDL.color.scale.isPattern ? `url(#flag-${key}-${this.id})` : this.cScale(valueC)) 
       : COLOR_WHITEISH;
   }
-  __getColorForTrail(valueC) {
+  __getColorForTrail(valueC, valueS) {
     if(valueC == null || utils.isNaN(valueC) || this.MDL.color.scale.isPattern) return COLOR_BLACKISH; 
+    if(this.trailSizeScale(valueS) > THICK_LINE_THRESHOLD_FOR_DARKER_COLOR) return this.cScale(valueC);
     return this.MDL.color.scale.palette.getColorShade({colorID: valueC}) || COLOR_BLACKISH;
   }
 
@@ -541,7 +550,7 @@ class _VizabiBubbleChart extends Chart {
 
                 const scaledX0 = _this.xScale(dataNext[_this._alias("x")]);
                 const scaledY0 = _this.yScale(dataNext[_this._alias("y")]);
-                const scaledCT = _this.__getColorForTrail(dataNext.color);
+                const scaledCT = _this.__getColorForTrail(dataNext.color, dataNext.size);
 
                 const nextR = utils.areaToRadius(_this.sScale(dataNext.size || 0));
                 const length = Math.sqrt( (scaledX - scaledX0)**2 + (scaledY - scaledY0)**2 ) - d.r - nextR;
@@ -552,6 +561,7 @@ class _VizabiBubbleChart extends Chart {
                   .attr("x2", scaledX0)
                   .attr("y2", scaledY0)                  
                   .attr("stroke-dasharray", `0 ${d.r} ${length > 0 ? length : 0} ${nextR}`)
+                  .style("stroke-width", _this.trailSizeScale(dataNext.size))
                   .style("stroke", scaledCT);
               }
             }
@@ -632,7 +642,7 @@ class _VizabiBubbleChart extends Chart {
                 const trailLine = group.select(".vzb-trail-line");
                 const scaledX0 = _this.xScale(dataNext[_this._alias("x")]);
                 const scaledY0 = _this.yScale(dataNext[_this._alias("y")]);
-                const scaledCT = _this.__getColorForTrail(dataNext.color);
+                const scaledCT = _this.__getColorForTrail(dataNext.color, dataNext.size);
                 
                 trailLine
                   .attr("x1", scaledX)
@@ -655,6 +665,7 @@ class _VizabiBubbleChart extends Chart {
 
                 trailLine
                   .style("stroke", scaledCT)
+                  .style("stroke-width", _this.trailSizeScale(dataNext.size))
                   .attr("stroke-dasharray", `0 ${d.r} ${length > 0 ? length : 0} ${nextR}`);
               }
             }
@@ -766,7 +777,7 @@ class _VizabiBubbleChart extends Chart {
         const dataNext = data[index + 1];
         const scaledX0 = _this.xScale(dataNext[_this._alias("x")]);
         const scaledY0 = _this.yScale(dataNext[_this._alias("y")]);
-        const scaledCT = _this.__getColorForTrail(dataNext.color);
+        const scaledCT = _this.__getColorForTrail(dataNext.color, dataNext.size);
 
         const nextR = utils.areaToRadius(_this.sScale(dataNext.size || 0));
         const length = Math.sqrt( (scaledX - scaledX0)**2 + (scaledY - scaledY0)**2 ) - d.r - nextR;
@@ -777,6 +788,7 @@ class _VizabiBubbleChart extends Chart {
           .attr("x2", scaledX0)
           .attr("y2", scaledY0)
           .style("stroke", scaledCT)
+          .style("stroke-width", _this.trailSizeScale(dataNext.size))
           .attr("stroke-dasharray", `0 ${d.r} ${length > 0 ? length : 0} ${nextR}`);
       }
     });
@@ -1326,7 +1338,9 @@ class _VizabiBubbleChart extends Chart {
 
     const {
       minRadiusPx,
-      maxRadiusPx
+      maxRadiusPx,
+      minTrailThicknessPx,
+      maxTrailThicknessPx,
     } = this.profileConstants;
 
     //transfer min max radius to size dialog via root ui observable (probably a cleaner way is possible)
@@ -1341,6 +1355,7 @@ class _VizabiBubbleChart extends Chart {
       d3.range(minArea, maxArea, (maxArea - minArea)/(this.sScale.domain().length - 1)).concat(maxArea);
 
     this.sScale.range(range);
+    this.trailSizeScale.domain(this.MDL.size.scale.domain).range([minTrailThicknessPx, maxTrailThicknessPx]);
   }
 
   _setTooltip(tooltipText, x, y, s, c, d) {
