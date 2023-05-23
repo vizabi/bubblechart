@@ -146,7 +146,7 @@ class _VizabiBubbleChart extends Chart {
               <g class="vzb-bc-graph">
                   <svg class="vzb-bc-bubbles-crop">
                       <g class="vzb-bc-decorations">
-                          <line class="vzb-bc-line-equal-xy vzb-invisible"></line>
+                          <path class="vzb-bc-line-equal-xy vzb-invisible"></path>
                           <g class="vzb-bc-x-axis-groups"></g>
                       </g>   
                       <g class="vzb-bc-lines"></g>

@@ -146,17 +146,27 @@ export default class BCDecorations{
       && layoutProfile !== "SMALL";
     
     this.DOM.lineEqualXY.classed("vzb-invisible", !showLineEqualXY);
+
     if (showLineEqualXY) {
-      const min = d3.min(this.yScale.domain().concat(this.xScale.domain()));
-      const max = d3.max(this.yScale.domain().concat(this.xScale.domain()));
+      this.MDL.x.scale.type; //watch
+      this.MDL.y.scale.type; //watch
+
+      const domains = this.yScale.domain().concat(this.xScale.domain()),
+        min = d3.min(domains), 
+        max = d3.max(domains), 
+        step = (max-min)/100;
+
+      const sequence = d3.range(min, max, step).concat(max);
+
+      const line = d3.line()
+        .curve(d3.curveBasis)
+        .x(d => this.xScale(d))
+        .y(d => this.yScale(d));
 
       this.DOM.lineEqualXY
         .transition()
         .duration(duration || 0)
-        .attr("y1", this.yScale(min) || 0)
-        .attr("y2", this.yScale(max) || 0)
-        .attr("x1", this.xScale(min) || 0)
-        .attr("x2", this.xScale(max) || 0);
+        .attr("d", line(sequence));
     }
   }
 }
