@@ -16,28 +16,25 @@ class BCAxisTitles extends BaseComponent {
   constructor(config) {
     config.template = `
       <g class="vzb-bc-axis-x-title"><text></text></g>
-      <g class="vzb-bc-axis-x-info vzb-noexport"></g>
       <g class="vzb-bc-axis-y-title"><text></text></g>
-      <g class="vzb-bc-axis-y-info vzb-noexport"></g>
-
-      <g class="vzb-bc-axis-y-subtitle"><text></text></g>
-      <g class="vzb-bc-axis-x-subtitle"><text></text></g>
       <g class="vzb-bc-axis-s-title"><text></text></g>
-      <g class="vzb-bc-axis-c-title"><text></text></g>
+      <g class="vzb-bc-axis-x-subtitle"><text></text></g>
+      <g class="vzb-bc-axis-y-subtitle"><text></text></g>
+      <g class="vzb-bc-axis-x-info vzb-noexport"></g>
+      <g class="vzb-bc-axis-y-info vzb-noexport"></g>
     `;
     super(config);
   }
 
   setup(){
     this.DOM = {
-      ySubTitle: this.element.select(".vzb-bc-axis-y-subtitle"),
-      xSubTitle: this.element.select(".vzb-bc-axis-x-subtitle"),
-      yTitle: this.element.select(".vzb-bc-axis-y-title"),
       xTitle: this.element.select(".vzb-bc-axis-x-title"),
+      yTitle: this.element.select(".vzb-bc-axis-y-title"),
       sTitle: this.element.select(".vzb-bc-axis-s-title"),
-      cTitle: this.element.select(".vzb-bc-axis-c-title"),
-      yInfo: this.element.select(".vzb-bc-axis-y-info"),
-      xInfo: this.element.select(".vzb-bc-axis-x-info")
+      xSubTitle: this.element.select(".vzb-bc-axis-x-subtitle"),
+      ySubTitle: this.element.select(".vzb-bc-axis-y-subtitle"),
+      xInfo: this.element.select(".vzb-bc-axis-x-info"),
+      yInfo: this.element.select(".vzb-bc-axis-y-info")
     };
 
     this.axisTitleComplimentStrings = {Y: "", X: "", S: "", C: ""};
@@ -50,7 +47,7 @@ class BCAxisTitles extends BaseComponent {
 
     this.addReaction(this.updateUIStrings);
     this.addReaction(this.updateTreemenu);
-    this.addReaction(this._updateSize);
+    this.addReaction(this.updateSize);
     this.addReaction(this.updateInfoElements);
   }
 
@@ -225,120 +222,159 @@ class BCAxisTitles extends BaseComponent {
   }
 
 
-  _updateSTitle(titleS, titleC) {
+  _updateSTitle(width = this.parent.width, height = this.parent.height) {
     const { sTitle } = this.DOM;
-    const {
-      size,
-      color
-    } = this.MDL;
+    const { size, color } = this.MDL;
     const compl = this.axisTitleComplimentStrings;
+    
     // vertical text about size and color
-    if (this.parent.profileConstants.hideSTitle
-      && this.root.ui.dialogs.dialogs.sidebar.indexOf("colors") > -1
-      && this.root.ui.dialogs.dialogs.sidebar.indexOf("size") > -1) {
-      sTitle.classed("vzb-invisible", true);
-      return;
-    }
-    if (sTitle.classed("vzb-invisible")) {
-      sTitle.classed("vzb-invisible", false);
-    }
-    const sTitleContentON = !size.data.constant;
-    const cTitleContentON = !color.data.constant;
-    const sTitleText = sTitle.select("text")
-    // reset font size to remove jumpy measurement
-      .style("font-size", null)
-      .text(
-        (sTitleContentON ? this.localise("buttons/size") + ": " + (titleS ? titleS : this.strings.title.S) : "") +
-        (compl.S ? " · " + compl.S : "") +
-        (sTitleContentON && cTitleContentON ? ", " : "") +
-        (cTitleContentON ? this.localise("buttons/colors") + ": " + (titleC ? titleC : this.strings.title.C) : "") +
-        (compl.C ? " · " + compl.C : "")
-      );
+    const invisible = this.parent.profileConstants.hideSTitle
+      && this.root.ui.dialogs.dialogs.sidebar.includes("colors")
+      && this.root.ui.dialogs.dialogs.sidebar.includes("size");
+
+    sTitle.classed("vzb-invisible", invisible);
+    if (invisible) return;
+
+    const sTitleContent = !size.data.constant 
+      ? this.localise("buttons/size") + ": " + this.strings.title.S + (compl.S ? " · " + compl.S : "")
+      : "";
+    const cTitleContent = !color.data.constant 
+      ? this.localise("buttons/colors") + ": " + this.strings.title.C + (compl.C ? " · " + compl.C : "") 
+      : "";
+
+    const sTitleText = sTitle
+      .attr("text-anchor", "end")
+      .attr("transform", "translate(" + width + "," + 20 + ") rotate(-90)")
+      .select("text")
+      .style("font-size", null) // reset font size to remove jumpy measurement
+      .text(sTitleContent + (sTitleContent && cTitleContent ? ", " : "") + cTitleContent);
+
+    // reduce font size if the caption doesn't fit
     const sTitleWidth = sTitleText.node().getBBox().width;
-    const remainigHeight = this.parent.height - 30;
-    const font = parseInt(sTitleText.style("font-size")) * remainigHeight / sTitleWidth;
-    sTitleText.style("font-size", sTitleWidth > remainigHeight ? font + "px" : null);
+    const padding = 30;
+    const font = parseInt(sTitleText.style("font-size")) * (height - padding) / sTitleWidth;
+    sTitleText.style("font-size", sTitleWidth > (height - padding) ? font + "px" : null);
   }
 
 
-  _updateSize() {
-    this.services.layout.size;
+  _updateYTitle(width = this.parent.width, height = this.parent.height) {
+    const { yTitle, ySubTitle } = this.DOM;
 
-    const {
-      sTitle,
-      xTitle,
-      yTitle,
-      xSubTitle,
-      ySubTitle,
-    } = this.DOM;
+    const { 
+      margin, 
+      infoElHeight, 
+      yAxisTitleBottomMargin, 
+    } = this.parent.profileConstants;
 
     const layoutProfile = this.services.layout.profile;
+
+    const compl = this.axisTitleComplimentStrings;
+    const isRTL = this.services.locale.isRTL();
+
+    if (layoutProfile !== "SMALL") {
+      ySubTitle
+        .attr("transform", "translate(" + 0 + "," + 0 + ") rotate(-90)")
+        .select("text")
+        .attr("dy", infoElHeight * 0.6)
+        .style("font-size", (infoElHeight * 0.8) + "px")
+        .text(this.strings.subtitle.Y);
+      
+      const yTitleText = yTitle.select("text")
+        .style("font-size", infoElHeight + "px")
+        .text(this.strings.title_short.Y + (compl.Y ? " · " + compl.Y : ""));
+
+      yTitleText.append("tspan")
+        .classed("vzb-noexport", true)
+        .style("font-size", (infoElHeight * 0.7) + "px")
+        .attr("dx", ( (isRTL ? -1 : 1) * infoElHeight * 0.25) + "px")
+        .text("▼");
+
+      const doesntFit = yTitle.node().getBBox().width > height; 
+      
+      yTitle
+        .attr("text-anchor", doesntFit ? "start" : "middle")
+        .attr("transform", "translate(" + (-margin.left - yAxisTitleBottomMargin)  + "," + (doesntFit ? (isRTL ? 0 : height) : height / 2 ) + ") rotate(-90)");
+
+    } else {
+      ySubTitle.select("text").text("");
+
+      const yTitleText = yTitle
+        .select("text")
+        .text(this.strings.title.Y + (compl.Y ? " · " + compl.Y : ""));
+        
+      const doesntFit = yTitleText.node().getBBox().width > width; 
+      if (doesntFit) yTitleText.text(this.strings.title_short.Y + (compl.Y ? " · " + compl.Y : ""));
+      
+      yTitle
+        .attr("text-anchor", "start")
+        .attr("transform", "translate(" + (isRTL ? width : 10 - margin.left) + ", -" + yAxisTitleBottomMargin + ")");
+    }
+  }
+
+
+  _updateXTitle(width = this.parent.width, height = this.parent.height) {
+    const { xTitle, xSubTitle } = this.DOM;
 
     const { 
       margin, 
       infoElHeight, 
       xAxisTitleBottomMargin, 
-      yAxisTitleBottomMargin, 
+    } = this.parent.profileConstants;
+
+    const layoutProfile = this.services.layout.profile;
+
+    const compl = this.axisTitleComplimentStrings;
+    const isRTL = this.services.locale.isRTL();
+
+    if (layoutProfile !== "SMALL") {
+      xSubTitle
+        .attr("transform", "translate(" + width + "," + height + ")")
+        .select("text")
+        .attr("dy", -infoElHeight * 0.3)
+        .style("font-size", (infoElHeight * 0.8) + "px")
+        .text(this.strings.subtitle.X);
+      
+      const xTitleText = xTitle.select("text")
+        .style("font-size", infoElHeight + "px")
+        .text(this.strings.title_short.X + (compl.X ? " · " + compl.X : ""));
+
+      xTitleText 
+        .append("tspan")
+        .classed("vzb-noexport", true)
+        .style("font-size", (infoElHeight * 0.7) + "px")
+        .attr("dx", ( (isRTL ? -1 : 1) * infoElHeight * 0.25) + "px")
+        .text("▼");
+
+    } else {
+      xSubTitle.select("text").text("");
+
+      xTitle.select("text")        
+        .text(this.strings.title.X + (compl.X ? " · " + compl.X : ""));
+    }
+
+    const doesntFit = xTitle.node().getBBox().width > width - 100;
+    xTitle
+      .attr("text-anchor", doesntFit ? "start" : "middle")
+      .attr("transform", "translate(" + (doesntFit ? (isRTL ? width : 0) : width / 2) + "," + (height + margin.bottom - xAxisTitleBottomMargin) + ")");
+    
+    if (doesntFit && layoutProfile === "SMALL") xTitle.select("text").text(this.strings.title_short.X) + (compl.X ? " · " + compl.X : ""); 
+  }
+
+
+  updateSize() {
+    this.services.layout.size;
+ 
+    const { 
+      margin, 
       leftMarginRatio 
     } = this.parent.profileConstants;
 
-    //stage
     const height = (this.parent.elementHeight - margin.top - margin.bottom) || 0;
     const width = (this.parent.elementWidth - margin.left * leftMarginRatio - margin.right) || 0;
 
-    // reduce font size if the caption doesn't fit
-    this._updateSTitle();
-    sTitle
-      .attr("text-anchor", "end")
-      .attr("transform", "translate(" + width + "," + 20 + ") rotate(-90)");
-
-    const compl = this.axisTitleComplimentStrings;
-    if (layoutProfile !== "SMALL") {
-      ySubTitle.select("text").attr("dy", infoElHeight * 0.6).text(this.strings.subtitle.Y);
-      xSubTitle.select("text").attr("dy", -infoElHeight * 0.3).text(this.strings.subtitle.X);
-      
-      yTitle.select("text").text(this.strings.title_short.Y + (compl.Y ? " · " + compl.Y : "") + " ")
-        .append("tspan")
-        .classed("vzb-noexport", true)
-        .style("font-size", (infoElHeight * 0.7) + "px")
-        .text("▼");
-      xTitle.select("text").text(this.strings.title_short.X + (compl.X ? " · " + compl.X : "") + " ")
-        .append("tspan")
-        .classed("vzb-noexport", true)
-        .style("font-size", (infoElHeight * 0.7) + "px")
-        .text("▼");
-    } else {
-      ySubTitle.select("text").text("");
-      xSubTitle.select("text").text("");
-
-      const yTitleText = yTitle.select("text").text(this.strings.title.Y + (compl.Y ? " · " + compl.Y : ""));
-      if (yTitleText.node().getBBox().width > width) yTitleText.text(this.strings.title_short.Y + (compl.Y ? " · " + compl.Y : ""));
-    
-      const xTitleText = xTitle.select("text").text(this.strings.title.X + (compl.X ? " · " + compl.X : ""));
-      if (xTitleText.node().getBBox().width > width - 100) xTitleText.text(this.strings.title_short.X) + (compl.X ? " · " + compl.X : "");      
-    }
-
-    const isRTL = this.services.locale.isRTL();
-    ySubTitle
-      .style("font-size", (infoElHeight * 0.8) + "px")
-      .attr("transform", "translate(" + 0 + "," + 0 + ") rotate(-90)");
-    xSubTitle
-      .style("font-size", (infoElHeight * 0.8) + "px")
-      .attr("transform", "translate(" + width + "," + height + ")");
-  
-    yTitle
-      .style("font-size", infoElHeight + "px")
-      .attr("transform", layoutProfile !== "SMALL" ?
-        "translate(" + (-margin.left - yAxisTitleBottomMargin)  + "," + (height * 0.5) + ") rotate(-90)"
-        : 
-        "translate(" + (isRTL ? width : 10 - margin.left) + ", -" + yAxisTitleBottomMargin + ")");
-
-    xTitle
-      .style("font-size", infoElHeight + "px")
-      .attr("transform", layoutProfile !== "SMALL" ?
-        "translate(" + (width * 0.5) + "," + (height + margin.bottom - xAxisTitleBottomMargin) + ")"
-        :
-        "translate(" + (isRTL ? width : 0) + "," + (height + margin.bottom - xAxisTitleBottomMargin) + ")");
+    this._updateSTitle(width, height);
+    this._updateYTitle(width, height);
+    this._updateXTitle(width, height);
     
   }
 }
