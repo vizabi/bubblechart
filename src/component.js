@@ -893,17 +893,6 @@ class _VizabiBubbleChart extends Chart {
       .attr("width", width)
       .attr("height", Math.max(0, height));
 
-    //update scales to the new range
-    // // if (this.model.marker.y.scaleType !== "ordinal") {
-    // //   this.yScale.range(this._rangeBump([height, 0]));
-    // // } else {
-    // //   this.yScale.rangePoints([height, 0], _this.profileConstants.padding).range();
-    // // }
-    // // if (this.model.marker.x.scaleType !== "ordinal") {
-    // //   this.xScale.range(this._rangeBump([0, width]));
-    // // } else {
-    // //   this.xScale.rangePoints([0, width], _this.profileConstants.padding).range();
-    // // }
     this.yScale.range(this._rangeBump([height, 0]));
     this.xScale.range(this._rangeBump([0, width]));
 
@@ -980,18 +969,6 @@ class _VizabiBubbleChart extends Chart {
         (this.elementWidth - this.DOM.graph.select(".vzb-bc-axis-x-title").node().getBBox().width - infoElHeight * 3)
     });
 
-    //this.services.layout.setHGrid([this.elementWidth - marginRightAdjusted]);
-    //this.ui.margin.set("left", margin.left * this.profileConstants.leftMarginRatio, false, false);
-
-    // (function(xMin, xMax, yMin, yMax) {
-    //   if ((xMin && xMax && yMin && yMax) === null) return;
-    //   _this._panZoom.zoomer.dontFeedToState = true;
-    //   _this._panZoom.rerun(); // includes redraw data points and trail resize
-    //   _this._panZoom.zoomToMaxMin(xMin, xMax, yMin, yMax, 0, true);
-    // })(_this._zoomedXYMinMax.x.zoomedMin,
-    //   _this._zoomedXYMinMax.x.zoomedMax,
-    //   _this._zoomedXYMinMax.y.zoomedMin,
-    //   _this._zoomedXYMinMax.y.zoomedMax);
   }
 
 
@@ -1255,8 +1232,6 @@ class _VizabiBubbleChart extends Chart {
       const c = _this.__getColor(selectedKey, d.color);
       let entityOutOfView = false;
 
-      ////const titles = _this._formatSTitleValues(values.size[utils.getKey(d, dataKeys.size)], values.color[utils.getKey(d, dataKeys.color)]);
-      ////_this._updateSTitle(titles[0], titles[1]);
       if (x + s < 0 || x - s > this.width || y + s < 0 || y - s > this.height) {
         entityOutOfView = true;
       }
@@ -1304,7 +1279,6 @@ class _VizabiBubbleChart extends Chart {
       this._axisProjections();
       ////this._trails.run(["opacityHandler"]);
       //hide tooltip
-      //this._updateSTitle();
       this._setTooltip();
       this._setBubbleCrown();
       this._labels.highlight(null, false);
