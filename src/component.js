@@ -1,6 +1,5 @@
 import {
   Chart,
-  Icons,
   Utils,
   LegacyUtils as utils,
   axisSmart,
@@ -8,6 +7,7 @@ import {
   DateTimeBackground
 } from "@vizabi/shared-components";
 import PanZoom from "./panzoom";
+import {BCAxisTitles} from "./axistitles";
 import * as d3 from "d3";
 
 import BCDecorations from "./decorations.js";
@@ -16,9 +16,8 @@ import {
   runInAction
 } from "mobx";
 
-import {decorate, computed, observable, action} from "mobx";
+import {decorate, computed, observable} from "mobx";
 
-const {ICON_QUESTION} = Icons;
 const COLOR_WHITEISH = "rgb(253, 253, 253)";
 const COLOR_BLACKISH = "rgb(51, 51, 51)";
 const THICK_LINE_THRESHOLD_FOR_DARKER_COLOR = 3;
@@ -105,6 +104,9 @@ class _VizabiBubbleChart extends Chart {
     },{
       type: DateTimeBackground,
       placeholder: ".vzb-bc-date"
+    },{
+      type: BCAxisTitles,
+      placeholder: ".vzb-bc-axis-titles"
     }];
 
     config.template = `
@@ -120,11 +122,8 @@ class _VizabiBubbleChart extends Chart {
           </svg>
           <svg class="vzb-bubblechart-svg-main">
               <g class="vzb-bc-graph">
-                  <g class="vzb-bc-axis-x-title"><text></text></g>
-                  <g class="vzb-bc-axis-x-info vzb-noexport"></g>
+                  <g class="vzb-bc-axis-titles"></g>
 
-                  <g class="vzb-bc-axis-y-title"><text></text></g>
-                  <g class="vzb-bc-axis-y-info vzb-noexport"></g>
                   <svg class="vzb-bc-bubbles-crop">
                       <g class="vzb-zoom-selection"></g>
                       <rect class="vzb-bc-eventarea"></rect>
@@ -132,11 +131,6 @@ class _VizabiBubbleChart extends Chart {
                       <g class="vzb-bc-bubbles"></g>
                       <rect class="vzb-bc-forecastoverlay vzb-hidden" x="0" y="0" width="100%" height="100%" fill="url(#vzb-bc-pattern-lines-${config.id})" pointer-events='none'></rect>
                   </svg>
-
-                  <g class="vzb-bc-axis-y-subtitle"><text></text></g>
-                  <g class="vzb-bc-axis-x-subtitle"><text></text></g>
-                  <g class="vzb-bc-axis-s-title"><text></text></g>
-                  <g class="vzb-bc-axis-c-title"><text></text></g>
 
                   <rect class="vzb-bc-zoom-rect"></rect>
               </g>
@@ -196,14 +190,6 @@ class _VizabiBubbleChart extends Chart {
     this.DOM.chartSvg.select(".vzb-bc-graph").call(graph => 
       Object.assign(this.DOM, {
         graph: graph,
-        ySubTitleEl: graph.select(".vzb-bc-axis-y-subtitle"),
-        xSubTitleEl: graph.select(".vzb-bc-axis-x-subtitle"),
-        yTitleEl: graph.select(".vzb-bc-axis-y-title"),
-        xTitleEl: graph.select(".vzb-bc-axis-x-title"),
-        sTitleEl: graph.select(".vzb-bc-axis-s-title"),
-        cTitleEl: graph.select(".vzb-bc-axis-c-title"),
-        yInfoEl: graph.select(".vzb-bc-axis-y-info"),
-        xInfoEl: graph.select(".vzb-bc-axis-x-info"),
         trailsContainer: graph.select(".vzb-bc-trails"),
         bubbleContainer: graph.select(".vzb-bc-bubbles"),
         bubbleContainerCrop: graph.select(".vzb-bc-bubbles-crop"),
@@ -242,12 +228,10 @@ class _VizabiBubbleChart extends Chart {
     this._labels = this.findChild({type: "Labels"});
     this._panZoom = new PanZoom(this);    
     this.decorations = new BCDecorations(this);
-    this._initInfoElements();
   
     this.xAxis = axisSmart("bottom");
     this.yAxis = axisSmart("left");
 
-    this.axisTitleComplimentStrings = {Y: "", X: "", S: "", C: ""};
 
     this.isCanvasPreviouslyExpanded = false;
     this.draggingNow = null;
@@ -294,51 +278,6 @@ class _VizabiBubbleChart extends Chart {
 
   }
 
-  _initInfoElements() {
-    const _this = this;
-    const dataNotesDialog = () => this.root.findChild({type: "DataNotes"});
-    const timeSlider = () => this.root.findChild({type: "TimeSlider"});
-
-    utils.setIcon(this.DOM.yInfoEl, ICON_QUESTION)
-      .on("click", () => {
-        dataNotesDialog().pin();
-      })
-      .on("mouseover", function() {
-        if (timeSlider().ui.dragging) return;
-        const rect = this.getBBox();
-        const coord = utils.makeAbsoluteContext(this, this.farthestViewportElement)(rect.x - 10, rect.y + rect.height + 10);
-        const toolRect = _this.root.element.node().getBoundingClientRect();
-        const chartRect = _this.element.node().getBoundingClientRect();
-        dataNotesDialog()
-          .setEncoding(_this.MDL.y)
-          .show()
-          .setPos(coord.x + chartRect.left - toolRect.left, coord.y);
-      })
-      .on("mouseout", () => {
-        if (timeSlider().ui.dragging) return;
-        dataNotesDialog().hide();
-      });
-
-    utils.setIcon(this.DOM.xInfoEl, ICON_QUESTION)
-      .on("click", () => {
-        dataNotesDialog().pin();
-      })
-      .on("mouseover", function() {
-        if (timeSlider().ui.dragging) return;
-        const rect = this.getBBox();
-        const coord = utils.makeAbsoluteContext(this, this.farthestViewportElement)(rect.x - 10, rect.y + rect.height + 10);
-        const toolRect = _this.root.element.node().getBoundingClientRect();
-        const chartRect = _this.element.node().getBoundingClientRect();
-        dataNotesDialog()
-          .setEncoding(_this.MDL.x)
-          .show()
-          .setPos(coord.x + chartRect.left - toolRect.left, coord.y);
-      })
-      .on("mouseout", () => {
-        if (timeSlider().ui.dragging) return;
-        dataNotesDialog().hide();
-      });
-  }
 
   get MDL(){
     return {
@@ -368,10 +307,7 @@ class _VizabiBubbleChart extends Chart {
 
     if (this._updateLayoutProfile()) return; //return if exists with error
     this.addReaction(this._updateScales);
-    this.addReaction(this.updateUIStrings);
-    this.addReaction(this.updateTreemenu);
     this.addReaction(this._updateSize);
-    this.addReaction(this.updateInfoElements);
     //    this.addReaction(this._resetZoomMinMaxXReaction, this._resetZoomMinMaxX);
     //    this.addReaction(this._resetZoomMinMaxYReaction, this._resetZoomMinMaxY);
     this.addReaction(this._updateOpacity);
@@ -905,76 +841,7 @@ class _VizabiBubbleChart extends Chart {
     return this.MDL.color.scale.d3Scale;
   }
   
-  updateUIStrings() {
-    const {
-      y, x, size, color
-    } = this.MDL;
 
-    this.strings = {
-      title: {
-        Y: Utils.getConceptName(y, this.localise),
-        X: Utils.getConceptName(x, this.localise),
-        S: Utils.getConceptName(size, this.localise),
-        C: Utils.getConceptName(color, this.localise)
-      },
-      title_short: {
-        Y: Utils.getConceptShortName(y, this.localise),
-        X: Utils.getConceptShortName(x, this.localise),
-        S: Utils.getConceptShortName(size, this.localise),
-        C: Utils.getConceptShortName(color, this.localise)
-      },
-      subtitle: {
-        Y: Utils.getConceptNameMinusShortName(y, this.localise),
-        X: Utils.getConceptNameMinusShortName(x, this.localise)
-      },
-      unit: {
-        Y: Utils.getConceptUnit(y),
-        X: Utils.getConceptUnit(x),
-        S: Utils.getConceptUnit(size),
-        C: Utils.getConceptUnit(color)
-      }
-    };
-
-    Promise.all([
-      Utils.getConceptNameCompliment(y),
-      Utils.getConceptNameCompliment(x),
-      Utils.getConceptNameCompliment(size),
-      Utils.getConceptNameCompliment(color)
-    ]).then(action(response => {        
-      [ 
-        this.axisTitleComplimentStrings.Y,
-        this.axisTitleComplimentStrings.X,
-        this.axisTitleComplimentStrings.S,
-        this.axisTitleComplimentStrings.C
-      ] = response;
-    }));
-  }
-
-  updateTreemenu(){
-    const treemenu = this.root.findChild({type: "TreeMenu"});
-
-    this.DOM.yTitleEl
-      .classed("vzb-disabled", treemenu.state.ownReadiness !== Utils.STATUS.READY)
-      .on("click", () => {
-        treemenu
-          .encoding(this._alias("y"))
-          .alignX(this.services.locale.isRTL() ? "right" : "left")
-          .alignY("top")
-          .updateView()
-          .toggle();
-      });
-
-    this.DOM.xTitleEl
-      .classed("vzb-disabled", treemenu.state.ownReadiness !== Utils.STATUS.READY)
-      .on("click", () => {
-        treemenu
-          .encoding(this._alias("x"))
-          .alignX(this.services.locale.isRTL() ? "right" : "left")
-          .alignY("bottom")
-          .updateView()
-          .toggle();
-      });    
-  }
 
   _updateSize() {
     this.services.layout.size;
@@ -995,11 +862,6 @@ class _VizabiBubbleChart extends Chart {
       yAxisEl,
       projectionX,
       projectionY,
-      sTitleEl,
-      xTitleEl,
-      yTitleEl,
-      xSubTitleEl,
-      ySubTitleEl,
       xAxisGroupsEl,
     } = this.DOM;
 
@@ -1031,17 +893,6 @@ class _VizabiBubbleChart extends Chart {
       .attr("width", width)
       .attr("height", Math.max(0, height));
 
-    //update scales to the new range
-    // // if (this.model.marker.y.scaleType !== "ordinal") {
-    // //   this.yScale.range(this._rangeBump([height, 0]));
-    // // } else {
-    // //   this.yScale.rangePoints([height, 0], _this.profileConstants.padding).range();
-    // // }
-    // // if (this.model.marker.x.scaleType !== "ordinal") {
-    // //   this.xScale.range(this._rangeBump([0, width]));
-    // // } else {
-    // //   this.xScale.rangePoints([0, width], _this.profileConstants.padding).range();
-    // // }
     this.yScale.range(this._rangeBump([height, 0]));
     this.xScale.range(this._rangeBump([0, width]));
 
@@ -1104,61 +955,6 @@ class _VizabiBubbleChart extends Chart {
     projectionX.attr("y1", _this.yScale.range()[0] + rangeBump);
     projectionY.attr("x2", _this.xScale.range()[0] - rangeBump);
 
-
-    // reduce font size if the caption doesn't fit
-    this._updateSTitle();
-    sTitleEl
-      .attr("text-anchor", "end")
-      .attr("transform", "translate(" + width + "," + 20 + ") rotate(-90)");
-
-    const compl = this.axisTitleComplimentStrings;
-    if (layoutProfile !== "SMALL") {
-      ySubTitleEl.select("text").attr("dy", infoElHeight * 0.6).text(this.strings.subtitle.Y);
-      xSubTitleEl.select("text").attr("dy", -infoElHeight * 0.3).text(this.strings.subtitle.X);
-      
-      yTitleEl.select("text").text(this.strings.title_short.Y + (compl.Y ? " · " + compl.Y : "") + " ")
-        .append("tspan")
-        .classed("vzb-noexport", true)
-        .style("font-size", (infoElHeight * 0.7) + "px")
-        .text("▼");
-      xTitleEl.select("text").text(this.strings.title_short.X + (compl.X ? " · " + compl.X : "") + " ")
-        .append("tspan")
-        .classed("vzb-noexport", true)
-        .style("font-size", (infoElHeight * 0.7) + "px")
-        .text("▼");
-    } else {
-      ySubTitleEl.select("text").text("");
-      xSubTitleEl.select("text").text("");
-
-      const yTitleText = yTitleEl.select("text").text(this.strings.title.Y + (compl.Y ? " · " + compl.Y : ""));
-      if (yTitleText.node().getBBox().width > width) yTitleText.text(this.strings.title_short.Y + (compl.Y ? " · " + compl.Y : ""));
-    
-      const xTitleText = xTitleEl.select("text").text(this.strings.title.X + (compl.X ? " · " + compl.X : ""));
-      if (xTitleText.node().getBBox().width > width - 100) xTitleText.text(this.strings.title_short.X) + (compl.X ? " · " + compl.X : "");      
-    }
-
-    const isRTL = this.services.locale.isRTL();
-    ySubTitleEl
-      .style("font-size", (infoElHeight * 0.8) + "px")
-      .attr("transform", "translate(" + 0 + "," + 0 + ") rotate(-90)");
-    xSubTitleEl
-      .style("font-size", (infoElHeight * 0.8) + "px")
-      .attr("transform", "translate(" + width + "," + height + ")");
-  
-    yTitleEl
-      .style("font-size", infoElHeight + "px")
-      .attr("transform", layoutProfile !== "SMALL" ?
-        "translate(" + (-margin.left - this.profileConstants.yAxisTitleBottomMargin)  + "," + (height * 0.5) + ") rotate(-90)"
-        : 
-        "translate(" + (isRTL ? width : 10 - this.profileConstants.margin.left) + ", -" + this.profileConstants.yAxisTitleBottomMargin + ")");
-
-    xTitleEl
-      .style("font-size", infoElHeight + "px")
-      .attr("transform", layoutProfile !== "SMALL" ?
-        "translate(" + (width * 0.5) + "," + (height + margin.bottom - xAxisTitleBottomMargin) + ")"
-        :
-        "translate(" + (isRTL ? width : 0) + "," + (height + margin.bottom - xAxisTitleBottomMargin) + ")");
-    
     xAxisGroupsEl
       .style("font-size", infoElHeight * 0.8 + "px");
 
@@ -1170,65 +966,11 @@ class _VizabiBubbleChart extends Chart {
       right: margin.right,
       bottom: xAxisTitleBottomMargin,
       wLimit: (layoutProfile !== "SMALL" ? 0.5 : 1) *
-        (this.elementWidth - xTitleEl.node().getBBox().width - infoElHeight * 3)
+        (this.elementWidth - this.DOM.graph.select(".vzb-bc-axis-x-title").node().getBBox().width - infoElHeight * 3)
     });
 
-    //this.services.layout.setHGrid([this.elementWidth - marginRightAdjusted]);
-    //this.ui.margin.set("left", margin.left * this.profileConstants.leftMarginRatio, false, false);
-
-    // (function(xMin, xMax, yMin, yMax) {
-    //   if ((xMin && xMax && yMin && yMax) === null) return;
-    //   _this._panZoom.zoomer.dontFeedToState = true;
-    //   _this._panZoom.rerun(); // includes redraw data points and trail resize
-    //   _this._panZoom.zoomToMaxMin(xMin, xMax, yMin, yMax, 0, true);
-    // })(_this._zoomedXYMinMax.x.zoomedMin,
-    //   _this._zoomedXYMinMax.x.zoomedMax,
-    //   _this._zoomedXYMinMax.y.zoomedMin,
-    //   _this._zoomedXYMinMax.y.zoomedMax);
   }
 
-  updateInfoElements() {
-    this.services.layout.size;
-    this.axisTitleComplimentStrings.X;
-    this.axisTitleComplimentStrings.Y;
-
-    const {xInfoEl, yInfoEl, xTitleEl, yTitleEl} = this.DOM;
-    const {x, y} = this.MDL;
-    const isRTL = this.services.locale.isRTL();
-    const infoElHeight = this.profileConstants.infoElHeight;
-    const layoutProfile = this.services.layout.profile;
-
-    if (yInfoEl.select("svg").node()) {
-      const titleBBox = yTitleEl.node().getBBox();
-      const t = utils.transform(yTitleEl.node());
-      const hTranslate = isRTL ? (titleBBox.x + t.translateX - infoElHeight * 1.4) : (titleBBox.x + t.translateX + titleBBox.width + infoElHeight * 0.4);
-      const vTranslate = isRTL ? (t.translateY + infoElHeight * 1.4 + titleBBox.width * 0.5) : (t.translateY - infoElHeight * 0.4 - titleBBox.width * 0.5);
-      const conceptPropsY = y.data.conceptProps;
-
-      yInfoEl
-        .classed("vzb-hidden", !conceptPropsY.description && !conceptPropsY.sourceLink || this.services.layout.projector)
-        .attr("transform", layoutProfile !== "SMALL" ?
-          `translate(${ t.translateX - infoElHeight * 0.8 }, ${ vTranslate }) rotate(-90)` :
-          `translate(${ hTranslate },${ t.translateY - infoElHeight * 0.8 })`)
-        .select("svg")
-        .attr("width", infoElHeight + "px")
-        .attr("height", infoElHeight + "px");
-    }
-
-    if (xInfoEl.select("svg").node()) {
-      const titleBBox = xTitleEl.node().getBBox();
-      const t = utils.transform(xTitleEl.node());
-      const hTranslate = isRTL ? (titleBBox.x + t.translateX - infoElHeight * 1.4) : (titleBBox.x + t.translateX + titleBBox.width + infoElHeight * 0.4);
-      const conceptPropsX = x.data.conceptProps;
-
-      xInfoEl
-        .classed("vzb-hidden", !conceptPropsX.description && !conceptPropsX.sourceLink || this.services.layout.projector)
-        .attr("transform", `translate(${ hTranslate }, ${ t.translateY - infoElHeight * 0.8 })`)
-        .select("svg")
-        .attr("width", infoElHeight + "px")
-        .attr("height", infoElHeight + "px");
-    }
-  }
 
   _rangeBump(arg, undo) {
     const bump = this.profileConstants.maxRadiusPx;
@@ -1256,40 +998,6 @@ class _VizabiBubbleChart extends Chart {
     utils.warn("rangeBump error: input is not an array or empty");
   }
 
-  _updateSTitle(titleS, titleC) {
-    const { sTitleEl } = this.DOM;
-    const {
-      size,
-      color
-    } = this.MDL;
-    const compl = this.axisTitleComplimentStrings;
-    // vertical text about size and color
-    if (this.profileConstants.hideSTitle
-      && this.root.ui.dialogs.dialogs.sidebar.indexOf("colors") > -1
-      && this.root.ui.dialogs.dialogs.sidebar.indexOf("size") > -1) {
-      sTitleEl.classed("vzb-invisible", true);
-      return;
-    }
-    if (sTitleEl.classed("vzb-invisible")) {
-      sTitleEl.classed("vzb-invisible", false);
-    }
-    const sTitleContentON = !size.data.constant;
-    const cTitleContentON = !color.data.constant;
-    const sTitleText = sTitleEl.select("text")
-    // reset font size to remove jumpy measurement
-      .style("font-size", null)
-      .text(
-        (sTitleContentON ? this.localise("buttons/size") + ": " + (titleS ? titleS : this.strings.title.S) : "") +
-        (compl.S ? " · " + compl.S : "") +
-        (sTitleContentON && cTitleContentON ? ", " : "") +
-        (cTitleContentON ? this.localise("buttons/colors") + ": " + (titleC ? titleC : this.strings.title.C) : "") +
-        (compl.C ? " · " + compl.C : "")
-      );
-    const sTitleWidth = sTitleText.node().getBBox().width;
-    const remainigHeight = this.height - 30;
-    const font = parseInt(sTitleText.style("font-size")) * remainigHeight / sTitleWidth;
-    sTitleText.style("font-size", sTitleWidth > remainigHeight ? font + "px" : null);
-  }
 
   processFrameData() {
     return this.__dataProcessed = this.model.dataArray;
@@ -1524,8 +1232,6 @@ class _VizabiBubbleChart extends Chart {
       const c = _this.__getColor(selectedKey, d.color);
       let entityOutOfView = false;
 
-      ////const titles = _this._formatSTitleValues(values.size[utils.getKey(d, dataKeys.size)], values.color[utils.getKey(d, dataKeys.color)]);
-      ////_this._updateSTitle(titles[0], titles[1]);
       if (x + s < 0 || x - s > this.width || y + s < 0 || y - s > this.height) {
         entityOutOfView = true;
       }
@@ -1573,7 +1279,6 @@ class _VizabiBubbleChart extends Chart {
       this._axisProjections();
       ////this._trails.run(["opacityHandler"]);
       //hide tooltip
-      //this._updateSTitle();
       this._setTooltip();
       this._setBubbleCrown();
       this._labels.highlight(null, false);
@@ -1776,7 +1481,6 @@ _VizabiBubbleChart.DEFAULT_UI = {
 //export default BubbleChart;
 export const VizabiBubbleChart = decorate(_VizabiBubbleChart, {
   "MDL": computed,
-  "axisTitleComplimentStrings": observable,
   "cScale": computed
 });
 
