@@ -53,8 +53,8 @@ class BCAxisTitles extends BaseComponent {
 
   get MDL(){
     return {
-      y: this.model.encoding[this.state.alias?.y || "y"],
-      x: this.model.encoding[this.state.alias?.x || "x"],
+      y: this.model.encoding[this.parent.state.alias?.y || "y"],
+      x: this.model.encoding[this.parent.state.alias?.x || "x"],
       size: this.model.encoding.size,
       color: this.model.encoding.color
     };
