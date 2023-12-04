@@ -17,6 +17,7 @@ import {
 } from "mobx";
 
 import {decorate, computed, observable} from "mobx";
+import { MarkerSplit } from "./markersplit.js";
 
 const COLOR_WHITEISH = "rgb(253, 253, 253)";
 const COLOR_BLACKISH = "rgb(51, 51, 51)";
@@ -107,6 +108,9 @@ class _VizabiBubbleChart extends Chart {
     },{
       type: BCAxisTitles,
       placeholder: ".vzb-bc-axis-titles"
+    },{
+      type: MarkerSplit,
+      placeholder: ".vzb-bc-bubbles"
     }];
 
     config.template = `
@@ -461,7 +465,7 @@ class _VizabiBubbleChart extends Chart {
             d.r = utils.areaToRadius(_this.sScale(valueS || 0));
             const scaledX = _this.xScale(valueX);
             const scaledY = _this.yScale(valueY);
-            const scaledC = _this.__getColor(d[Symbol.for(isTrail ? "trailHeadKey" : "key")], valueC);
+            const scaledC = _this.__getColor(d[Symbol.for(isTrail ? "trailHeadKey" : "key")], valueC, d);
       
             if (!duration || !headTrail) {
               circle
@@ -535,7 +539,7 @@ class _VizabiBubbleChart extends Chart {
             //view.classed("vzb-hidden", d.hidden);
             const scaledX = _this.xScale(valueX);
             const scaledY = _this.yScale(valueY);
-            const scaledC = _this.__getColor(d[Symbol.for(isTrail ? "trailHeadKey" : "key")], valueC);
+            const scaledC = _this.__getColor(d[Symbol.for(isTrail ? "trailHeadKey" : "key")], valueC, d);
       
             const group = d3.select(this);
             if (!duration || !headTrail) {
@@ -659,7 +663,7 @@ class _VizabiBubbleChart extends Chart {
       d.r = utils.areaToRadius(_this.sScale(valueS || 0));
       const scaledX = _this.xScale(valueX);
       const scaledY = _this.yScale(valueY);
-      const scaledC = _this.__getColor(d[Symbol.for(isTrail ? "trailHeadKey" : "key")], valueC);
+      const scaledC = _this.__getColor(d[Symbol.for(isTrail ? "trailHeadKey" : "key")], valueC, d);
 
       const group = d3.select(this);
 
@@ -1238,7 +1242,7 @@ class _VizabiBubbleChart extends Chart {
       const x = _this.xScale(d[_this._alias("x")]);
       const y = _this.yScale(d[_this._alias("y")]);
       const s = d.r;
-      const c = _this.__getColor(selectedKey, d.color);
+      const c = _this.__getColor(selectedKey, d.color, d);
       let entityOutOfView = false;
 
       if (x + s < 0 || x - s > this.width || y + s < 0 || y - s > this.height) {
