@@ -17,6 +17,7 @@ import {
   versionInfo
 } from "@vizabi/shared-components";
 import {VizabiBubbleChart} from "./bubblechart-cmp.js";
+import {SkaterampStory} from "./dialog/skateramp_story.js";
 
 export default class BubbleChart extends BaseComponent {
 
