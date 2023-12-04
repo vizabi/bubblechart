@@ -851,6 +851,8 @@ class _VizabiBubbleChart extends Chart {
       y
     } = this.MDL;
     
+    this.model.encoding.y.scale.d3Scale;
+    
     const {
       graphAll,
       eventArea,
@@ -896,20 +898,29 @@ class _VizabiBubbleChart extends Chart {
     this.yScale.range(this._rangeBump([height, 0]));
     this.xScale.range(this._rangeBump([0, width]));
 
+    //only applied to swimming lane sclae
+    const rankScaleModifications = y.scale.type === "rank" 
+      ? {
+        ticks: y.rollup.map(m => m.tickPosition),
+        formatter: (d) => y.rollup.find(f => f.tickPosition === d).name,
+        repositionLabels: Object.fromEntries(y.rollup.map(m => ([m.tickPosition, { x: 4 * infoElHeight, y: -infoElHeight }]))) 
+      }
+      : {};
+
     //apply scales to axes and redraw
     this.yAxis.scale(this.yScale)
       .tickSizeInner(-width)
       .tickSizeOuter(0)
       .tickPadding(6)
       .tickSizeMinor(-width, 0)
-      .labelerOptions({
+      .labelerOptions(Object.assign({
         scaleType: y.scale.type,
         toolMargin: margin,
         limitMaxTickNumber: 6,
         bump: this.profileConstants.maxRadiusPx / 2,
         viewportLength: height,
         formatter: this.localise
-      });
+      }, rankScaleModifications));
 
     this.xAxis.scale(this.xScale)
       .tickSizeInner(-height)
@@ -1186,11 +1197,11 @@ class _VizabiBubbleChart extends Chart {
           .attr("x1", this.xScale(valueX) - radius);
       }
 
-      if (this.ui.whenHovering.higlightValueX) xAxisEl.call(
+      if (this.ui.whenHovering.higlightValueX && this.MDL.x.scale.type !== "rank") xAxisEl.call(
         this.xAxis.highlightValue(valueX)
       );
 
-      if (this.ui.whenHovering.higlightValueY) yAxisEl.call(
+      if (this.ui.whenHovering.higlightValueY && this.MDL.y.scale.type !== "rank") yAxisEl.call(
         this.yAxis.highlightValue(valueY)
       );
 
