@@ -1375,7 +1375,7 @@ class _VizabiBubbleChart extends Chart {
         //console.log("trailstart", trailStart)
         // if this bubble is trail start bubble
         if (trailStart >= this.MDL.frame.value || showhide) {
-          const trailData = this.model.getDataMapByFrameValue(trailStart).getByStr(key);
+          const trailData = this.model.getDataMapByFrameValue(trailStart, "trail.addTrails").getByStr(key);
           
           cache.labelText = labelText = this.__labelWithFrame(trailData);
           cache.labelX0 = trailData[this._alias("x")];
@@ -1412,7 +1412,7 @@ class _VizabiBubbleChart extends Chart {
       if (!this._labels.cached[key]) this._labels.cached[key] = {};
       const cache = this._labels.cached[key];
 
-      const datamap = (trail.show ? this.model.getDataMapByFrameValue(trail.starts[key]) : this.model.dataMap);
+      const datamap = (trail.show ? this.model.getDataMapByFrameValue(trail.starts[key], "trail.addTrails") : this.model.dataMap);
       if (!datamap.hasByStr(key))
         continue;
 
