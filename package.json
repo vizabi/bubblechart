@@ -1,6 +1,6 @@
 {
   "name": "@vizabi/bubblechart",
-  "version": "4.1.0",
+  "version": "4.1.1",
   "description": "Vizabi bubble chart",
   "scripts": {
     "prepublishOnly": "npm run build",

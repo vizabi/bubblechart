@@ -1070,10 +1070,7 @@ class _VizabiBubbleChart extends Chart {
     let minArea = utils.radiusToArea(Math.max(maxRadiusPx * extent[0], minRadiusPx));
     let maxArea = utils.radiusToArea(Math.max(maxRadiusPx * extent[1], minRadiusPx));
 
-    let range = minArea === maxArea? [minArea, maxArea] :
-      d3.range(minArea, maxArea, (maxArea - minArea)/(this.sScale.domain().length - 1)).concat(maxArea);
-
-    this.sScale.range(range);
+    this.sScale.range([minArea, maxArea]);
     this.trailSizeScale.domain(this.MDL.size.scale.domain).range([minTrailThicknessPx, maxTrailThicknessPx]);
   }
 
