@@ -1087,8 +1087,8 @@ class _VizabiBubbleChart extends Chart {
       }
 
       const tooltipCache = {};
-      tooltipCache.labelX0 = this.xScale.invert(x);
-      tooltipCache.labelY0 = this.yScale.invert(y);
+      tooltipCache.labelX0 = this.xScale.invert ? this.xScale.invert(x) : d.x;
+      tooltipCache.labelY0 = this.yScale.invert ? this.yScale.invert(y) : d.y;
       tooltipCache.scaledS0 = s;
       tooltipCache.scaledC0 = null;
 
