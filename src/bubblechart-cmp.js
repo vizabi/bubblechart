@@ -903,7 +903,8 @@ class _VizabiBubbleChart extends Chart {
       ? {
         ticks: y.rollup.map(m => m.tickPosition),
         formatter: (d) => y.rollup.find(f => f.tickPosition === d).name,
-        repositionLabels: Object.fromEntries(y.rollup.map(m => ([m.tickPosition, { x: 4 * infoElHeight, y: -infoElHeight }]))) 
+        textAnchor: "start",
+        repositionLabels: Object.fromEntries(y.rollup.map(m => ([m.tickPosition, { x: 1.5 * infoElHeight, y: -infoElHeight }]))) 
       }
       : {};
 
