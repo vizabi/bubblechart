@@ -141,8 +141,17 @@ BubbleChart.DEFAULT_CORE = (markerName) => ({
     },
     "highlighted": { modelType: "selection" },
     "superhighlighted": { modelType: "selection" },
-    "x": { },
-    "y": { },
+    "x": {
+      scale: {
+        allowedTypes: ["linear", "log", "genericLog", "pow", "time"]
+      }
+    },
+    "y": {
+      modelType: "lane",
+      scale: {
+        allowedTypes: ["linear", "log", "genericLog", "pow", "time", "rank"]
+      }
+    },
     "order": { modelType: "order",
       data: { 
         ref: `markers.${markerName}.encoding.size.data.config`
