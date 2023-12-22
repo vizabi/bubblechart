@@ -269,25 +269,31 @@ class MarkerSplit extends BaseComponent {
 
     const y = dodge.channels.y.value;
 
-    const facetHeights = facets.map(facet => d3.max(facet, i => y[i]) - d3.min(facet, i => y[i]) );
-    const padding = (this.parent.height - d3.sum(facetHeights)) / (facets.length - 1) * 0.9;
+    // const facetHeights = facets.map(facet => d3.max(facet, i => y[i]) - d3.min(facet, i => y[i]) );
+    // const padding = (this.parent.height - d3.sum(facetHeights)) / (facets.length - 1) * 0.9;
 
-    let acc = 0;
-    const shift = facetHeights.map(height => {
-      const acc_1 = acc; 
-      acc += (height + padding); 
-      return acc_1;
-    } );
+    // let acc = 0;
+    // const shift = facetHeights.map(height => {
+    //   const acc_1 = acc; 
+    //   acc += (height + padding); 
+    //   return acc_1;
+    // } );
 
-    facets.forEach((facet, i) => facet.map(indexInFacet => y[indexInFacet] -= shift[i]));
+    // facets.forEach((facet, i) => facet.map(indexInFacet => y[indexInFacet] -= shift[i]));
 
     const _this = this;
+
+    const shift = (d) => {
+      if (swimLaneEnc.scale.type !== "rank") return 0;
+      const shiftMap = Object.fromEntries(swimLaneEnc.rollup.map(m => [m.id, _this.parent.yScale(m.tickPosition)]));
+      return shiftMap[d[swimLaneEnc.data.concept]] - this.parent.height;
+    };
 
     this.parent.bubbles
       .each( function(d,i) {
         d3.select(this).select("circle")
           .transition().duration(_this.MDL.frame.speed * 20).ease(d3.easeBounce)
-          .attr("cy", y[i]);
+          .attr("cy", y[i] + shift(d));
       });
   }
 
