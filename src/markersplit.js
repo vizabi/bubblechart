@@ -115,7 +115,7 @@ class MarkerSplit extends BaseComponent {
         }
       })
       .style("stroke", "#333")
-      .style("opacity", 0.8)
+      .style("opacity", d => _this.parent._getBubbleOpacity(d))
       .on("click", function(event, d) { 
         const decileBubbles = _this.parent.bubbles.selectAll("circle")
           .filter(f => _this.splitDone.has(f.geo))
@@ -124,8 +124,8 @@ class MarkerSplit extends BaseComponent {
           .filter(f => f.geo != d.geo)
           .style("opacity", 0.2);
         _this.splitBubble(d, d3.select(this), 0).then(() => {
-          decileBubbles.style("opacity", 0.8);
-          totalBubbles.style("opacity", 0.8);
+          decileBubbles.style("opacity", _this.parent._getBubbleOpacity(d));
+          totalBubbles.style("opacity", _this.parent._getBubbleOpacity(d));
         });
       });
 
@@ -186,7 +186,7 @@ class MarkerSplit extends BaseComponent {
         .transition()
         .delay(delay)
         .duration(0).ease(d3.easeLinear)
-        .style("opacity", 0.8)
+        .style("opacity", d => this.parent._getBubbleOpacity(d))
         .style("pointer-events", "visible")
         .attr("cx", () => {
           const offcenterX = (Math.random() - 0.5) * utils.areaToRadius(sScale(d.size));
@@ -212,7 +212,7 @@ class MarkerSplit extends BaseComponent {
         .transition()
         .delay(delay)
         .duration(0)
-        .style("opacity", 0.8)
+        .style("opacity", d => this.parent._getBubbleOpacity(d))
         .style("pointer-events", "visible")
         .end();
 
