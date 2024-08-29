@@ -38,6 +38,7 @@ class BCAxisTitles extends BaseComponent {
     };
 
     this.axisTitleComplimentStrings = {Y: "", X: "", S: "", C: ""};
+    this.strings = { title: {Y: "", X: "", S: "", C: ""}, title_short: {Y: "", X: "", S: "", C: ""}, subtitle: {Y:"", X: ""}};
 
     this._initInfoElements();
   }
@@ -107,12 +108,6 @@ class BCAxisTitles extends BaseComponent {
       subtitle: {
         Y: Utils.getConceptNameMinusShortName(y, this.localise),
         X: Utils.getConceptNameMinusShortName(x, this.localise)
-      },
-      unit: {
-        Y: Utils.getConceptUnit(y),
-        X: Utils.getConceptUnit(x),
-        S: Utils.getConceptUnit(size),
-        C: Utils.getConceptUnit(color)
       }
     };
 
@@ -180,6 +175,8 @@ class BCAxisTitles extends BaseComponent {
 
   updateInfoElements() {
     this.services.layout.size;
+    this.strings.title.X,
+    this.strings.title.Y,
     this.axisTitleComplimentStrings.X;
     this.axisTitleComplimentStrings.Y;
 
@@ -381,6 +378,7 @@ class BCAxisTitles extends BaseComponent {
 
 const decorated = decorate(BCAxisTitles, {
   "MDL": computed,
+  "strings": observable,
   "axisTitleComplimentStrings": observable
 });
 export { decorated as BCAxisTitles };
