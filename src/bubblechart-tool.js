@@ -160,7 +160,7 @@ BubbleChart.DEFAULT_CORE = (markerName) => ({
     "size": {
       scale: {
         modelType: "size",
-        allowedTypes: ["linear", "log", "genericLog", "pow", "point"],
+        allowedTypes: ["linear", "point"],
         range: [0, 50]
       }
     },
@@ -174,7 +174,7 @@ BubbleChart.DEFAULT_CORE = (markerName) => ({
       },
       scale: {
         modelType: "size",
-        allowedTypes: ["linear", "log", "genericLog", "pow", "point"]
+        allowedTypes: ["linear", "point"]
       }
     },
     "repeat": {
