@@ -555,6 +555,16 @@ class _VizabiBubbleChart extends Chart {
               }
                 
               const diagonalLine = group.select(".vzb-diagonal-line");
+              if (duration && isExtrapolated && diagonalLine.classed("vzb-hidden")) {
+                const cx = +circle.attr("cx");
+                const cy = +circle.attr("cy");
+                const r = +circle.attr("r");
+                diagonalLine
+                  .attr("x1", cx + r/Math.sqrt(2))
+                  .attr("y1", cy + r/Math.sqrt(2))
+                  .attr("x2", cx - r/Math.sqrt(2))
+                  .attr("y2", cy - r/Math.sqrt(2));
+              }
               diagonalLine
                 .classed("vzb-hidden", !isExtrapolated);
               if(isExtrapolated){
