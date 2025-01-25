@@ -414,7 +414,7 @@ export default class PanZoom {
 
         _this.DOM.xAxisEl.call(_this.xAxis.labelerOptions(optionsX));
         _this.DOM.yAxisEl.call(_this.yAxis.labelerOptions(optionsY));
-        _this.redrawData(zoomer.duration);
+        _this.redrawData_(zoomer.duration);
         //_this._trails.run("resize", null, zoomer.duration);
 
         zoomer.duration = 0;

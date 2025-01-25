@@ -17,16 +17,27 @@ import {
 } from "mobx";
 
 import {decorate, computed, observable} from "mobx";
+import { OrthographicView } from "@deck.gl/core";
+import DeckGL from "@deck.gl/core/dist/scripting/deckgl.js";
+import { ScatterplotLayer, LineLayer, TextLayer } from "@deck.gl/layers";
+import LabelLayer from "./layers/label-layer/label-layer.js";
+import LabelBackgroundLayer from "./layers/label-layer/label-background-layer/label-background-layer.js";
+import LabelMultiIconLayer from "./layers/label-layer/label-multi-icon-layer/label-multi-icon-layer.js";
 
 const COLOR_WHITEISH = "rgb(253, 253, 253)";
 const COLOR_BLACKISH = "rgb(51, 51, 51)";
 const THICK_LINE_THRESHOLD_FOR_DARKER_COLOR = 3;
+const CHARACTER_SET =
+'ABCDEFGHIJKLMNOPQRSTUVWXYZÅÄÖabcdefghijklmnopqrstuvwxyzåäéö0123456789+-−–*/%,.²:() '.split('');
+
+const KEY = Symbol.for("key");
+const TRAIL_KEY = Symbol.for("trailHeadKey");
 
 const marginScaleH = (marginMin, ratio = 0) => height => marginMin + height * ratio;
 const marginScaleW = (marginMin, ratio = 0) => width => marginMin + width * ratio;
 
 function isTrailBubble(d){
-  return !!d[Symbol.for("trailHeadKey")];
+  return !!d[TRAIL_KEY];
 }
 
 const MAX_RADIUS_EM = 0.05;
@@ -165,10 +176,26 @@ class _VizabiBubbleChart extends Chart {
               </defs>
           </svg>
       </svg>
+      <div class="vzb-bubblechart-canvas-wrap vzb-bubblechart-svg"/>
       <div class="vzb-tooltip vzb-hidden vzb-tooltip-mobile"></div>
     `;
 
     super(config);
+
+    this.__data;
+    this.__oldData;
+    this.__labelData;
+    this.__labelDataKeys;
+    this.__trailsData;
+    this.__lastLineTrailData;
+    this.__newLastLineTrailData;
+    this.activeObject = undefined;
+    this.labelOffset = {};
+    this.labelDragged = {};
+    this.dragX0;
+    this.dragY0;
+    this.dragX;
+    this.dragY;
   }
 
   setup() {
@@ -185,7 +212,8 @@ class _VizabiBubbleChart extends Chart {
       eventArea: this.element.select(".vzb-bc-eventarea"),
       forecastOverlay: this.element.select(".vzb-bc-forecastoverlay"),
       tooltipMobile: this.element.select(".vzb-tooltip-mobile"),
-      defs: this.element.select("defs")
+      defs: this.element.select("defs"),
+      canvasWrap: this.element.select(".vzb-bubblechart-canvas-wrap"),
     };
     this.DOM.chartSvg.select(".vzb-bc-graph").call(graph => 
       Object.assign(this.DOM, {
@@ -276,8 +304,11 @@ class _VizabiBubbleChart extends Chart {
         }
       });
 
-  }
 
+    this.FONT_FAMILY = this.element.style("font-family").split(",")[0];
+    this.deckBubble = this.getDeck();
+    this.props = this.getProps();
+  }
 
   get MDL(){
     return {
@@ -301,6 +332,7 @@ class _VizabiBubbleChart extends Chart {
     //this.ui.cursorMode = "plus";
     this.sScale = this.MDL.size.scale.d3Scale;
     this.trailSizeScale = this.MDL.size.scale.d3Scale.copy();
+    this.frameStepIndexMax = this.MDL.frame.stepCount - 1;
 
     this.TIMEDIM = this.MDL.frame.data.concept;
     this.KEYS = this.model.data.space.filter(dim => dim !== this.TIMEDIM);
@@ -314,8 +346,10 @@ class _VizabiBubbleChart extends Chart {
     this.addReaction(this.updateColorPatterns);
     this.addReaction(this._updateShowYear);
     this.addReaction(this._updateYear);
+    this.addReaction(this.drawData_);
     this.addReaction(this.drawData);
     this.addReaction(this._zoomToMarkerMaxMin);
+    this.addReaction(this.redrawData_);
     this.addReaction(this.redrawData);
 
     this.addReaction(this._selectDataPoints);
@@ -326,11 +360,17 @@ class _VizabiBubbleChart extends Chart {
     this.addReaction(this.updateDecorations);
   }
 
-  drawData() {
-    this.processFrameData();
+  drawData_() {
+    this.processFrameData_();
     this._updateMarkerSizeLimits();
     this._createAndDeleteBubbles();
     //this.redrawData();
+  }
+
+  drawData() {
+    this.processFrameData();
+    this._updateMarkerSizeLimits();
+    this._drawBubbles();
   }
 
   updateColorPatterns() {
@@ -370,7 +410,7 @@ class _VizabiBubbleChart extends Chart {
   }
 
   _updateYear() {
-    const duration = this._getDuration();
+    const duration = this.duration;
     this._date.setText(this.MDL.frame.value, duration);    
   }
 
@@ -387,9 +427,9 @@ class _VizabiBubbleChart extends Chart {
 
   _createAndDeleteBubbles() {
     const _this = this;
-    const duration = this._getDuration();
+    const duration = this.duration;
     const transition = this._getTransition(duration);
-    const data = this.__dataProcessed;
+    const data = this.__dataProcessed_;
     let trailRedrawDate;
 
     runInAction(()=>{
@@ -397,7 +437,7 @@ class _VizabiBubbleChart extends Chart {
     });
 
     this.bubbles = this.DOM.bubbleContainer.selectAll(".vzb-bc-entity")
-      .data(this.__dataProcessed, d => d[Symbol.for("key")])
+      .data(this.__dataProcessed_, d => d[KEY])
       .join(
         enter => enter
           .append(d => {
@@ -413,7 +453,7 @@ class _VizabiBubbleChart extends Chart {
             return g;
           })
           .attr("class", "vzb-bc-entity")
-          .attr("id", d => `vzb-bc-bubble-${d[Symbol.for("key")]}-${this.id}`)
+          .attr("id", d => `vzb-bc-bubble-${d[KEY]}-${this.id}`)
           .style("opacity", d => d[Symbol.for("opacity")] = this._getBubbleOpacity(d))
           .call(selection => {
             if(!utils.isTouchDevice()){
@@ -445,7 +485,7 @@ class _VizabiBubbleChart extends Chart {
             const dataNext = data[index + 1] || {};
             const isTrail = isTrailBubble(d);
             const isExtrapolated = d[Symbol.for("extrapolated")];
-            const headTrail = isTrail && !dataNext[Symbol.for("trailHeadKey")];
+            const headTrail = isTrail && !dataNext[TRAIL_KEY];
             const view = d3.select(this);
             const circle = view.select("circle");
             const diagonalLine = view.select(".vzb-diagonal-line");
@@ -461,7 +501,7 @@ class _VizabiBubbleChart extends Chart {
             d.r = utils.areaToRadius(_this.sScale(valueS || 0));
             const scaledX = _this.xScale(valueX);
             const scaledY = _this.yScale(valueY);
-            const scaledC = _this.__getColor(d[Symbol.for(isTrail ? "trailHeadKey" : "key")], valueC);
+            const scaledC = _this.__getColor(d[isTrail ? TRAIL_KEY : KEY], valueC);
       
             if (!duration || !headTrail) {
               circle
@@ -520,7 +560,7 @@ class _VizabiBubbleChart extends Chart {
             const isTrail = isTrailBubble(d);
             const isExtrapolated = d[Symbol.for("extrapolated")];
             const dataNext = data[index + 1] || {};
-            const headTrail = isTrail && !dataNext[Symbol.for("trailHeadKey")];
+            const headTrail = isTrail && !dataNext[TRAIL_KEY];
       
             const valueS = d.size;
             d.r = utils.areaToRadius(_this.sScale(valueS || 0));
@@ -535,7 +575,7 @@ class _VizabiBubbleChart extends Chart {
             //view.classed("vzb-hidden", d.hidden);
             const scaledX = _this.xScale(valueX);
             const scaledY = _this.yScale(valueY);
-            const scaledC = _this.__getColor(d[Symbol.for(isTrail ? "trailHeadKey" : "key")], valueC);
+            const scaledC = _this.__getColor(d[isTrail ? TRAIL_KEY : KEY], valueC);
       
             const group = d3.select(this);
             if (!duration || !headTrail) {
@@ -593,7 +633,7 @@ class _VizabiBubbleChart extends Chart {
                 trailLine
                   .attr("x1", scaledX)
                   .attr("y1", scaledY);
-                if (duration && !data[index + 2][Symbol.for("trailHeadKey")]) {
+                if (duration && !data[index + 2][TRAIL_KEY]) {
                   trailLine
                     .attr("x2", scaledX)
                     .attr("y2", scaledY)
@@ -642,7 +682,6 @@ class _VizabiBubbleChart extends Chart {
 
   }
 
-
   redrawData(duration) {
     //this.services.layout.size;
     //this.MDL.x.scale.type;
@@ -651,14 +690,25 @@ class _VizabiBubbleChart extends Chart {
     this.MDL.size.scale.type;
     this.MDL.size.scale.extent;
 
+    this._drawBubbles();
+  }
+
+  redrawData_(duration) {
+    //this.services.layout.size;
+    //this.MDL.x.scale.type;
+    //this.MDL.y.scale.type;
+    this.MDL.color.scale.type;
+    this.MDL.size.scale.type;
+    this.MDL.size.scale.extent;
+
     const _this = this;
-    const data = this.__dataProcessed;
+    const data = this.__dataProcessed_;
     const transition = this._getTransition(duration);
 
     if (this.bubbles) this.bubbles.each(function(d, index) {
       const isTrail = isTrailBubble(d);
       const dataNext = data[index + 1] || {};
-      const headTrail = isTrail && !dataNext[Symbol.for("trailHeadKey")];
+      const headTrail = isTrail && !dataNext[TRAIL_KEY];
       const isExtrapolated = d[Symbol.for("extrapolated")];
 
       const valueX = d[_this._alias("x")];
@@ -669,7 +719,7 @@ class _VizabiBubbleChart extends Chart {
       d.r = utils.areaToRadius(_this.sScale(valueS || 0));
       const scaledX = _this.xScale(valueX);
       const scaledY = _this.yScale(valueY);
-      const scaledC = _this.__getColor(d[Symbol.for(isTrail ? "trailHeadKey" : "key")], valueC);
+      const scaledC = _this.__getColor(d[isTrail ? TRAIL_KEY : KEY], valueC);
 
       const group = d3.select(this);
 
@@ -837,7 +887,7 @@ class _VizabiBubbleChart extends Chart {
     if (!this.elementHeight || !this.elementWidth) return utils.warn("Chart _updateProfile() abort: container is too little or has display:none");
   }
 
-  _getDuration() {
+  get duration() {
     return this.MDL.frame.playing ? this.MDL.frame.speed || 0 : 0;
   }
 
@@ -851,8 +901,6 @@ class _VizabiBubbleChart extends Chart {
     return this.MDL.color.scale.d3Scale;
   }
   
-
-
   _updateSize() {
     this.services.layout.size;
 
@@ -875,6 +923,7 @@ class _VizabiBubbleChart extends Chart {
       projectionX,
       projectionY,
       xAxisGroupsEl,
+      canvasWrap
     } = this.DOM;
 
     const _this = this;
@@ -898,6 +947,9 @@ class _VizabiBubbleChart extends Chart {
     //graph group is shifted according to margins (while svg element is at 100 by 100%)
     graphAll
       .attr("transform", "translate(" + (margin.left * this.profileConstants.leftMarginRatio) + "," + margin.top + ")");
+    
+    canvasWrap.style("transform", "translate(" + (margin.left * this.profileConstants.leftMarginRatio) + "px," + margin.top + "px)");
+
 
     this._date.resizeText(width, height);
     
@@ -946,6 +998,8 @@ class _VizabiBubbleChart extends Chart {
         formatter: this.services.locale.auto(x.data?.conceptProps?.format)
       });
 
+    canvasWrap.style("width", width + "px");
+    canvasWrap.style("height", Math.max(0, height) + "px");
 
     bubbleContainerCropAll
       .attr("width", width)
@@ -993,7 +1047,6 @@ class _VizabiBubbleChart extends Chart {
 
   }
 
-
   _rangeBump(arg, undo) {
     const bump = this.profileConstants.maxRadiusPx;
     undo = undo ? -1 : 1;
@@ -1020,9 +1073,122 @@ class _VizabiBubbleChart extends Chart {
     utils.warn("rangeBump error: input is not an array or empty");
   }
 
+  _drawBubbles() {
+    if (this.model.encoding.frame.playing) {
+      requestAnimationFrame(() => {
+        this.deckBubble.setProps({layers: this.getBubbleLayers(this.__oldData, false, undefined, this.__lastLineTrailData)})
+        requestAnimationFrame(() => {
+          this.deckBubble.setProps({layers: this.getBubbleLayers(this.__oldData, true, undefined, this.__lastLineTrailData)})
+          requestAnimationFrame(() => {
+            this.deckBubble.setProps({layers: this.getBubbleLayers(this.__data, true, undefined, this.__newLastLineTrailData)})
+            this.__trailsData = this.__newTrailsData;
+            //_updateRangesLine = _newUpdateRangesLine;
+          });
+        });
+      });
+    } else {
+      //_updateRangesLine = _newUpdateRangesLine;
+      this.deckBubble.setProps({layers: this.getBubbleLayers(this.__data, false)});
+    }
+  }
 
   processFrameData() {
-    return this.__dataProcessed = this.model.dataArray;
+    const trailsCount = this.frameStepIndexMax + 2;
+    //const _endChunkIndexes = [];
+    let trailChunkIndex = 0;
+    //let deltaTrailChunkIndex = 0;
+    let currentTrailKey = null;
+    //const _updateRanges = [];
+    //const _newUpdateRangesLine = [];
+    const labelData = [];
+    const newTrailsData = [];
+    const lastLineTrailData = [];
+    const newLastLineTrailData = [];
+    const trailsZ = {};
+    let dataTrailChunkIndex;
+    
+    const newData = !this.__someSelected ? this.model.dataArray.slice(0)
+      : this.model.dataArray.reduce((res, d, i) => {
+      if (d[TRAIL_KEY]) {
+        if (!currentTrailKey) {
+          currentTrailKey = d[TRAIL_KEY];
+          newTrailsData.length += trailsCount + 1;
+          newTrailsData[trailChunkIndex++] = d;
+          dataTrailChunkIndex = res.length;          
+          res.length += trailsCount;
+          labelData.push(Object.assign({}, d));
+        }
+        newTrailsData[trailChunkIndex++] = d;
+        res[dataTrailChunkIndex++] = d;
+      } else {
+        if (currentTrailKey) {
+          trailsZ[currentTrailKey] = d.z;
+          //newTrailsData[trailChunkIndex] = Object.assign({}, newTrailsData[trailChunkIndex - 1]);
+          newTrailsData.fill(d, trailChunkIndex - 1, newTrailsData.length);
+          //_newUpdateRangesLine.push({startRow: trailChunkIndex - 2, endRow: trailChunkIndex});
+          //newTrailsData[trailChunkIndex - 1] = d;
+          lastLineTrailData.push([newTrailsData[trailChunkIndex - 2], newTrailsData[trailChunkIndex - 2]]);
+          newLastLineTrailData.push([newTrailsData[trailChunkIndex - 2], d]);
+          trailChunkIndex = newTrailsData.length;
+          res.fill(Object.assign({uz: -15000}, res[dataTrailChunkIndex - 1]), dataTrailChunkIndex, res.length - 1);
+          res[res.length - 1] = d;
+          currentTrailKey = null;
+        } else {
+          res.push(d);
+        }
+      }
+      return res;
+
+    }, []);
+
+    this.labelZScale = d3.scaleLinear([0, labelData.length - 1],[-0.09, -0.05]);
+    
+    if (newTrailsData.length) {
+      newTrailsData.forEach(d => {
+        if (!d[TRAIL_KEY]) return;
+        d.z = trailsZ[d[TRAIL_KEY]];
+      });
+    }
+    
+    console.log("__data", this.__data, newData, this.__trailsData, newTrailsData);
+    
+    if (this.model.encoding.frame.playing) {
+      this.__oldData = this.resortData(this.__data, newData, trailsCount - 2);
+    } else {
+      this.__trailsData = newTrailsData;
+    }
+    this.__data = newData;
+    this.__newLastLineTrailData = newLastLineTrailData;
+    this.__lastLineTrailData = lastLineTrailData;
+    this.__labelData = labelData;
+    this.__labelDataKeys = labelData.map(d => d[TRAIL_KEY] || d[KEY]);
+  }
+
+  resortData(data, newData, trailsCount) {
+    const keyToIndex = {};
+    const trailsStartIndex = {};
+    let i = 0, index;
+    
+    data.forEach((d, i) => {
+      if (d[TRAIL_KEY]) {
+         if (trailsStartIndex[d[TRAIL_KEY]] === undefined) trailsStartIndex[d[TRAIL_KEY]] = i;
+      } else {
+        keyToIndex[d[KEY]] = d;
+      }
+    });
+    //console.log("trailsStartIndex", trailsStartIndex);
+    return newData.map(d => {
+      if (d[TRAIL_KEY]) {
+        index = i++;
+        if (i > trailsCount) i = 0;
+        return data[trailsStartIndex[d[TRAIL_KEY]] + index];
+      }
+      return keyToIndex[d[KEY]];
+    });
+  }
+
+  processFrameData_() {
+    return this.__dataProcessed_ = this.model.dataArray;
   }
 
   _getTransition(duration) {
@@ -1135,9 +1301,9 @@ class _VizabiBubbleChart extends Chart {
   _getBubbleOpacity(d) { 
     const ui = this.ui;
 
-    if (this.__highlightedMarkers.has(d[Symbol.for("key")])) return ui.opacityHighlight;
+    if (this.__highlightedMarkers.has(d[KEY])) return ui.opacityHighlight;
     if (isTrailBubble(d)) return ui.opacityRegular;
-    if (this.__selectedMarkers.has(d[Symbol.for("key")])) return ui.opacitySelect;
+    if (this.__selectedMarkers.has(d[KEY])) return ui.opacitySelect;
 
     if (this.__someSelected) return ui.opacitySelectDim;
     if (this.__someHighlighted) return ui.opacityHighlightDim;
@@ -1243,7 +1409,7 @@ class _VizabiBubbleChart extends Chart {
     if (highlightedFilter.markers.size === 1) {
       const highlightedKey = highlightedFilter.markers.keys().next().value;
       const d = Object.assign(this.model.dataMap.getByStr(highlightedKey));
-      const selectedKey = d[Symbol.for("trailHeadKey")] || d[Symbol.for("key")];
+      const selectedKey = d[TRAIL_KEY] || d[KEY];
 
       const x = _this.xScale(d[_this._alias("x")]);
       const y = _this.yScale(d[_this._alias("y")]);
@@ -1271,7 +1437,7 @@ class _VizabiBubbleChart extends Chart {
         this.__labelWithoutFrame(d);
       
       _this._labels.highlight(null, false);
-      _this._labels.highlight({ [Symbol.for("key")]: selectedKey }, true);
+      _this._labels.highlight({ [KEY]: selectedKey }, true);
       if (isSelected) {
         const skipCrownInnerFill = !isTrail;
         //!d.trailStartTime || d.trailStartTime == _this.model.time.formatDate(_this.time);
@@ -1361,12 +1527,12 @@ class _VizabiBubbleChart extends Chart {
     this.services.layout.size;
     this.MDL.x.scale.zoomed;
     this.MDL.y.scale.zoomed;
-    this.decorations.update.bind(this)(this._getDuration());
+    this.decorations.update.bind(this)(this.duration);
   }
 
   _updateLabel(d, x, y, duration, showhide, hidden) {
     const selectedMarkers = this.MDL.selected.data.filter.markers;
-    const key = d[Symbol.for("key")];
+    const key = d[KEY];
     // only for selected markers
     if (selectedMarkers.has(key)) {
       const trail = this.MDL.trail;
@@ -1434,7 +1600,7 @@ class _VizabiBubbleChart extends Chart {
       cache.valueS0 = d.size;
       cache.initTextBBox = null;
       cache.initFontSize = null;
-      this._labels.updateLabel({ [Symbol.for("key")]: key }, null, null, null, null, null, null, d.size_label, duration);
+      this._labels.updateLabel({ [KEY]: key }, null, null, null, null, null, null, d.size_label, duration);
     }
   }
 
@@ -1449,7 +1615,7 @@ class _VizabiBubbleChart extends Chart {
         .map(([k, v]) => utils.isNumber(v) ? k + ": " + v : v)
         .join(", ");
     if (d.label != null) return "" + d.label;
-    return d[Symbol.for("key")];
+    return d[KEY];
   }
 
   __labelWithFrame(d) {
@@ -1460,7 +1626,602 @@ class _VizabiBubbleChart extends Chart {
   _alias(enc) {
     return this.state.alias?.[enc] || enc;
   }
+
+  getDeck() {
+    const width = this.DOM.canvasWrap.node().offsetWidth;
+    const height = this.DOM.canvasWrap.node().offsetHeight;
+    this.__viewState = {
+      target: [width * 0.5, height * 0.5, 0],
+      maxZoom: 9.5,
+      minZoom: -6.9,
+      zoom: 0,
+      width,
+      height
+    };
+
+    return new DeckGL({
+      // The HTML container to render into
+      container: this.DOM.canvasWrap.node(),
+      views: this.getViews(),
+      viewState: this.__viewState,
+      // layerFilter: ({layer, viewport}) => {
+      //   //consolethis..log("layerFilter", viewport.id, layer.id);
+      //   if (viewport.id == 'axis' && layer.id === 'Axis') {
+      //     return true;
+      //   }
+      //   if (viewport.id == 'bubble' && layer.id !== 'Axis') {
+      //     return true;
+      //   }      
+      //   return false;
+      // },
+      onViewStateChange: e => {
+        //console.log("onviewstatechange", e);
+        this.__viewState = e.viewState;
+        this.deckBubble.setProps({ viewState: this.__viewState });
+      },
+      onResize: ({ width, height }) => {
+        console.log("onresize", this, width, height);
+        const targetDelta = [(this.__viewState.width - width) * 0.5, (this.__viewState.height - height) * 0.5, 0];
+        this.deckBubble.setProps({ viewState: { ...this.__viewState, target: this.__viewState.target.map((v, i) => v - targetDelta[i])}});
+      }
+    });
+  }
+
+  getViews(controllerProps = true) {
+    return [
+        // new OrthographicView({id: 'axis', 
+        //   controller: false,
+        //   //padding: { left: 50, top: 50, bottom: 50, right: 50 },
+        //   flipY: false, far: 1000}),
+        new OrthographicView({id: 'bubble', 
+          //controller: controllerProps, 
+          flipY: true, far: 1000})
+      ]
+  }
+
+  getProps() {
+    return {
+      getSourcePosition: (d) => {
+        if (!d) return;
+        console.log("src", d, d.KEY, d.uz ? d.uz : this.zScale(d.z*1.01), this.zScale(d.z*1.01));
+        return [this.xScale(d.x), this.yScale(d.y), d.uz ? d.uz : this.zScale(d.z*1.01)]
+      },
+      getTargetPosition: (_d, { data, index }) => {
+        //console.log("trgt", _d, data[index + 1]);
+        if (!_d) return;
+        const d = _d[TRAIL_KEY] ? data[index + 1] ? data[index + 1] : _d : _d;
+        if (!d) return;
+        console.log("trgt", d, d.KEY, d.uz ? d.uz : this.zScale(d.z*1.01), this.zScale(d.z*1.01));
+        return [this.xScale(d.x), this.yScale(d.y), d.uz ? d.uz : this.zScale(d.z*1.01)]
+      },    
+      getLastLineSourcePosition: (d) => {
+        //console.log("src",d);
+        if (!d) return;
+        return [this.xScale(d[0].x), this.yScale(d[0].y), this.zScale(d[0].z*1.01)]
+      },
+      getLastLineTargetPosition: (d) => {
+        //console.log("trgt", _d, data[index + 1]);
+        if (!d) return;
+        return [this.xScale(d[1].x), this.yScale(d[1].y), this.zScale(d[1].z*1.01)]
+      },    
+      getLabelText: (d) => {
+        if (!d) return;
+        return this.__labelWithFrame(d);
+      },
+      getTooltipText: (d) => {
+        if (!d) return;
+        return d[TRAIL_KEY] || this.__selectedMarkers.has(d[KEY])? this.localise(d.frame) : this.__labelWithoutFrame(d);
+      },
+      getLabelPosition: (d) => {
+        if (!d) return;
+        //const z = d[KEY] == this.activeObject.?[KEY] ?  2: 1;
+        //console.log(d[KEY],this.xScale(d.x), this.yScale(d.y));
+        //return [this.xScale(d.x), this.yScale(d.y)];
+        return [this.xScale(d.x), this.yScale(d.y)];
+      },
+      getLabelPositionZ: (d, { index }) => {
+        if (!d) return;
+        //const z = d[KEY] == this.activeObject.?[KEY] ?  2: 1;
+        console.log("posZ", this.labelZScale(index), d[KEY], index);
+        //return [this.xScale(d.x), this.yScale(d.y)];
+        return [this.xScale(d.x), this.yScale(d.y), this.labelZScale(index)];
+      },
+      getTooltipPixelOffset: (d) => {
+        if (!d) return;
+        const r = utils.areaToRadius(this.sScale(d.size)) / Math.sqrt(2) + 7;
+        return [-r, -r];
+      },
+      getPixelOffset: (d) => {
+        if (!d) return;
+        const key = d[TRAIL_KEY] || d[KEY];
+        const offsetX = this.labelOffset[key] && this.labelOffset[key][0] || 0;
+        const offsetY = this.labelOffset[key] && this.labelOffset[key][1] || 0;
+        const r = utils.areaToRadius(this.sScale(d.size)) / Math.sqrt(2) + 4;
+        return [offsetX || -r, offsetY || -r];
+      },
+      getDragged: (d) => {
+        if (!d) return;
+        const key = d[TRAIL_KEY] || d[KEY];
+        return this.labelDragged[key];
+      },
+      onLabelDragStart: ({ object:d, x, y, coordinate, sourceLayer, viewport }, evt, dragFlag) => {
+        console.log("onLabelDragStart", d, x, y, coordinate, viewport, sourceLayer)
+        if (!d) return;
+        const key = d[TRAIL_KEY] || d[KEY];
+        if (!this.labelOffset[key]) {
+          const r = utils.areaToRadius(this.sScale(d.size)) / Math.sqrt(2) + 4;
+          this.labelOffset[key] = [-r, -r];
+        }
+  
+        //adjust label offset if label with current offset located outside of vieport
+        const offset = this.labelOffset[key];
+        const pPos = viewport.project(this.props.getPosition(d).slice(0,2));
+        const vW = viewport.width;
+        const vH = viewport.height;
+        const [lW, lH] = sourceLayer.parent.state.labelSize;
+        const [lPaddL, lPaddT, lPaddR = lPaddL, lPaddB = lPaddT] = sourceLayer.parent.props.backgroundPadding;
+  
+        if (!this.labelDragged[key]) {
+          this.labelDragged[key] = 1.0;
+  
+          if(pPos[0] + offset[0] < lW + lPaddL) {
+            offset[0] = lW - offset[0];
+          }
+          if(pPos[1] + offset[1] < lH + lPaddT) {
+            offset[1] = lH - offset[1];
+          }    
+        }
+  
+        if(pPos[0] + offset[0] < lW + lPaddL) {
+          offset[0] = lW + lPaddL - pPos[0];
+        } else if(pPos[0] + offset[0] > vW - lPaddR) {
+          offset[0] = vW - lPaddR - pPos[0];
+        }
+        
+        if(pPos[1] + offset[1] < lH + lPaddT) {
+          offset[1] = lH + lPaddT - pPos[1];
+        } else if(pPos[1] + offset[1] > vH - lPaddB) {
+          offset[1] = vH - lPaddB - pPos[1];
+        }
+  
+        console.log("offset", offset, "point", pPos, lW, lH, viewport);
+        this.dragX0 = this.labelOffset[key][0] - x;
+        this.dragY0 = this.labelOffset[key][1] - y;
+        //this.deckBubble.setProps({layers: this.getBubbleLayers(undefined, false, false), controller: { dragPan: dragFlag }}); 
+        return true;
+      },
+      onLabelDrag: ({ object:d, x, y, coordinate, sourceLayer, viewport }, evt, dragFlag) => {
+        if (!d) return;
+        
+        this.dragX = this.dragX0 + x;
+        this.dragY = this.dragY0 + y;
+        const key = d[TRAIL_KEY] || d[KEY];
+        this.labelOffset[key][0] = this.dragX;
+        this.labelOffset[key][1] = this.dragY;
+        const pos = this.props.getPosition(d).slice(0,2);
+        //console.log("offset", this.labelOffset[key], "point", sourceLayer.project(pos),  viewport.getBounds(), viewport);
+        this.deckBubble.setProps({layers: this.getBubbleLayers(undefined, false, false), views: this.getViews({ dragPan: dragFlag }),}); 
+        return true;
+      },
+      onLabelClick: ({ object:d, layer, sourceLayer }) => {
+        if (!d) return;
+        if (sourceLayer.id !== "labelTextLayer-close") return;
+        
+        const dataKey = {[KEY]: d[TRAIL_KEY || KEY]}
+        console.log("click pretoggle", d, dataKey);
+        mobx.runInAction(() => {
+          this.MDL.selected.data.filter.toggle(dataKey);
+          console.log("click toggle", dataKey);
+        })
+        layer.setState({closeData: []});
+        
+        this.deckBubble.setProps({layers: this.getBubbleLayers(undefined, false, false)});
+      },
+      getLabelLineTargetPixelOffset: (d) => {
+        if (!d) return;
+        const key = d[TRAIL_KEY] || d[KEY];
+        const offsetX = this.labelOffset[key] && this.labelOffset[key][0] || 0;
+        const offsetY = this.labelOffset[key] && this.labelOffset[key][1] || 0;
+        return [offsetX || 0, -offsetY || 0];
+      },
+      getPosition: (d) => {
+        if (!d) return;
+        let zHover = 0;
+        if (this.activeObject && this.activeObject[KEY] == d[KEY]) {
+          //zHover = -0.05;
+          //console.log("zHover", zHover, d, this.activeObject)
+        }
+        //console.log(d[KEY],this.xScale(d.x), this.yScale(d.y), d.uz ? d.uz : this.zScale(d.z))
+        return [this.xScale(d.x), this.yScale(d.y), d.uz ? d.uz : this.zScale(d.z)]
+      },
+      getPositionXY: (d) => {
+        if (!d) return;
+        //console.log(d[KEY],this.xScale(d.x), this.yScale(d.y), d.uz ? d.uz : this.zScale(d.z))
+        return [this.xScale(d.x), this.yScale(d.y)]
+      },
+      
+      getFillColor: (d) => {
+        if (!d) return;
+        const ui = this.ui;
+        const c = d3.color(this.cScale(d.color)).formatRgb().slice(4, -1).split(",").map(v=>+v);
+        const alpha = this.activeObject && d[KEY] == this.activeObject[KEY] ? ui.opacityHighlight : this.__someSelected ? this.__selectedMarkers.has(d[TRAIL_KEY] || d[KEY]) ? ui.opacitySelect : ui.opacitySelectDim : this.activeObject ? ui.opacityHighlightDim : ui.opacityRegular;
+        c[3] = alpha * 255;
+        return c;
+      },
+      getLastLineFillColor: (d) => {
+        if (!d) return;
+        const ui = this.ui;
+        const c = d3.color(this.cScale(d[0].color)).formatRgb().slice(4, -1).split(",").map(v=>+v);
+        const alpha = this.activeObject && d[0][KEY] == this.activeObject[KEY] ? ui.opacityHighlight : this.__someSelected ? this.__selectedMarkers.has(d[0][TRAIL_KEY] || d[0][KEY]) ? ui.opacitySelect : ui.opacitySelectDim : this.activeObject ? ui.opacityHighlightDim : ui.opacityRegular;
+        c[3] = alpha * 255;
+        return c;
+      },
+      getLineColor: (d) => {
+        if (!d) return;
+        const ui = this.ui;
+        const c = [0, 0, 0, 127]
+        const alpha = this.activeObject && d[KEY] == this.activeObject[KEY] ? ui.opacityHighlight : this.__someSelected ? this.__selectedMarkers.has(d[TRAIL_KEY] || d[KEY]) ? ui.opacitySelect : ui.opacitySelectDim : this.activeObject ? ui.opacityHighlightDim : ui.opacityRegular;
+        c[3] = alpha * 255;
+        return c;
+      },
+      getRadius: (d) => {
+        if (!d) return;
+        return utils.areaToRadius(this.sScale(d.size));
+      },
+      getWidthTrailLine: (d) => {
+        if (!d) return;
+        return this.trailSizeScale(d.size);
+      },
+      onHover: ({ object: d }) => {
+        //console.log("onhover", d, this.activeObject);  
+        const invalidate = d?.[KEY] !== this.activeObject?.[KEY]
+        this.activeObject = d;
+        if (invalidate) {
+          //setTimeout(() => {
+          //console.log("invalidate", d, this.activeObject);  
+          this.deckBubble.setProps({layers: this.getBubbleLayers(undefined, false, false)})
+          //}, 0);
+        }
+      },
+      onClick: ({ object:d, index }) => {
+        //console.log("onhover", d, this.activeObject);  
+        if (!d) return;
+        let dataKey = {[KEY]: d[KEY]}
+        console.log("click pretoggle", d, dataKey);
+        if (d[TRAIL_KEY]) {
+          const nextIndex = index + 1;
+          if (_data[nextIndex]?.[TRAIL_KEY] == d[TRAIL_KEY]) {
+            return;
+          } else {
+            dataKey = {[KEY]: d[TRAIL_KEY]}
+          }
+        }
+        //const invalidate = d?.[KEY] !== this.activeObject?.[KEY]
+        mobx.runInAction(() => {
+          this.MDL.selected.data.filter.toggle(dataKey);
+          console.log("click toggle", dataKey);
+        })      
+        //this.activeObject = d;
+        //if (invalidate) {
+          //setTimeout(() => {
+          //console.log("invalidate", d, this.activeObject);  
+        this.deckBubble.setProps({layers: this.getBubbleLayers(undefined, false, false)})
+          //}, 0);
+        //}
+      },
+    }
+  }
+
+  //const chunkCount = 500;
+  getBubbleLayers(data = this.__data, t = true, dataDiff = true, lastTrailLineData = []) {
+    //console.log("data", data, t, dataDiff, lastTrailLineData);
+    /*const scatters = [0,500,1000,1500,2000,2500,3000,4500,4000,5000,5500,6000,6500].map(s => {
+      return new ScatterplotLayer({
+        //parameters: {depthTest: false},
+        id: "scatterPlotLayer_"+s,
+        data: data.slice(s, s+chunkCount),
+        stroked: true,
+        getPosition: this.props.getPosition,
+        getRadius: this.props.getRadius,
+        radiusUnits: 'pixels',
+        getFillColor: this.props.getFillColor,
+        getLineColor: this.props.getLineColor,
+        getLineWidth: 1,
+        lineWidthUnits: 'pixels',
+        //billboard: true,
+        pickable: true,
+        onHover: this.props.onHover,
+        onClick: this.props.onClick,
+        updateTriggers: {
+          getFillColor: [this.activeObject],
+          getLineColor: [this.activeObject],
+          //getPosition: [this.activeObject]
+        },
+        //_dataDiff: (newData, oldData) => {
+        //  console.log("_datediff", newData, oldData, _updateRanges);
+          //return dataDiff ? playing ? _updateRanges : null : null;
+        //}
+      })
+    })*/
+      
+    return [//...scatters,
+      // new Axis({
+      //     xScale: this.xScale,
+      //     yScale: this.yScale,
+      //     dimLabels: !!this.activeObject,//this.props.hoveredFeature !== null,
+      //     getXLabel: () => this.MDL.x.data.conceptProps.name,//this.props.getXLabel,
+      //     getYLabel: () => this.MDL.y.data.conceptProps.name,//this.props.getYLabel,
+      //     xFormat: "tkr",//this.props.xFormat,
+      //     yFormat: "tkr",//this.props.yFormat,
+      //     labelTextSize: 10,//this.props.axisLabelTextSize,
+      //     tickTextSize: 10,//this.props.axisTickTextSize,
+      //     //modelMatrix: getMMatrix(zoom)
+      // }),
+      new LineLayer({
+        id: 'lineLayer',
+        data: this.__trailsData,
+        getColor: this.props.getFillColor,
+        getSourcePosition: this.props.getSourcePosition,
+        getTargetPosition: this.props.getTargetPosition,
+        getWidth: this.props.getWidthTrailLine,
+        getPolygonOffset: ({layerIndex}) => [0, layerIndex * 100],
+        updateTriggers: {
+          getColor: [this.activeObject],
+        },
+        //pickable: true,
+        //_dataDiff: (newData, oldData) => {
+        //  console.log("_datediff line", newData, oldData, _updateRangesLine);
+        //  return dataDiff ? playing ? _updateRangesLine : null : null;
+        //}
+      }),
+      new LineLayer({
+        id: 'lastLineLayer',
+        data: lastTrailLineData,
+        getColor: this.props.getLastLineFillColor,
+        getSourcePosition: this.props.getLastLineSourcePosition,
+        getTargetPosition: this.props.getLastLineTargetPosition,
+        getWidth: this.props.getWidthTrailLine,
+        updateTriggers: {
+          //getColor: [this.activeObject],
+          getTargetPosition: [t]
+        },
+        transitions: t ? { 
+          getTargetPosition: { 
+            duration: this.duration,
+          },
+        } : {},
+        //pickable: true,
+        //_dataDiff: (newData, oldData) => {
+        //  console.log("_datediff line", newData, oldData, _updateRangesLine);
+        //  return dataDiff ? playing ? _updateRangesLine : null : null;
+        //}
+      }),
+      new ScatterplotLayer({
+        parameters: {depthTest: false},
+        id: "scatterPlotLayer",//_"+s,
+        data: data,//.slice(0),//.slice(s, s+chunkCount),
+        stroked: true,
+        getPosition: this.props.getPosition,
+        getRadius: this.props.getRadius,
+        radiusUnits: 'pixels',
+        getFillColor: this.props.getFillColor,
+        getLineColor: this.props.getLineColor,
+        getLineWidth: 1,
+        lineWidthUnits: 'pixels',
+        //billboard: true,
+        pickable: true,
+        onHover: this.props.onHover,
+        onClick: this.props.onClick,
+        updateTriggers: {
+          getFillColor: [this.activeObject],
+          getLineColor: [this.activeObject],
+          getPosition: [this.activeObject, t]
+        },
+        //numInstances: 10,
+        transitions: t ? { 
+          getPosition: { 
+            duration: this.duration,
+          },
+          getRadius: {
+            duration: this.duration,
+          },
+        } : {},
+        //_dataDiff: (newData, oldData) => {
+        //  console.log("_datediff", newData, oldData, _updateRanges);
+          //return dataDiff ? playing ? _updateRanges : null : null;
+        //}
+      }),
+      new ScatterplotLayer({
+        parameters: {depthTest: false},
+        id: "activeObjectscatterPlotLayer",//_"+s,
+        data: [this.activeObject],//.slice(0),//.slice(s, s+chunkCount),
+        stroked: true,
+        getPosition: this.props.getPosition,
+        getRadius: this.props.getRadius,
+        radiusUnits: 'pixels',
+        getFillColor: this.props.getFillColor,
+        getLineColor: this.props.getLineColor,
+        getLineWidth: 1,
+        lineWidthUnits: 'pixels',
+        //billboard: true,
+        pickable: false,
+        onHover: this.props.onHover,
+        onClick: this.props.onClick,
+        updateTriggers: {
+          getFillColor: [this.activeObject],
+          getLineColor: [this.activeObject],
+          getPosition: [this.activeObject, t]
+        },
+        //numInstances: 10,
+        transitions: t ? { 
+          getPosition: { 
+            duration: this.duration,
+          },
+          getRadius: {
+            duration: this.duration,
+          },
+        } : {},
+        //_dataDiff: (newData, oldData) => {
+        //  console.log("_datediff", newData, oldData, _updateRanges);
+          //return dataDiff ? playing ? _updateRanges : null : null;
+        //}
+      }),
+      new TextLayer({
+        id: 'tooltipTextLayer',
+        _subLayerProps: {
+          background: {
+            type: LabelBackgroundLayer,
+            cornerRadius: 5,
+            getDragged: this.props.getDragged,
+            updateTriggers: {
+              getPixelOffset: [this.dragX, this.dragY],
+              getDragged: [this.dragX0, this.dragY0],
+            },   
+          },
+          characters: {
+            type: LabelMultiIconLayer,
+            getDragged: this.props.getDragged,
+            updateTriggers: {
+              getPixelOffset: [this.dragX, this.dragY],
+              getDragged: [this.dragX0, this.dragY0],
+            },   
+          }
+        },
+        data: this.activeObject && this.__tooltipDataFilter() ? [this.activeObject] : [],
+        getPosition: this.props.getLabelPosition,
+        getPixelOffset: this.props.getTooltipPixelOffset,
+        getText: this.props.getTooltipText,
+        getColor: [10, 10, 10],
+        getSize: 16,
+        getTextAnchor: 'end',
+        getAlignmentBaseline: 'bottom',
+        getDragged: this.props.getDragged,
+        pickable: true,
+        background: true,
+        backgroundPadding: [6, 4],
+        getBorderWidth: 1.5,
+        billboard: true,
+        lineWidthUnits: 'pixels',
+        radiusUnits: 'pixels',
+        fontFamily: this.FONT_FAMILY,
+        characterSet: CHARACTER_SET,
+      }),
+      /*new LabelLineLayer({
+        id: 'labelLineLayer',
+        data: this.__labelData,
+        getColor: [102, 102, 102],
+        getSourcePosition: this.props.getLabelPositionZ,
+        getTargetPosition: this.props.getLabelPositionZ,
+        getTargetPixelOffset: this.props.getLabelLineTargetPixelOffset,
+        getSourceDashOffset: this.props.getRadius,
+        getWidth: 1,
+        updateTriggers: {
+          //getColor: [this.activeObject],
+          getTargetPixelOffset: [this.dragX, this.dragY]
+        },
+        transitions: t ? { 
+          getSourcePosition: { 
+            duration: this.duration,
+          },
+          getTargetPosition: { 
+            duration: this.duration,
+          },
+          getTargetPixelOffset: { 
+            duration: this.duration,
+          },
+        } : {},
+        //pickable: true,
+        //_dataDiff: (newData, oldData) => {
+        //  console.log("_datediff line", newData, oldData, _updateRangesLine);
+        //  return dataDiff ? playing ? _updateRangesLine : null : null;
+        //}
+      }),*/
+      
+      new LabelLayer({
+        //parameters: {depthTest: false},
+        id: 'labelTextLayer',
+        _subLayerProps: {
+          background: {
+            type: LabelBackgroundLayer,
+            cornerRadius: 5,
+            getDragged: this.props.getDragged,
+            updateTriggers: {
+              getPixelOffset: [this.dragX, this.dragY],
+              getDragged: [this.dragX0, this.dragY0],
+            },   
+          },
+          characters: {
+            type: LabelMultiIconLayer,
+            getDragged: this.props.getDragged,
+            updateTriggers: {
+              getPixelOffset: [this.dragX, this.dragY],
+              getDragged: [this.dragX0, this.dragY0],
+            },   
+          }
+        },
+        data: this.__labelData,
+        //fontSettings: {
+        //  sdf: true,
+        //  fontSize: 24,
+        //},
+        getPosition: this.props.getLabelPositionZ,
+        getPixelOffset: this.props.getPixelOffset,
+        getText: this.props.getLabelText,
+        getLineSourceFillOffset: this.props.getRadius,
+        getRadius: this.props.getRadius,
+        getColor: [10, 10, 10],
+        getSize: 16,
+        getTextAnchor: 'end',
+        getAlignmentBaseline: 'bottom',
+        getDragged: this.props.getDragged,
+        //getPolygonOffset: null,//({layerIndex}) => [0, layerIndex * 100],
+        onDragStart: (info, e) => this.props.onLabelDragStart(info, e, false),
+        onDrag: (info, e) => this.props.onLabelDrag(info, e, false),
+        onDragEnd: (info, e) => this.props.onLabelDrag(info, e, true),
+        //onHover: this.props.onLabelHover,
+        onClick: this.props.onLabelClick,
+        characterSet: CHARACTER_SET,
+        fontFamily: this.FONT_FAMILY,
+        pickable: true,
+        background: true,
+        backgroundPadding: [6, 4],
+        getBorderWidth: 1,
+        billboard: true,
+        lineWidthUnits: 'pixels',
+        radiusUnits: 'pixels',
+        //outlineColor: [255, 255, 255],
+        //outlineWidth: 0,
+        updateTriggers: {
+          getPixelOffset: [this.dragX, this.dragY],
+          getDragged: [this.dragX0, this.dragY0],
+        },        
+        transitions: t ? {
+          getPosition: {
+            duration: this.duration,
+          },
+          getRadius: {
+            duration: this.duration,
+          },
+          getLineSourceFillOffset: {
+            duration: this.duration,
+          }
+        } : {}
+      }),
+    ]
+  }
+
+  __tooltipDataFilter() {
+    const index = this.__labelDataKeys.indexOf(this.activeObject[TRAIL_KEY] || this.activeObject[KEY]);
+    return this.activeObject.frame != this.__labelData[index]?.frame || ((this.activeObject[TRAIL_KEY] || this.activeObject[KEY]) != this.__labelData[index]?.[TRAIL_KEY]);
+  }
+
+  get zScale() {
+    return d3.scaleLinear(this.MDL.size.scale.d3Scale.domain(), [-0.1, -0.3]);
+  }
+
 }
+
+
 
 _VizabiBubbleChart.DEFAULT_UI = {
   show_ticks: true,
@@ -1504,7 +2265,9 @@ _VizabiBubbleChart.DEFAULT_UI = {
 //export default BubbleChart;
 export const VizabiBubbleChart = decorate(_VizabiBubbleChart, {
   "MDL": computed,
-  "cScale": computed
+  "cScale": computed,
+  "zScale": computed,
+  "duration": computed
 });
 
 Chart.add("bubblechart", VizabiBubbleChart);

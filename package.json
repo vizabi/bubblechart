@@ -1,6 +1,6 @@
 {
   "name": "@vizabi/bubblechart",
-  "version": "4.1.7",
+  "version": "4.2.0",
   "description": "Vizabi bubble chart",
   "scripts": {
     "prepublishOnly": "npm run build",
@@ -46,6 +46,8 @@
   },
   "homepage": "https://github.com/vizabi/bubblechart#readme",
   "peerDependencies": {
+    "@deck.gl/core": "9.0.40",
+    "@deck.gl/layers": "9.0.40",
     "@vizabi/shared-components": "*",
     "d3": "^6.7.0",
     "mobx": "^5.15.7"
