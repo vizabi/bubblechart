@@ -1,4 +1,4 @@
-export default `\
+export default /*glsl*/`\
 #version 300 es
 #define SHADER_NAME label-text-background-layer-fragment-shader
 
