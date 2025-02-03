@@ -88,6 +88,11 @@
       grid-column-start: 1;
       transform: translateZ(0);
       overflow: visible;
+      pointer-events: none;
+
+      .vzb-bc-axis-titles {
+        pointer-events: all;
+      }
 
       .vzb-bc-bubbles-crop {
         touch-action: none;
@@ -103,7 +108,8 @@
         stroke: $vzb-color-grey;
       }
       .vzb-bc-eventarea {
-        pointer-events: all;
+        //pointer-events: all;
+        pointer-events: none;
         fill: none;
       }
 
@@ -141,15 +147,24 @@
 
       &.vzb-panhand .vzb-bc-bubbles-crop {
         cursor: grab;
+        .vzb-bc-eventarea {
+          pointer-events: all;
+        }  
       }
 
       &.vzb-panhand.vzb-zooming .vzb-bc-bubbles-crop {
         cursor: grabbing;
+        .vzb-bc-eventarea {
+          pointer-events: all;
+        }  
       }
 
       &.vzb-zoomin .vzb-bc-bubbles-crop,
       &.vzb-zoomin .vzb-bc-labels-crop {
         cursor: zoom-in;
+        .vzb-bc-eventarea {
+          pointer-events: all;
+        }  
         .vzb-bc-entity {
           cursor: zoom-in !important;
           pointer-events: none !important;
@@ -162,6 +177,9 @@
       &.vzb-zoomout .vzb-bc-bubbles-crop,
       &.vzb-zoomout .vzb-bc-labels-crop {
         cursor: zoom-out;
+        .vzb-bc-eventarea {
+          pointer-events: all;
+        }  
         .vzb-bc-entity {
           cursor: zoom-out !important;
           pointer-events: none !important;

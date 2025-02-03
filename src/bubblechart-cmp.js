@@ -17,8 +17,7 @@ import {
 } from "mobx";
 
 import {decorate, computed, observable} from "mobx";
-import { OrthographicView } from "@deck.gl/core";
-import DeckGL from "@deck.gl/core/dist/scripting/deckgl.js";
+import { Deck, OrthographicView } from "@deck.gl/core";
 import { ScatterplotLayer, LineLayer, TextLayer } from "@deck.gl/layers";
 import LabelLayer from "./layers/label-layer/label-layer.js";
 import LabelBackgroundLayer from "./layers/label-layer/label-background-layer/label-background-layer.js";
@@ -131,6 +130,9 @@ class _VizabiBubbleChart extends Chart {
                   <line class="vzb-bc-projection-y"></line>
               </g>
           </svg>
+      </svg>
+      <div class="vzb-bubblechart-canvas-wrap vzb-bubblechart-svg"></div>
+      <svg class="vzb-bubblechart-svg vzb-export">
           <svg class="vzb-bubblechart-svg-main">
               <g class="vzb-bc-graph">
                   <g class="vzb-bc-axis-titles"></g>
@@ -147,6 +149,8 @@ class _VizabiBubbleChart extends Chart {
               </g>
               <g class="vzb-datawarning-button vzb-noexport"></g>
           </svg>
+      </svg>
+      <svg class="vzb-bubblechart-svg vzb-export">
           <svg class="vzb-bubblechart-svg-front">
               <g class="vzb-bc-graph">
                   <svg class="vzb-bc-bubbles-crop">
@@ -176,7 +180,6 @@ class _VizabiBubbleChart extends Chart {
               </defs>
           </svg>
       </svg>
-      <div class="vzb-bubblechart-canvas-wrap vzb-bubblechart-svg"/>
       <div class="vzb-tooltip vzb-hidden vzb-tooltip-mobile"></div>
     `;
 
@@ -185,7 +188,6 @@ class _VizabiBubbleChart extends Chart {
     this.__data;
     this.__oldData;
     this.__labelData;
-    this.__labelDataKeys;
     this.__trailsData;
     this.__lastLineTrailData;
     this.__newLastLineTrailData;
@@ -196,6 +198,8 @@ class _VizabiBubbleChart extends Chart {
     this.dragY0;
     this.dragX;
     this.dragY;
+    this.redrawUpdateTrigger = 0;
+    this.opacityUpdateTrigger = 0;
   }
 
   setup() {
@@ -304,7 +308,7 @@ class _VizabiBubbleChart extends Chart {
         }
       });
 
-
+    this.DOM.canvasWrap.style("pointer-events", "all");
     this.FONT_FAMILY = this.element.style("font-family").split(",")[0];
     this.deckBubble = this.getDeck();
     this.props = this.getProps();
@@ -342,14 +346,17 @@ class _VizabiBubbleChart extends Chart {
     this.addReaction(this._updateSize);
     //    this.addReaction(this._resetZoomMinMaxXReaction, this._resetZoomMinMaxX);
     //    this.addReaction(this._resetZoomMinMaxYReaction, this._resetZoomMinMaxY);
-    this.addReaction(this._updateOpacity);
+    //this.addReaction(this._updateOpacity_);
+    this.addReaction(this._redrawOpacity);
+    this.addReaction(this._updateHighlighted);
+    this.addReaction(this._updateSelected);
     this.addReaction(this.updateColorPatterns);
     this.addReaction(this._updateShowYear);
     this.addReaction(this._updateYear);
-    this.addReaction(this.drawData_);
+    //this.addReaction(this.drawData_);
     this.addReaction(this.drawData);
     this.addReaction(this._zoomToMarkerMaxMin);
-    this.addReaction(this.redrawData_);
+    //this.addReaction(this.redrawData_);
     this.addReaction(this.redrawData);
 
     this.addReaction(this._selectDataPoints);
@@ -363,13 +370,14 @@ class _VizabiBubbleChart extends Chart {
   drawData_() {
     this.processFrameData_();
     this._updateMarkerSizeLimits();
-    this._createAndDeleteBubbles();
+    //this._createAndDeleteBubbles();
     //this.redrawData();
   }
 
   drawData() {
-    this.processFrameData();
+    this.perfDataStart = performance.now();
     this._updateMarkerSizeLimits();
+    this.processFrameData();
     this._drawBubbles();
   }
 
@@ -682,7 +690,7 @@ class _VizabiBubbleChart extends Chart {
 
   }
 
-  redrawData(duration) {
+  redrawData(duration = 0) {
     //this.services.layout.size;
     //this.MDL.x.scale.type;
     //this.MDL.y.scale.type;
@@ -690,7 +698,16 @@ class _VizabiBubbleChart extends Chart {
     this.MDL.size.scale.type;
     this.MDL.size.scale.extent;
 
-    this._drawBubbles();
+    if (duration) {
+      this.deckBubble.setProps({layers: this.getBubbleLayers(this.__data, !!duration, 0.001)});
+      requestAnimationFrame(() => {
+        this.redrawUpdateTrigger++;
+        this.deckBubble.setProps({layers: this.getBubbleLayers(this.__data, !!duration, duration)});
+      });
+    } else {
+        this.redrawUpdateTrigger++;
+        this.deckBubble.setProps({layers: this.getBubbleLayers(this.__data, !!duration, duration)});
+    }
   }
 
   redrawData_(duration) {
@@ -1075,17 +1092,20 @@ class _VizabiBubbleChart extends Chart {
 
   _drawBubbles() {
     if (this.model.encoding.frame.playing) {
-      requestAnimationFrame(() => {
-        this.deckBubble.setProps({layers: this.getBubbleLayers(this.__oldData, false, undefined, this.__lastLineTrailData)})
+      //requestAnimationFrame(() => {
+        this.deckBubble.setProps({layers: this.getBubbleLayers(this.__oldData, false, 0, undefined, this.__lastLineTrailData)})
         requestAnimationFrame(() => {
-          this.deckBubble.setProps({layers: this.getBubbleLayers(this.__oldData, true, undefined, this.__lastLineTrailData)})
+          this.redrawUpdateTrigger++;
+          this.deckBubble.setProps({layers: this.getBubbleLayers(this.__oldData, true, 0.001, undefined, this.__lastLineTrailData)})
           requestAnimationFrame(() => {
-            this.deckBubble.setProps({layers: this.getBubbleLayers(this.__data, true, undefined, this.__newLastLineTrailData)})
+            this.redrawUpdateTrigger++;
+            this.__labelData = this.__newLabelData;
+            this.deckBubble.setProps({layers: this.getBubbleLayers(this.__data, true, this.duration + this.perfDataStart - performance.now(), undefined, this.__newLastLineTrailData)})
             this.__trailsData = this.__newTrailsData;
             //_updateRangesLine = _newUpdateRangesLine;
           });
         });
-      });
+      //});
     } else {
       //_updateRangesLine = _newUpdateRangesLine;
       this.deckBubble.setProps({layers: this.getBubbleLayers(this.__data, false)});
@@ -1100,15 +1120,16 @@ class _VizabiBubbleChart extends Chart {
     let currentTrailKey = null;
     //const _updateRanges = [];
     //const _newUpdateRangesLine = [];
-    const labelData = [];
+    const selectedData = new Map();
     const newTrailsData = [];
     const lastLineTrailData = [];
     const newLastLineTrailData = [];
     const trailsZ = {};
     let dataTrailChunkIndex;
-    
-    const newData = !this.__someSelected ? this.model.dataArray.slice(0)
-      : this.model.dataArray.reduce((res, d, i) => {
+    const trailsShowAndSomeSelected = this.MDL.trail.show && this.__someSelected;
+
+    const newData = trailsShowAndSomeSelected ? this.model.dataArray.reduce((res, d, i) => {
+      d.r = utils.areaToRadius(this.sScale(d.size || 0));
       if (d[TRAIL_KEY]) {
         if (!currentTrailKey) {
           currentTrailKey = d[TRAIL_KEY];
@@ -1116,7 +1137,7 @@ class _VizabiBubbleChart extends Chart {
           newTrailsData[trailChunkIndex++] = d;
           dataTrailChunkIndex = res.length;          
           res.length += trailsCount;
-          labelData.push(Object.assign({}, d));
+          selectedData.set(d[TRAIL_KEY], Object.assign({}, d));
         }
         newTrailsData[trailChunkIndex++] = d;
         res[dataTrailChunkIndex++] = d;
@@ -1139,9 +1160,12 @@ class _VizabiBubbleChart extends Chart {
       }
       return res;
 
-    }, []);
+    }, []) : this.model.dataArray.map(d => {
+      d.r = utils.areaToRadius(this.sScale(d.size || 0));
+      return d;
+    });
 
-    this.labelZScale = d3.scaleLinear([0, labelData.length - 1],[-0.09, -0.05]);
+    this.labelZScale = d3.scaleLinear([0, selectedData.size - 1],[-0.09, -0.05]);
     
     if (newTrailsData.length) {
       newTrailsData.forEach(d => {
@@ -1150,18 +1174,22 @@ class _VizabiBubbleChart extends Chart {
       });
     }
     
-    console.log("__data", this.__data, newData, this.__trailsData, newTrailsData);
+    console.log("__data", this.model.dataArray, this.__data, newData, this.__trailsData, newTrailsData);
     
+    this.__newLabelData = trailsShowAndSomeSelected ? this.__selectedKeys.map(key => selectedData.get(key) || this.model.dataMap.getByStr(key)) 
+      :
+      this.__selectedKeys.map(key => this.model.dataMap.getByStr(key));
+
     if (this.model.encoding.frame.playing) {
       this.__oldData = this.resortData(this.__data, newData, trailsCount - 2);
     } else {
       this.__trailsData = newTrailsData;
+      this.__labelData = this.__newLabelData;
     }
     this.__data = newData;
+    this.__newTrailsData = newTrailsData;
     this.__newLastLineTrailData = newLastLineTrailData;
     this.__lastLineTrailData = lastLineTrailData;
-    this.__labelData = labelData;
-    this.__labelDataKeys = labelData.map(d => d[TRAIL_KEY] || d[KEY]);
   }
 
   resortData(data, newData, trailsCount) {
@@ -1280,7 +1308,40 @@ class _VizabiBubbleChart extends Chart {
     ////  + (this.model.ui.chart.timeInTrails && time && (this.model.time.start - this.model.time.end !== 0) ? " " + time : "");
   }
 
-  _updateOpacity(selection) {
+  _updateHighlighted() {
+    const highlightedFilter = this.MDL.highlighted.data.filter;
+
+    this.__someHighlighted = highlightedFilter.any();
+    this.__highlightedMarkers = new Map(highlightedFilter.markers);
+    this.activeObject = this.__someHighlighted ? Object.assign({}, this.model.dataMap.getByStr(this.__highlightedMarkers.keys().next().value)) : null;
+    
+    this.deckBubble.setProps({layers: this.getBubbleLayers(undefined, false)})
+  }
+
+  _updateSelected() {
+    const selectedFilter = this.MDL.selected.data.filter;
+    
+    this.__someSelected = selectedFilter.any();
+    this.__selectedMarkers = new Map(selectedFilter.markers);
+    this.__selectedKeys = [...this.__selectedMarkers.keys()];
+
+
+    Object.keys(this.labelOffset).forEach(key => {
+      if (!this.__selectedMarkers.has(key)) delete this.labelOffset[key];
+    });
+    Object.keys(this.labelDragged).forEach(key => {
+      if (!this.__selectedMarkers.has(key)) delete this.labelDragged[key];
+    });
+
+    runInAction(() => {
+      if (!this.MDL.trail.show) {
+        this.__labelData = this.__selectedKeys.map(key => this.model.dataMap.getByStr(key));
+        this.deckBubble.setProps({layers: this.getBubbleLayers(undefined, false)});
+      }
+    });
+  }
+
+  _updateOpacity_(selection) {
     //this.MDL.frame.value; //listen
 
     const highlightedFilter = this.MDL.highlighted.data.filter;
@@ -1296,6 +1357,17 @@ class _VizabiBubbleChart extends Chart {
     _selection
       .style("opacity", d => this._getBubbleOpacity(d, this.ui))
       .style("pointer-events", d => this._getBubbleOpacity(d, this.ui) === 0 ? "none" : "visible");
+  }
+
+  _redrawOpacity() {
+    this.ui.opacityRegular;
+    this.ui.opacitySelect;
+    this.ui.opacitySelectDim;
+    this.ui.opacityHighlight;
+    this.ui.opacityHighlightDim;
+
+    this.opacityUpdateTrigger++;
+    this.deckBubble.setProps({layers: this.getBubbleLayers(this.__data, false, 0)});
   }
 
   _getBubbleOpacity(d) { 
@@ -1402,13 +1474,14 @@ class _VizabiBubbleChart extends Chart {
     this.someHighlighted = highlightedFilter.any();
 
     //this.updateBubbleOpacity();
-    const trailShow = this.MDL.trail.show;
-    const trailStarts = this.MDL.trail.starts;
-    const trailGroupDim = this.MDL.trail.groupDim;
+    //const trailShow = this.MDL.trail.show;
+    //const trailStarts = this.MDL.trail.starts;
+    //const trailGroupDim = this.MDL.trail.groupDim;
 
     if (highlightedFilter.markers.size === 1) {
       const highlightedKey = highlightedFilter.markers.keys().next().value;
-      const d = Object.assign(this.model.dataMap.getByStr(highlightedKey));
+      const d = this.activeObject;
+      //Object.assign(this.model.dataMap.getByStr(highlightedKey));
       const selectedKey = d[TRAIL_KEY] || d[KEY];
 
       const x = _this.xScale(d[_this._alias("x")]);
@@ -1426,18 +1499,18 @@ class _VizabiBubbleChart extends Chart {
       // const trailStarts = this.MDL.trail.starts;
       // const trailGroupDim = this.MDL.trail.groupDim;
       const isSelected = selectedFilter.has(selectedKey);
-      const isTailTrail = !(trailStarts[selectedKey] - d[trailGroupDim]);
+      //const isTailTrail = !(trailStarts[selectedKey] - d[trailGroupDim]);
       const isTrail = isTrailBubble(d);
 
-      let text = "";
+      //let text = "";
       
-      text = isSelected ? 
-        !trailShow || isTailTrail || (!isTrail && !this.hoverBubble) ? "": this.localise(d[trailGroupDim])
-        : 
-        this.__labelWithoutFrame(d);
+      //text = isSelected ? 
+      //  !trailShow || isTailTrail || (!isTrail && !this.hoverBubble) ? "": this.localise(d[trailGroupDim])
+      //  : 
+      //  this.__labelWithoutFrame(d);
       
-      _this._labels.highlight(null, false);
-      _this._labels.highlight({ [KEY]: selectedKey }, true);
+//      _this._labels.highlight(null, false);
+//      _this._labels.highlight({ [KEY]: selectedKey }, true);
       if (isSelected) {
         const skipCrownInnerFill = !isTrail;
         //!d.trailStartTime || d.trailStartTime == _this.model.time.formatDate(_this.time);
@@ -1449,9 +1522,9 @@ class _VizabiBubbleChart extends Chart {
       }
 
       //set tooltip and show axis projections
-      if (text && !entityOutOfView) {
-        _this._setTooltip(text, x, y, s + 3, c, d);
-      }
+      //if (text && !entityOutOfView) {
+        //_this._setTooltip(text, x, y, s + 3, c, d);
+      //}
 
       // // const selectedData = utils.find(_this.model.marker.select, f => utils.getKey(f, KEYS) == d[KEY]);
       // // if (selectedData) {
@@ -1464,9 +1537,9 @@ class _VizabiBubbleChart extends Chart {
       this._axisProjections();
       ////this._trails.run(["opacityHandler"]);
       //hide tooltip
-      this._setTooltip();
+      //this._setTooltip();
       this._setBubbleCrown();
-      this._labels.highlight(null, false);
+      //this._labels.highlight(null, false);
     }
 
   }
@@ -1486,10 +1559,10 @@ class _VizabiBubbleChart extends Chart {
     
     if (utils.isTouchDevice()) {
       _this.MDL.highlighted.data.filter.clear();
-      _this._labels.showCloseCross(null, false);
+      //_this._labels.showCloseCross(null, false);
     } else {
       //hide tooltip
-      _this._setTooltip();
+      //_this._setTooltip();
       ////_this._setBubbleCrown();
     }
 
@@ -1639,9 +1712,9 @@ class _VizabiBubbleChart extends Chart {
       height
     };
 
-    return new DeckGL({
+    return new Deck({
       // The HTML container to render into
-      container: this.DOM.canvasWrap.node(),
+      parent: this.DOM.canvasWrap.node(),
       views: this.getViews(),
       viewState: this.__viewState,
       // layerFilter: ({layer, viewport}) => {
@@ -1683,7 +1756,7 @@ class _VizabiBubbleChart extends Chart {
     return {
       getSourcePosition: (d) => {
         if (!d) return;
-        console.log("src", d, d.KEY, d.uz ? d.uz : this.zScale(d.z*1.01), this.zScale(d.z*1.01));
+        //console.log("src", d, d.KEY, d.uz ? d.uz : this.zScale(d.z*1.01), this.zScale(d.z*1.01));
         return [this.xScale(d.x), this.yScale(d.y), d.uz ? d.uz : this.zScale(d.z*1.01)]
       },
       getTargetPosition: (_d, { data, index }) => {
@@ -1691,7 +1764,7 @@ class _VizabiBubbleChart extends Chart {
         if (!_d) return;
         const d = _d[TRAIL_KEY] ? data[index + 1] ? data[index + 1] : _d : _d;
         if (!d) return;
-        console.log("trgt", d, d.KEY, d.uz ? d.uz : this.zScale(d.z*1.01), this.zScale(d.z*1.01));
+        //console.log("trgt", d, d.KEY, d.uz ? d.uz : this.zScale(d.z*1.01), this.zScale(d.z*1.01));
         return [this.xScale(d.x), this.yScale(d.y), d.uz ? d.uz : this.zScale(d.z*1.01)]
       },    
       getLastLineSourcePosition: (d) => {
@@ -1706,7 +1779,7 @@ class _VizabiBubbleChart extends Chart {
       },    
       getLabelText: (d) => {
         if (!d) return;
-        return this.__labelWithFrame(d);
+        return this.MDL.trail.show ? this.__labelWithFrame(d) : this.__labelWithoutFrame(d);
       },
       getTooltipText: (d) => {
         if (!d) return;
@@ -1722,13 +1795,13 @@ class _VizabiBubbleChart extends Chart {
       getLabelPositionZ: (d, { index }) => {
         if (!d) return;
         //const z = d[KEY] == this.activeObject.?[KEY] ?  2: 1;
-        console.log("posZ", this.labelZScale(index), d[KEY], index);
+        //console.log("posZ", this.labelZScale(index), d[KEY], index);
         //return [this.xScale(d.x), this.yScale(d.y)];
         return [this.xScale(d.x), this.yScale(d.y), this.labelZScale(index)];
       },
       getTooltipPixelOffset: (d) => {
         if (!d) return;
-        const r = utils.areaToRadius(this.sScale(d.size)) / Math.sqrt(2) + 7;
+        const r = d.r / Math.sqrt(2) + 7;
         return [-r, -r];
       },
       getPixelOffset: (d) => {
@@ -1736,7 +1809,7 @@ class _VizabiBubbleChart extends Chart {
         const key = d[TRAIL_KEY] || d[KEY];
         const offsetX = this.labelOffset[key] && this.labelOffset[key][0] || 0;
         const offsetY = this.labelOffset[key] && this.labelOffset[key][1] || 0;
-        const r = utils.areaToRadius(this.sScale(d.size)) / Math.sqrt(2) + 4;
+        const r = d.r / Math.sqrt(2) + 4;
         return [offsetX || -r, offsetY || -r];
       },
       getDragged: (d) => {
@@ -1749,7 +1822,7 @@ class _VizabiBubbleChart extends Chart {
         if (!d) return;
         const key = d[TRAIL_KEY] || d[KEY];
         if (!this.labelOffset[key]) {
-          const r = utils.areaToRadius(this.sScale(d.size)) / Math.sqrt(2) + 4;
+          const r = d.r / Math.sqrt(2) + 4;
           this.labelOffset[key] = [-r, -r];
         }
   
@@ -1787,7 +1860,7 @@ class _VizabiBubbleChart extends Chart {
         console.log("offset", offset, "point", pPos, lW, lH, viewport);
         this.dragX0 = this.labelOffset[key][0] - x;
         this.dragY0 = this.labelOffset[key][1] - y;
-        //this.deckBubble.setProps({layers: this.getBubbleLayers(undefined, false, false), controller: { dragPan: dragFlag }}); 
+        //this.deckBubble.setProps({layers: this.getBubbleLayers(undefined, false, 0, false), controller: { dragPan: dragFlag }}); 
         return true;
       },
       onLabelDrag: ({ object:d, x, y, coordinate, sourceLayer, viewport }, evt, dragFlag) => {
@@ -1800,22 +1873,22 @@ class _VizabiBubbleChart extends Chart {
         this.labelOffset[key][1] = this.dragY;
         const pos = this.props.getPosition(d).slice(0,2);
         //console.log("offset", this.labelOffset[key], "point", sourceLayer.project(pos),  viewport.getBounds(), viewport);
-        this.deckBubble.setProps({layers: this.getBubbleLayers(undefined, false, false), views: this.getViews({ dragPan: dragFlag }),}); 
+        this.deckBubble.setProps({layers: this.getBubbleLayers(undefined, false, 0, false), views: this.getViews({ dragPan: dragFlag }),}); 
         return true;
       },
       onLabelClick: ({ object:d, layer, sourceLayer }) => {
         if (!d) return;
         if (sourceLayer.id !== "labelTextLayer-close") return;
         
-        const dataKey = {[KEY]: d[TRAIL_KEY || KEY]}
+        const dataKey = {[KEY]: d[TRAIL_KEY] || d[KEY]}
         console.log("click pretoggle", d, dataKey);
-        mobx.runInAction(() => {
+        runInAction(() => {
           this.MDL.selected.data.filter.toggle(dataKey);
           console.log("click toggle", dataKey);
         })
         layer.setState({closeData: []});
         
-        this.deckBubble.setProps({layers: this.getBubbleLayers(undefined, false, false)});
+        this.deckBubble.setProps({layers: this.getBubbleLayers(undefined, false, 0, false)});
       },
       getLabelLineTargetPixelOffset: (d) => {
         if (!d) return;
@@ -1832,6 +1905,7 @@ class _VizabiBubbleChart extends Chart {
           //console.log("zHover", zHover, d, this.activeObject)
         }
         //console.log(d[KEY],this.xScale(d.x), this.yScale(d.y), d.uz ? d.uz : this.zScale(d.z))
+        //return [this.xScale(d.x), this.yScale(d.y), d.uz ? d.uz : this.zScale(d.z)]
         return [this.xScale(d.x), this.yScale(d.y), d.uz ? d.uz : this.zScale(d.z)]
       },
       getPositionXY: (d) => {
@@ -1843,15 +1917,24 @@ class _VizabiBubbleChart extends Chart {
       getFillColor: (d) => {
         if (!d) return;
         const ui = this.ui;
-        const c = d3.color(this.cScale(d.color)).formatRgb().slice(4, -1).split(",").map(v=>+v);
+        const c = d3.color(this.__getColor(d[TRAIL_KEY] || d[KEY], d.color)).formatRgb().slice(4, -1).split(",").map(v=>+v);
         const alpha = this.activeObject && d[KEY] == this.activeObject[KEY] ? ui.opacityHighlight : this.__someSelected ? this.__selectedMarkers.has(d[TRAIL_KEY] || d[KEY]) ? ui.opacitySelect : ui.opacitySelectDim : this.activeObject ? ui.opacityHighlightDim : ui.opacityRegular;
         c[3] = alpha * 255;
         return c;
       },
-      getLastLineFillColor: (d) => {
+      getTrailLineFillColor: (d, { data, index }) => {
         if (!d) return;
         const ui = this.ui;
-        const c = d3.color(this.cScale(d[0].color)).formatRgb().slice(4, -1).split(",").map(v=>+v);
+        const d1 = data[index + 1] || d;
+        const c = d3.color(this.__getColorForTrail(d1.color, d1.size)).formatRgb().slice(4, -1).split(",").map(v=>+v);
+        const alpha = this.activeObject && d[KEY] == this.activeObject[KEY] ? ui.opacityHighlight : this.__someSelected ? this.__selectedMarkers.has(d[TRAIL_KEY] || d[KEY]) ? ui.opacitySelect : ui.opacitySelectDim : this.activeObject ? ui.opacityHighlightDim : ui.opacityRegular;
+        c[3] = alpha * 255;
+        return c;
+      },
+      getLastTrailLineFillColor: (d) => {
+        if (!d) return;
+        const ui = this.ui;
+        const c = d3.color(this.__getColorForTrail(d[1].color, d[1].size)).formatRgb().slice(4, -1).split(",").map(v=>+v);
         const alpha = this.activeObject && d[0][KEY] == this.activeObject[KEY] ? ui.opacityHighlight : this.__someSelected ? this.__selectedMarkers.has(d[0][TRAIL_KEY] || d[0][KEY]) ? ui.opacitySelect : ui.opacitySelectDim : this.activeObject ? ui.opacityHighlightDim : ui.opacityRegular;
         c[3] = alpha * 255;
         return c;
@@ -1859,45 +1942,68 @@ class _VizabiBubbleChart extends Chart {
       getLineColor: (d) => {
         if (!d) return;
         const ui = this.ui;
-        const c = [0, 0, 0, 127]
+        const c = [0x3, 0x3, 0x3, 255]
         const alpha = this.activeObject && d[KEY] == this.activeObject[KEY] ? ui.opacityHighlight : this.__someSelected ? this.__selectedMarkers.has(d[TRAIL_KEY] || d[KEY]) ? ui.opacitySelect : ui.opacitySelectDim : this.activeObject ? ui.opacityHighlightDim : ui.opacityRegular;
         c[3] = alpha * 255;
         return c;
       },
       getRadius: (d) => {
         if (!d) return;
-        return utils.areaToRadius(this.sScale(d.size));
+        return d.r;
       },
-      getWidthTrailLine: (d) => {
+      getTrailLineWidth: (d, { data, index }) => {
         if (!d) return;
-        return this.trailSizeScale(d.size);
+        const d1 = data[index + 1] || d;
+        return this.trailSizeScale(d1.size);
+      },
+      getLastTrailLineWidth: (d) => {
+        if (!d) return;
+        return this.trailSizeScale(d[1].size);
       },
       onHover: ({ object: d }) => {
-        //console.log("onhover", d, this.activeObject);  
+        //console.log("onhover", d, this.activeObject);
+        //zero opacity for non-selected markers
+        if (d && this._getBubbleOpacity(d) == 0) return;
         const invalidate = d?.[KEY] !== this.activeObject?.[KEY]
-        this.activeObject = d;
+        //this.activeObject = d;
         if (invalidate) {
           //setTimeout(() => {
-          //console.log("invalidate", d, this.activeObject);  
-          this.deckBubble.setProps({layers: this.getBubbleLayers(undefined, false, false)})
+          //console.log("invalidate", d, this.activeObject);
+          if (!d) {
+            runInAction(() => {
+              this.MDL.highlighted.data.filter.clear();
+              //console.log("clear highlighted");
+            })        
+          } else {
+            runInAction(() => {
+              this.MDL.highlighted.data.filter.clear();
+            })        
+            runInAction(() => {
+              this.MDL.highlighted.data.filter.set({[KEY]: d[KEY]});
+              //console.log("highlight", d[KEY]);
+            })        
+          }
           //}, 0);
         }
       },
       onClick: ({ object:d, index }) => {
-        //console.log("onhover", d, this.activeObject);  
+        //console.log("onclick", d, this.activeObject);  
         if (!d) return;
+        //zero opacity for non-selected markers
+        if (this._getBubbleOpacity(d) == 0) return;
+
         let dataKey = {[KEY]: d[KEY]}
         console.log("click pretoggle", d, dataKey);
         if (d[TRAIL_KEY]) {
           const nextIndex = index + 1;
-          if (_data[nextIndex]?.[TRAIL_KEY] == d[TRAIL_KEY]) {
+          if (this.__data[nextIndex]?.[TRAIL_KEY] == d[TRAIL_KEY]) {
             return;
           } else {
             dataKey = {[KEY]: d[TRAIL_KEY]}
           }
         }
         //const invalidate = d?.[KEY] !== this.activeObject?.[KEY]
-        mobx.runInAction(() => {
+        runInAction(() => {
           this.MDL.selected.data.filter.toggle(dataKey);
           console.log("click toggle", dataKey);
         })      
@@ -1905,7 +2011,7 @@ class _VizabiBubbleChart extends Chart {
         //if (invalidate) {
           //setTimeout(() => {
           //console.log("invalidate", d, this.activeObject);  
-        this.deckBubble.setProps({layers: this.getBubbleLayers(undefined, false, false)})
+        this.deckBubble.setProps({layers: this.getBubbleLayers(undefined, false, 0, false)})
           //}, 0);
         //}
       },
@@ -1913,7 +2019,7 @@ class _VizabiBubbleChart extends Chart {
   }
 
   //const chunkCount = 500;
-  getBubbleLayers(data = this.__data, t = true, dataDiff = true, lastTrailLineData = []) {
+  getBubbleLayers(data = this.__data, t = true, duration = 0, dataDiff = true, lastTrailLineData = []) {
     //console.log("data", data, t, dataDiff, lastTrailLineData);
     /*const scatters = [0,500,1000,1500,2000,2500,3000,4500,4000,5000,5500,6000,6500].map(s => {
       return new ScatterplotLayer({
@@ -1943,7 +2049,7 @@ class _VizabiBubbleChart extends Chart {
         //}
       })
     })*/
-      
+    //console.log("layers", t, duration, this.redrawUpdateTrigger);
     return [//...scatters,
       // new Axis({
       //     xScale: this.xScale,
@@ -1960,14 +2066,21 @@ class _VizabiBubbleChart extends Chart {
       new LineLayer({
         id: 'lineLayer',
         data: this.__trailsData,
-        getColor: this.props.getFillColor,
+        getColor: this.props.getTrailLineFillColor,
         getSourcePosition: this.props.getSourcePosition,
         getTargetPosition: this.props.getTargetPosition,
-        getWidth: this.props.getWidthTrailLine,
+        getWidth: this.props.getTrailLineWidth,
         getPolygonOffset: ({layerIndex}) => [0, layerIndex * 100],
         updateTriggers: {
-          getColor: [this.activeObject],
+          getColor: [this.activeObject, this.opacityUpdateTrigger],
+          getSourcePosition: [this.redrawUpdateTrigger],
+          getTargetPosition: [this.redrawUpdateTrigger]
         },
+        transitions: t ? { 
+          getSourcePosition: duration,
+          getTargetPosition: duration,          
+        } : null,
+        visible: this.MDL.trail.show,
         //pickable: true,
         //_dataDiff: (newData, oldData) => {
         //  console.log("_datediff line", newData, oldData, _updateRangesLine);
@@ -1977,19 +2090,20 @@ class _VizabiBubbleChart extends Chart {
       new LineLayer({
         id: 'lastLineLayer',
         data: lastTrailLineData,
-        getColor: this.props.getLastLineFillColor,
+        getColor: this.props.getLastTrailLineFillColor,
         getSourcePosition: this.props.getLastLineSourcePosition,
         getTargetPosition: this.props.getLastLineTargetPosition,
-        getWidth: this.props.getWidthTrailLine,
+        getWidth: this.props.getLastTrailLineWidth,
         updateTriggers: {
-          //getColor: [this.activeObject],
-          getTargetPosition: [t]
+          getColor: [this.activeObject, this.opacityUpdateTrigger],
+          getTargetPosition: [this.redrawUpdateTrigger]
         },
         transitions: t ? { 
           getTargetPosition: { 
-            duration: this.duration,
+            duration,
           },
-        } : {},
+        } : null,
+        visible: this.MDL.trail.show && !!this.duration,
         //pickable: true,
         //_dataDiff: (newData, oldData) => {
         //  console.log("_datediff line", newData, oldData, _updateRangesLine);
@@ -2006,26 +2120,33 @@ class _VizabiBubbleChart extends Chart {
         radiusUnits: 'pixels',
         getFillColor: this.props.getFillColor,
         getLineColor: this.props.getLineColor,
-        getLineWidth: 1,
+        getLineWidth: 1.0,
         lineWidthUnits: 'pixels',
         //billboard: true,
+        padding: [6, 4],
         pickable: true,
         onHover: this.props.onHover,
         onClick: this.props.onClick,
         updateTriggers: {
-          getFillColor: [this.activeObject],
-          getLineColor: [this.activeObject],
-          getPosition: [this.activeObject, t]
+          getFillColor: [this.activeObject, this.opacityUpdateTrigger],
+          getLineColor: [this.activeObject, this.opacityUpdateTrigger],
+          getPosition: [this.redrawUpdateTrigger]
         },
         //numInstances: 10,
         transitions: t ? { 
           getPosition: { 
-            duration: this.duration,
+            duration,
+            onStart: (e) => {
+              console.log("start", e);
+            },
+            onEnd: (e) => {
+              console.log("end", e);
+            }
           },
           getRadius: {
-            duration: this.duration,
+            duration,
           },
-        } : {},
+        } : null,
         //_dataDiff: (newData, oldData) => {
         //  console.log("_datediff", newData, oldData, _updateRanges);
           //return dataDiff ? playing ? _updateRanges : null : null;
@@ -2041,26 +2162,28 @@ class _VizabiBubbleChart extends Chart {
         radiusUnits: 'pixels',
         getFillColor: this.props.getFillColor,
         getLineColor: this.props.getLineColor,
-        getLineWidth: 1,
+        getLineWidth: 1.0,
         lineWidthUnits: 'pixels',
         //billboard: true,
         pickable: false,
         onHover: this.props.onHover,
         onClick: this.props.onClick,
         updateTriggers: {
-          getFillColor: [this.activeObject],
-          getLineColor: [this.activeObject],
-          getPosition: [this.activeObject, t]
+          getFillColor: [this.activeObject, this.opacityUpdateTrigger],
+          getLineColor: [this.activeObject, this.opacityUpdateTrigger],
+          getPosition: [this.activeObject]
         },
         //numInstances: 10,
         transitions: t ? { 
           getPosition: { 
-            duration: this.duration,
+            duration,
+
           },
           getRadius: {
-            duration: this.duration,
+            duration,
           },
-        } : {},
+        } : null,
+        visible: !!this.activeObject,
         //_dataDiff: (newData, oldData) => {
         //  console.log("_datediff", newData, oldData, _updateRanges);
           //return dataDiff ? playing ? _updateRanges : null : null;
@@ -2105,6 +2228,7 @@ class _VizabiBubbleChart extends Chart {
         radiusUnits: 'pixels',
         fontFamily: this.FONT_FAMILY,
         characterSet: CHARACTER_SET,
+        visible: !!this.activeObject,
       }),
       /*new LabelLineLayer({
         id: 'labelLineLayer',
@@ -2121,13 +2245,13 @@ class _VizabiBubbleChart extends Chart {
         },
         transitions: t ? { 
           getSourcePosition: { 
-            duration: this.duration,
+            duration,
           },
           getTargetPosition: { 
-            duration: this.duration,
+            duration,
           },
           getTargetPixelOffset: { 
-            duration: this.duration,
+            duration,
           },
         } : {},
         //pickable: true,
@@ -2146,7 +2270,6 @@ class _VizabiBubbleChart extends Chart {
             cornerRadius: 5,
             getDragged: this.props.getDragged,
             updateTriggers: {
-              getPixelOffset: [this.dragX, this.dragY],
               getDragged: [this.dragX0, this.dragY0],
             },   
           },
@@ -2154,9 +2277,9 @@ class _VizabiBubbleChart extends Chart {
             type: LabelMultiIconLayer,
             getDragged: this.props.getDragged,
             updateTriggers: {
-              getPixelOffset: [this.dragX, this.dragY],
               getDragged: [this.dragX0, this.dragY0],
             },   
+            padding: [6, 4],
           }
         },
         data: this.__labelData,
@@ -2192,27 +2315,29 @@ class _VizabiBubbleChart extends Chart {
         //outlineColor: [255, 255, 255],
         //outlineWidth: 0,
         updateTriggers: {
-          getPixelOffset: [this.dragX, this.dragY],
+          getPixelOffset: [this.dragX, this.dragY, this.redrawUpdateTrigger],
           getDragged: [this.dragX0, this.dragY0],
+          getPosition: [this.redrawUpdateTrigger]
         },        
         transitions: t ? {
           getPosition: {
-            duration: this.duration,
+            duration,
           },
-          getRadius: {
-            duration: this.duration,
+          getPixelOffset: {
+            duration,
           },
           getLineSourceFillOffset: {
-            duration: this.duration,
+            duration,
           }
-        } : {}
+        } : null
       }),
     ]
   }
 
   __tooltipDataFilter() {
-    const index = this.__labelDataKeys.indexOf(this.activeObject[TRAIL_KEY] || this.activeObject[KEY]);
-    return this.activeObject.frame != this.__labelData[index]?.frame || ((this.activeObject[TRAIL_KEY] || this.activeObject[KEY]) != this.__labelData[index]?.[TRAIL_KEY]);
+    const index = this.__selectedKeys.indexOf(this.activeObject[TRAIL_KEY] || this.activeObject[KEY]);
+    return this.MDL.trail.show ? this.activeObject.frame != this.__labelData[index]?.frame || ((this.activeObject[TRAIL_KEY] || this.activeObject[KEY]) != this.__labelData[index]?.[TRAIL_KEY]) 
+      : index == -1;
   }
 
   get zScale() {

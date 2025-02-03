@@ -46,122 +46,129 @@ export default class LabelLayer extends TextLayer {
       })
     });
     */
-    //console.log("LabelLayer", sLayers, layers);
+    //console.log("LabelLayer", this.props.updateTriggers, this.props.transitions);
 
     return [
-      new LabelLineLayer(this.getSubLayerProps({
-        id: 'line',
-        data: this.props.data,
-        getColor: [102, 102, 102],
-        getSourcePosition: this.props.getPosition,
-        getTargetPosition: this.props.getPosition,
-        getTargetPixelOffset: this.props.getPixelOffset,
-        getSourceDashOffset: this.props.getLineSourceFillOffset,
-        getBoundingRect: this.getBoundingRect,
-        getRadius: this.props.getRadius,
-        getSize: this.props.getSize,
-        getWidth: 1,
-        getDragged: this.props.getDragged,
-        padding: this.props.backgroundPadding,
-        edgeMaxCoord: this.props.edgeMaxCoord,
-        updateTriggers: {
-          //getColor: [activeObject],
-          getDragged: this.props.updateTriggers.getDragged,
-          getTargetPixelOffset: this.props.updateTriggers.getPixelOffset//[dragX, dragY]
-        },
-        transitions: {
-          getSourcePosition: this.props.transitions?.getPosition || {},
-          getTargetPosition: this.props.transitions?.getPosition || {},
-          getTargetPixelOffset: this.props.transitions?.getPosition || {},
+      new LabelLineLayer(
+        this.getSubLayerProps({
+          id: 'line',
+          updateTriggers: {
+            //getColor: [activeObject],
+            getDragged: this.props.updateTriggers.getDragged,
+            getTargetPixelOffset: this.props.updateTriggers.getPixelOffset,//[dragX, dragY],
+            getSourcePosition: this.props.updateTriggers.getPosition,
+            getTargetPosition: this.props.updateTriggers.getPosition,
+          }
+        }), {
+          data: this.props.data,
+          getColor: [102, 102, 102],
+          getSourcePosition: this.props.getPosition,
+          getTargetPosition: this.props.getPosition,
+          getTargetPixelOffset: this.props.getPixelOffset,
+          getSourceDashOffset: this.props.getLineSourceFillOffset,
+          getBoundingRect: this.getBoundingRect,
+          getRadius: this.props.getRadius,
+          getSize: this.props.getSize,
+          getWidth: 1,
+          getDragged: this.props.getDragged,
+          padding: this.props.backgroundPadding,
+          edgeMaxCoord: this.props.edgeMaxCoord,
+          transitions: {
+            getSourcePosition: this.props.transitions?.getPosition,
+            getTargetPosition: this.props.transitions?.getPosition,
+            getTargetPixelOffset: this.props.transitions?.getPosition,
+          }
+          //pickable: true,
+          //_dataDiff: (newData, oldData) => {
+          //  console.log("_datediff line", newData, oldData, _updateRangesLine);
+          //  return dataDiff ? playing ? _updateRangesLine : null : null;//}
         }
-        //pickable: true,
-        //_dataDiff: (newData, oldData) => {
-        //  console.log("_datediff line", newData, oldData, _updateRangesLine);
-        //  return dataDiff ? playing ? _updateRangesLine : null : null;
-        //}
-      })),
+      ),
       //...layers,
       ...super.renderLayers(),
-      this.state.closeData?.length && new TextLayer(this.getSubLayerProps({
-        id: 'close',
-        _subLayerProps: {
-          background: {
-            type: LabelBackgroundLayer,
-            cornerRadius: 12,
-            getDragged: 1,
-          },
-          characters: {
-            type: LabelMultiIconLayer,
-            getDragged: 1,
-          }
-        },
-        data: this.state.closeData || [],
-        getPosition: (d) => { 
-          //console.log("close pos", d);
-          return this.props.getPosition(d, {index: d.dataIndex}); 
-        },
-        getPixelOffset: (d) => {
-          const offset = typeof this.props.getPixelOffset == "function" ? this.props.getPixelOffset(d) : this.props.getPixelOffset.slice(0);
-
-          //adjust label offset if label with current offset located outside of vieport
-          //const offset = labelOffset[key];
-          const pPos = this.context.viewport.project(this.props.getPosition(d, {index: d.dataIndex}).slice(0,2));
-          const vW = d.viewportW;
-          const vH = d.viewportH;
-          const [lW, lH] = d.labelSize;
-          const [lPaddL, lPaddT, lPaddR = lPaddL, lPaddB = lPaddT] = this.props.backgroundPadding;
-          const dragged = this.props.getDragged.name ? this.props.getDragged(d) : this.props.getDragged;
-              
-          if (!dragged) {
-            if(pPos[0] + offset[0] < lW + lPaddL) {
-              offset[0] = lW - offset[0];
+      this.state.closeData?.length && new TextLayer(
+        this.getSubLayerProps({
+          id: 'close',
+          _subLayerProps: {
+            background: {
+              type: LabelBackgroundLayer,
+              cornerRadius: 12,
+              getDragged: 1,
+            },
+            characters: {
+              type: LabelMultiIconLayer,
+              getDragged: 1,
             }
-            if(pPos[1] + offset[1] < lH + lPaddT) {
-              offset[1] = lH - offset[1];
-            }    
-          }
-    
-          if(pPos[0] + offset[0] < lW + lPaddL) {
-            offset[0] = lW + lPaddL - pPos[0];
-          } else if(pPos[0] + offset[0] > vW - lPaddR) {
-            offset[0] = vW - lPaddR - pPos[0];
-          }
-          
-          if(pPos[1] + offset[1] < lH + lPaddT) {
-            offset[1] = lH + lPaddT - pPos[1];
-          } else if(pPos[1] + offset[1] > vH - lPaddB) {
-            offset[1] = vH - lPaddB - pPos[1];
-          }
+          },
+          updateTriggers: {
+            getPixelOffset: this.props.updateTriggers.getPixelOffset
+          },
+        }), {
+          data: this.state.closeData || [],
+          getPosition: (d) => { 
+            //console.log("close pos", d);
+            return this.props.getPosition(d, {index: d.dataIndex}); 
+          },
+          getPixelOffset: (d) => {
+            const offset = typeof this.props.getPixelOffset == "function" ? this.props.getPixelOffset(d) : this.props.getPixelOffset.slice(0);
 
-          offset[0] += lPaddR + 9*0.5;//half size closecross .getSize
-          offset[1] -= lH + lPaddT - 9*0.5;//half size closecross .getSize
-          return offset;
-        },
-        getText: x=>"❌",
-        getColor: [255, 255, 255],
-        getSize: 9,
-        getTextAnchor: 'end',
-        getAlignmentBaseline: 'bottom',
-        getDragged: x=>1,
-        edgeMaxCoord: this.props.edgeMaxCoord,
-        fontSettings: {
-          sdf: true,
-          fontSize: 24,
-        },
-        characterSet:["❌"],
-        //getPolygonOffset: null,//({layerIndex}) => [0, layerIndex * 100],
-        pickable: true,
-        background: true,
-        backgroundPadding: [8, 9, 8, 8],
-        getBackgroundColor: [0x60, 0x78, 0x89],
-        getBorderColor: [255, 255, 255],
-        getBorderWidth: 2,
-        outlineColor: [255, 255, 255],
-        outlineWidth: 2,
-        updateTriggers: {
-          getPixelOffset: this.props.updateTriggers.getPixelOffset
-        },
-      }))
+            //adjust label offset if label with current offset located outside of vieport
+            //const offset = labelOffset[key];
+            const pPos = this.context.viewport.project(this.props.getPosition(d, {index: d.dataIndex}).slice(0,2));
+            const vW = d.viewportW;
+            const vH = d.viewportH;
+            const [lW, lH] = d.labelSize;
+            const [lPaddL, lPaddT, lPaddR = lPaddL, lPaddB = lPaddT] = this.props.backgroundPadding;
+            const dragged = this.props.getDragged.name ? this.props.getDragged(d) : this.props.getDragged;
+                
+            if (!dragged) {
+              if(pPos[0] + offset[0] < lW + lPaddL) {
+                offset[0] = lW - offset[0];
+              }
+              if(pPos[1] + offset[1] < lH + lPaddT) {
+                offset[1] = lH - offset[1];
+              }    
+            }
+      
+            if(pPos[0] + offset[0] < lW + lPaddL) {
+              offset[0] = lW + lPaddL - pPos[0];
+            } else if(pPos[0] + offset[0] > vW - lPaddR) {
+              offset[0] = vW - lPaddR - pPos[0];
+            }
+            
+            if(pPos[1] + offset[1] < lH + lPaddT) {
+              offset[1] = lH + lPaddT - pPos[1];
+            } else if(pPos[1] + offset[1] > vH - lPaddB) {
+              offset[1] = vH - lPaddB - pPos[1];
+            }
+
+            offset[0] += lPaddR + 9*0.5;//half size closecross .getSize
+            offset[1] -= lH + lPaddT - 9*0.5;//half size closecross .getSize
+            return offset;
+          },
+          getText: x=>"❌",
+          getColor: [255, 255, 255],
+          getSize: 9,
+          getTextAnchor: 'end',
+          getAlignmentBaseline: 'bottom',
+          getDragged: x=>1,
+          edgeMaxCoord: this.props.edgeMaxCoord,
+          fontSettings: {
+            sdf: true,
+            fontSize: 24,
+          },
+          characterSet:["❌"],
+          //getPolygonOffset: null,//({layerIndex}) => [0, layerIndex * 100],
+          pickable: true,
+          background: true,
+          backgroundPadding: [8, 9, 8, 8],
+          getBackgroundColor: [0x60, 0x78, 0x89],
+          getBorderColor: [255, 255, 255],
+          getBorderWidth: 2,
+          outlineColor: [255, 255, 255],
+          outlineWidth: 2,
+        }
+      )
     ]
   }
 }

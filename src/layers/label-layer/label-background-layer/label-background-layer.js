@@ -31,6 +31,6 @@ export default class LabelBackgroundLayer extends _TextBackgroundLayer {
   }
 
   getShaders() {
-    return { ...super.getShaders(), vs, fs }
+    return { ...super.getShaders(), vs, fs };
   }
 }
