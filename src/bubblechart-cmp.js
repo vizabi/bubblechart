@@ -293,8 +293,13 @@ class _VizabiBubbleChart extends Chart {
       _this._panZoom.reset(null, 500);
     });
 
-    this._panZoom.zoomSelection(this.DOM.bubbleContainerCrop);
-    this.DOM.bubbleContainerCrop
+    this.DOM.canvasWrap.style("pointer-events", "all");
+    this.FONT_FAMILY = this.element.style("font-family").split(",")[0];
+    this.deckBubble = this.getDeck();
+    this.props = this.getProps();  
+
+    this._panZoom.zoomSelection(this.DOM.canvasWrap.select("canvas"));
+    this.DOM.canvasWrap.select("canvas")
       .call(this._panZoom.dragRectangle)
       .call(this._panZoom.zoomer)
       .on("dblclick.zoom", null)
@@ -306,12 +311,13 @@ class _VizabiBubbleChart extends Chart {
         if (!event.defaultPrevented && cursor !== "arrow" && cursor !== "hand") {
           _this._panZoom.zoomByIncrement(event, cursor, 500);
         }
+      })
+      .on("mouseleave", () => {
+        if (this.MDL.highlighted.data.filter.any()) {
+          this.MDL.highlighted.data.filter.clear();
+        }
       });
 
-    this.DOM.canvasWrap.style("pointer-events", "all");
-    this.FONT_FAMILY = this.element.style("font-family").split(",")[0];
-    this.deckBubble = this.getDeck();
-    this.props = this.getProps();
   }
 
   get MDL(){
@@ -1314,7 +1320,7 @@ class _VizabiBubbleChart extends Chart {
     this.__someHighlighted = highlightedFilter.any();
     this.__highlightedMarkers = new Map(highlightedFilter.markers);
     this.activeObject = this.__someHighlighted ? Object.assign({}, this.model.dataMap.getByStr(this.__highlightedMarkers.keys().next().value)) : null;
-    
+    this.activeObjectData = this.activeObject ? [this.activeObject] : [];
     this.deckBubble.setProps({layers: this.getBubbleLayers(undefined, false)})
   }
 
@@ -1576,6 +1582,31 @@ class _VizabiBubbleChart extends Chart {
   }
 
   _setupCursorMode() {
+    const wrapper = this.DOM.canvasWrap;
+    if (this.ui.cursorMode === "plus") {
+      wrapper.classed("vzb-zoomin", true);
+      wrapper.classed("vzb-zoomout", false);
+      wrapper.classed("vzb-panhand", false);
+      this.deckBubble.setProps({ _pickable: false });
+    } else if (this.ui.cursorMode === "minus") {
+      wrapper.classed("vzb-zoomin", false);
+      wrapper.classed("vzb-zoomout", true);
+      wrapper.classed("vzb-panhand", false);
+      this.deckBubble.setProps({ _pickable: false });
+    } else if (this.ui.cursorMode === "hand") {
+      wrapper.classed("vzb-zoomin", false);
+      wrapper.classed("vzb-zoomout", false);
+      wrapper.classed("vzb-panhand", true);
+      this.deckBubble.setProps({ _pickable: true });
+    } else {
+      wrapper.classed("vzb-zoomin", false);
+      wrapper.classed("vzb-zoomout", false);
+      wrapper.classed("vzb-panhand", false);
+      this.deckBubble.setProps({ _pickable: true });
+    }
+  }
+
+  _setupCursorMode_() {
     const svg = this.DOM.chartSvgAll;
     if (this.ui.cursorMode === "plus") {
       svg.classed("vzb-zoomin", true);
@@ -1715,6 +1746,7 @@ class _VizabiBubbleChart extends Chart {
     return new Deck({
       // The HTML container to render into
       parent: this.DOM.canvasWrap.node(),
+      //canvas: this.DOM.canvasWrap.select("canvas").node(),
       views: this.getViews(),
       viewState: this.__viewState,
       // layerFilter: ({layer, viewport}) => {
@@ -1727,6 +1759,9 @@ class _VizabiBubbleChart extends Chart {
       //   }      
       //   return false;
       // },
+      getCursor: ({isDragging, isHovering}) => 
+        isDragging ? 'grabbing' : isHovering ? 'pointer' : 'default'
+      ,
       onViewStateChange: e => {
         //console.log("onviewstatechange", e);
         this.__viewState = e.viewState;
@@ -1817,9 +1852,10 @@ class _VizabiBubbleChart extends Chart {
         const key = d[TRAIL_KEY] || d[KEY];
         return this.labelDragged[key];
       },
-      onLabelDragStart: ({ object:d, x, y, coordinate, sourceLayer, viewport }, evt, dragFlag) => {
+      onLabelDragStart: ({ object:d, x, y, coordinate, sourceLayer, viewport }, evt) => {
         console.log("onLabelDragStart", d, x, y, coordinate, viewport, sourceLayer)
         if (!d) return;
+        this.__labelDragging = true;
         const key = d[TRAIL_KEY] || d[KEY];
         if (!this.labelOffset[key]) {
           const r = d.r / Math.sqrt(2) + 4;
@@ -1863,7 +1899,7 @@ class _VizabiBubbleChart extends Chart {
         //this.deckBubble.setProps({layers: this.getBubbleLayers(undefined, false, 0, false), controller: { dragPan: dragFlag }}); 
         return true;
       },
-      onLabelDrag: ({ object:d, x, y, coordinate, sourceLayer, viewport }, evt, dragFlag) => {
+      onLabelDrag: ({ object:d, x, y, coordinate, sourceLayer, viewport }, evt) => {
         if (!d) return;
         
         this.dragX = this.dragX0 + x;
@@ -1873,7 +1909,12 @@ class _VizabiBubbleChart extends Chart {
         this.labelOffset[key][1] = this.dragY;
         const pos = this.props.getPosition(d).slice(0,2);
         //console.log("offset", this.labelOffset[key], "point", sourceLayer.project(pos),  viewport.getBounds(), viewport);
-        this.deckBubble.setProps({layers: this.getBubbleLayers(undefined, false, 0, false), views: this.getViews({ dragPan: dragFlag }),}); 
+        this.deckBubble.setProps({layers: this.getBubbleLayers(undefined, false, 0, false),}); //views: this.getViews({ dragPan: dragFlag }),}); 
+        return true;
+      },
+      onLabelDragEnd: () => {
+        //if (!d) return;
+        this.__labelDragging = false;  
         return true;
       },
       onLabelClick: ({ object:d, layer, sourceLayer }) => {
@@ -2080,7 +2121,7 @@ class _VizabiBubbleChart extends Chart {
           getSourcePosition: duration,
           getTargetPosition: duration,          
         } : null,
-        visible: this.MDL.trail.show,
+        padding: [6, 4],
         //pickable: true,
         //_dataDiff: (newData, oldData) => {
         //  console.log("_datediff line", newData, oldData, _updateRangesLine);
@@ -2103,7 +2144,6 @@ class _VizabiBubbleChart extends Chart {
             duration,
           },
         } : null,
-        visible: this.MDL.trail.show && !!this.duration,
         //pickable: true,
         //_dataDiff: (newData, oldData) => {
         //  console.log("_datediff line", newData, oldData, _updateRangesLine);
@@ -2155,7 +2195,7 @@ class _VizabiBubbleChart extends Chart {
       new ScatterplotLayer({
         parameters: {depthTest: false},
         id: "activeObjectscatterPlotLayer",//_"+s,
-        data: [this.activeObject],//.slice(0),//.slice(s, s+chunkCount),
+        data: this.activeObjectData,//.slice(0),//.slice(s, s+chunkCount),
         stroked: true,
         getPosition: this.props.getPosition,
         getRadius: this.props.getRadius,
@@ -2171,7 +2211,7 @@ class _VizabiBubbleChart extends Chart {
         updateTriggers: {
           getFillColor: [this.activeObject, this.opacityUpdateTrigger],
           getLineColor: [this.activeObject, this.opacityUpdateTrigger],
-          getPosition: [this.activeObject]
+          getPosition: [this.activeObject, this.redrawUpdateTrigger]
         },
         //numInstances: 10,
         transitions: t ? { 
@@ -2210,7 +2250,7 @@ class _VizabiBubbleChart extends Chart {
             },   
           }
         },
-        data: this.activeObject && this.__tooltipDataFilter() ? [this.activeObject] : [],
+        data: this.activeObject && this.__tooltipDataFilter() ? this.activeObjectData : null,
         getPosition: this.props.getLabelPosition,
         getPixelOffset: this.props.getTooltipPixelOffset,
         getText: this.props.getTooltipText,
@@ -2228,6 +2268,9 @@ class _VizabiBubbleChart extends Chart {
         radiusUnits: 'pixels',
         fontFamily: this.FONT_FAMILY,
         characterSet: CHARACTER_SET,
+        updateTriggers: {
+          getPosition: [this.redrawUpdateTrigger]
+        },
         visible: !!this.activeObject,
       }),
       /*new LabelLineLayer({
@@ -2298,9 +2341,9 @@ class _VizabiBubbleChart extends Chart {
         getAlignmentBaseline: 'bottom',
         getDragged: this.props.getDragged,
         //getPolygonOffset: null,//({layerIndex}) => [0, layerIndex * 100],
-        onDragStart: (info, e) => this.props.onLabelDragStart(info, e, false),
-        onDrag: (info, e) => this.props.onLabelDrag(info, e, false),
-        onDragEnd: (info, e) => this.props.onLabelDrag(info, e, true),
+        onDragStart: this.props.onLabelDragStart,
+        onDrag: this.props.onLabelDrag,
+        onDragEnd: this.props.onLabelDragEnd,
         //onHover: this.props.onLabelHover,
         onClick: this.props.onLabelClick,
         characterSet: CHARACTER_SET,

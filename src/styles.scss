@@ -145,26 +145,28 @@
         }
       }
 
+      &.vzb-panhand canvas {
+        cursor: grab !important;
+      }
+
       &.vzb-panhand .vzb-bc-bubbles-crop {
         cursor: grab;
-        .vzb-bc-eventarea {
-          pointer-events: all;
-        }  
       }
 
-      &.vzb-panhand.vzb-zooming .vzb-bc-bubbles-crop {
+      &.vzb-panhand .vzb-zooming canvas {
+        cursor: grabbing !important;
+      }
+
+      &.vzb-panhand .vzb-zooming .vzb-bc-bubbles-crop {
         cursor: grabbing;
-        .vzb-bc-eventarea {
-          pointer-events: all;
-        }  
       }
 
+      &.vzb-zoomin canvas {
+        cursor: zoom-in !important;
+      }
       &.vzb-zoomin .vzb-bc-bubbles-crop,
       &.vzb-zoomin .vzb-bc-labels-crop {
         cursor: zoom-in;
-        .vzb-bc-eventarea {
-          pointer-events: all;
-        }  
         .vzb-bc-entity {
           cursor: zoom-in !important;
           pointer-events: none !important;
@@ -174,12 +176,13 @@
         }
       }
 
+      &.vzb-zoomout canvas {
+        cursor: zoom-out !important;
+      }
+
       &.vzb-zoomout .vzb-bc-bubbles-crop,
       &.vzb-zoomout .vzb-bc-labels-crop {
         cursor: zoom-out;
-        .vzb-bc-eventarea {
-          pointer-events: all;
-        }  
         .vzb-bc-entity {
           cursor: zoom-out !important;
           pointer-events: none !important;
@@ -257,9 +260,6 @@
         .vzb-crown,
         .vzb-crown-glow {
           pointer-events: none;
-        }
-        .vzb-crown {
-          stroke: $vzb-color-black;
         }
         .vzb-crown-glow {
           stroke-width: 6px;

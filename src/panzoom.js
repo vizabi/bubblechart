@@ -164,14 +164,19 @@ export default class PanZoom {
     const self = this;
 
     return {
-      start() {
-        //this.savedScale = zoomer.scale;
+      start(event) {
+        self.__savedTransform = event.transform;
+
         if ((_this.ui.cursorMode !== "plus") && (_this.ui.cursorMode !== "minus")) {
           _this.DOM.chartSvg.classed("vzb-zooming", true);
         }
 
       },
       go(event) {
+        if (_this.__labelDragging) {
+          if (!self.__labelDragging) self.__labelDragging = true;
+          return;
+        }
 
         const sourceEvent = event.sourceEvent;
 
@@ -424,6 +429,12 @@ export default class PanZoom {
       stop() {
         _this.DOM.chartSvg.classed("vzb-zooming", false);
         // if (this.quitZoom) return;
+        if (self.__labelDragging) {
+          self.__labelDragging = false;
+          self.zoomSelection.property("__zoom", self.__savedTransform);
+          self.__savedTransform = null;
+          return;
+        }
 
         //Force the update of the URL and history, with the same values
         if (!zoomer.dontFeedToState) {
