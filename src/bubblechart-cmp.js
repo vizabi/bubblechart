@@ -1152,7 +1152,7 @@ class _VizabiBubbleChart extends Chart {
         res[dataTrailChunkIndex++] = d;
       } else {
         if (currentTrailKey) {
-          trailsZ[currentTrailKey] = d.z;
+          trailsZ[currentTrailKey] = d.size;//d.z
           //newTrailsData[trailChunkIndex] = Object.assign({}, newTrailsData[trailChunkIndex - 1]);
           newTrailsData.fill(d, trailChunkIndex, newTrailsData.length);
           //_newUpdateRangesLine.push({startRow: trailChunkIndex - 2, endRow: trailChunkIndex});
@@ -1954,13 +1954,13 @@ class _VizabiBubbleChart extends Chart {
           //zHover = -0.05;
           //console.log("zHover", zHover, d, this.activeObject)
         }
-        //console.log(d[KEY],this.xScale(d.x), this.yScale(d.y), d.uz ? d.uz : this.zScale(d.z))
-        //return [this.xScale(d.x), this.yScale(d.y), d.uz ? d.uz : this.zScale(d.z)]
-        return [this.xScale(d.x), this.yScale(d.y), d.uz ? d.uz : this.zScale(d.z)]
+        //console.log(d[KEY],this.xScale(d.x), this.yScale(d.y), d.uz ? d.uz : this.zScale(d.size))
+        //return [this.xScale(d.x), this.yScale(d.y), d.uz ? d.uz : this.zScale(d.size)]
+        return [this.xScale(d.x), this.yScale(d.y), d.uz ? d.uz : this.zScale(d.size)]
       },
       getPositionXY: (d) => {
         if (!d) return;
-        //console.log(d[KEY],this.xScale(d.x), this.yScale(d.y), d.uz ? d.uz : this.zScale(d.z))
+        //console.log(d[KEY],this.xScale(d.x), this.yScale(d.y), d.uz ? d.uz : this.zScale(d.size))
         return [this.xScale(d.x), this.yScale(d.y)]
       },
       
