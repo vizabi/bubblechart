@@ -706,14 +706,18 @@ class _VizabiBubbleChart extends Chart {
     this.MDL.size.scale.extent;
 
     if (duration) {
-      this.deckBubble.setProps({layers: this.getBubbleLayers(this.__data, !!duration, 0.001)});
+      const _pickable = this.deckBubble.props._pickable;
+      this.deckBubble.setProps({ _pickable: false, layers: this.getBubbleLayers(this.__data, !!duration, 0.001) });
       requestAnimationFrame(() => {
         this.redrawUpdateTrigger++;
-        this.deckBubble.setProps({layers: this.getBubbleLayers(this.__data, !!duration, duration)});
+        this.deckBubble.setProps({ layers: this.getBubbleLayers(this.__data, !!duration, duration) });
+        setTimeout(() => {
+          this.deckBubble.setProps({ _pickable });
+        }, duration);
       });
     } else {
-        this.redrawUpdateTrigger++;
-        this.deckBubble.setProps({layers: this.getBubbleLayers(this.__data, !!duration, duration)});
+      this.redrawUpdateTrigger++;
+      this.deckBubble.setProps({ layers: this.getBubbleLayers(this.__data, !!duration, duration) });
     }
   }
 
