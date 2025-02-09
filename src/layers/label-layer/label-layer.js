@@ -2,6 +2,7 @@ import { TextLayer } from "@deck.gl/layers";
 import LabelMultiIconLayer from "./label-multi-icon-layer/label-multi-icon-layer";
 import LabelBackgroundLayer from "./label-background-layer/label-background-layer";
 import LabelLineLayer from "./label-line-layer/label-line-layer";
+import LabelCloseButtonLayer from "./label-close-button-layer/label-close-button-layer";
 
 export default class LabelLayer extends TextLayer {
   static defaultProps = {
@@ -86,13 +87,13 @@ export default class LabelLayer extends TextLayer {
       ),
       //...layers,
       ...super.renderLayers(),
-      this.state.closeData?.length && new TextLayer(
+      this.state.closeData?.length && new LabelCloseButtonLayer(
         this.getSubLayerProps({
           id: 'close',
           _subLayerProps: {
             background: {
               type: LabelBackgroundLayer,
-              cornerRadius: 12,
+              cornerRadius: 0,
               getDragged: 1,
             },
             characters: {
@@ -142,8 +143,8 @@ export default class LabelLayer extends TextLayer {
               offset[1] = vH - lPaddB - pPos[1];
             }
 
-            offset[0] += lPaddR + 9*0.5;//half size closecross .getSize
-            offset[1] -= lH + lPaddT - 9*0.5;//half size closecross .getSize
+            offset[0] += lPaddR + 9 * 0.5;//half size closecross .getSize
+            offset[1] -= lH + lPaddT - 9 * 0.5;//half size closecross .getSize
             return offset;
           },
           getText: x=>"❌",
@@ -155,13 +156,14 @@ export default class LabelLayer extends TextLayer {
           edgeMaxCoord: this.props.edgeMaxCoord,
           fontSettings: {
             sdf: true,
-            fontSize: 24,
+            fontSize: 9 * 3,
+            buffer: Math.ceil(9 * 0.3) + 1,
           },
           characterSet:["❌"],
           //getPolygonOffset: null,//({layerIndex}) => [0, layerIndex * 100],
           pickable: true,
           background: true,
-          backgroundPadding: [8, 9, 8, 8],
+          backgroundPadding: [9, 9, 9, 8],
           getBackgroundColor: [0x60, 0x78, 0x89],
           getBorderColor: [255, 255, 255],
           getBorderWidth: 2,
