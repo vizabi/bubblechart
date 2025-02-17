@@ -1190,9 +1190,9 @@ class _VizabiBubbleChart extends Chart {
     
     console.log("__data", this.model.dataArray, this.__data, newData, this.__trailsData, newTrailsData);
     
-    this.__newLabelData = trailsShowAndSomeSelected ? this.__selectedKeys.map(key => selectedData.get(key) || this.model.dataMap.getByStr(key)).filter(d => d && true) 
+    this.__newLabelData = trailsShowAndSomeSelected ? this.__selectedKeys.map(key => selectedData.get(key) || this.model.dataMap.get(key)).filter(d => d && true) 
       :
-      this.__selectedKeys.map(key => this.model.dataMap.getByStr(key)).filter(d => d && true);
+      this.__selectedKeys.map(key => this.model.dataMap.get(key)).filter(d => d && true);
 
     if (this.__selectedKeys.length > this.__newLabelData.length) {
       const labelKeys = this.__newLabelData.map(d => d[TRAIL_KEY] || d[KEY]);
@@ -1332,8 +1332,9 @@ class _VizabiBubbleChart extends Chart {
 
     this.__someHighlighted = highlightedFilter.any();
     this.__highlightedMarkers = new Map(highlightedFilter.markers);
-    this.activeObject = this.__someHighlighted ? Object.assign({}, this.model.dataMap.getByStr(this.__highlightedMarkers.keys().next().value)) : null;
+    this.activeObject = this.__highlightedMarkers.size == 1 ? Object.assign({}, this.model.dataMap.get(this.__highlightedMarkers.keys().next().value)) : null;
     this.activeObjectData = this.activeObject ? [this.activeObject] : [];
+    this.opacityUpdateTrigger++;
     this.deckBubble.setProps({layers: this.getBubbleLayers(undefined, false)})
   }
 
@@ -1354,7 +1355,7 @@ class _VizabiBubbleChart extends Chart {
 
     runInAction(() => {
       if (!this.MDL.trail.show) {
-        this.__labelData = this.__selectedKeys.map(key => this.model.dataMap.getByStr(key));
+        this.__labelData = this.__selectedKeys.map(key => this.model.dataMap.get(key));
         this.deckBubble.setProps({layers: this.getBubbleLayers(undefined, false)});
       }
     });
@@ -1500,7 +1501,7 @@ class _VizabiBubbleChart extends Chart {
     if (highlightedFilter.markers.size === 1) {
       const highlightedKey = highlightedFilter.markers.keys().next().value;
       const d = this.activeObject;
-      //Object.assign(this.model.dataMap.getByStr(highlightedKey));
+      //Object.assign(this.model.dataMap.get(highlightedKey));
       const selectedKey = d[TRAIL_KEY] || d[KEY];
 
       const x = _this.xScale(d[_this._alias("x")]);
@@ -1568,8 +1569,8 @@ class _VizabiBubbleChart extends Chart {
 
     const superHighlightFilter = this.MDL.superHighlighted.data.filter;
 
-    this.bubbles
-      .classed("vzb-super-highlighted", d => superHighlightFilter.has(d));
+    //this.bubbles
+    //  .classed("vzb-super-highlighted", d => superHighlightFilter.has(d));
   }
 
   _selectDataPoints() {
@@ -1968,38 +1969,45 @@ class _VizabiBubbleChart extends Chart {
         return [this.xScale(d.x), this.yScale(d.y)]
       },
       
-      getFillColor: (d) => {
+      getFillColor: (d, { target }) => {
         if (!d) return;
         const ui = this.ui;
         const c = d3.color(this.__getColor(d[TRAIL_KEY] || d[KEY], d.color)).formatRgb().slice(4, -1).split(",").map(v=>+v);
-        const alpha = this.activeObject && d[KEY] == this.activeObject[KEY] ? ui.opacityHighlight : this.__someSelected ? this.__selectedMarkers.has(d[TRAIL_KEY] || d[KEY]) ? ui.opacitySelect : ui.opacitySelectDim : this.activeObject ? ui.opacityHighlightDim : ui.opacityRegular;
-        c[3] = alpha * 255;
-        return c;
+        target[0] = c[0];
+        target[1] = c[1];
+        target[2] = c[2];
+        target[3] = this._getBubbleOpacity(d) * 255;
+        return target;
       },
-      getTrailLineFillColor: (d, { data, index }) => {
+      getTrailLineFillColor: (d, { data, index, target }) => {
         if (!d) return;
         const ui = this.ui;
         const d1 = data[index + 1] || d;
         const c = d3.color(this.__getColorForTrail(d1.color, d1.size)).formatRgb().slice(4, -1).split(",").map(v=>+v);
-        const alpha = this.activeObject && d[KEY] == this.activeObject[KEY] ? ui.opacityHighlight : this.__someSelected ? this.__selectedMarkers.has(d[TRAIL_KEY] || d[KEY]) ? ui.opacitySelect : ui.opacitySelectDim : this.activeObject ? ui.opacityHighlightDim : ui.opacityRegular;
-        c[3] = alpha * 255;
-        return c;
+        target[0] = c[0];
+        target[1] = c[1];
+        target[2] = c[2];
+        target[3] = this._getBubbleOpacity(d) * 255;
+        return target;
       },
-      getLastTrailLineFillColor: (d) => {
+      getLastTrailLineFillColor: (d, { target }) => {
         if (!d) return;
         const ui = this.ui;
         const c = d3.color(this.__getColorForTrail(d[1].color, d[1].size)).formatRgb().slice(4, -1).split(",").map(v=>+v);
-        const alpha = this.activeObject && d[0][KEY] == this.activeObject[KEY] ? ui.opacityHighlight : this.__someSelected ? this.__selectedMarkers.has(d[0][TRAIL_KEY] || d[0][KEY]) ? ui.opacitySelect : ui.opacitySelectDim : this.activeObject ? ui.opacityHighlightDim : ui.opacityRegular;
-        c[3] = alpha * 255;
-        return c;
+        target[0] = c[0];
+        target[1] = c[1];
+        target[2] = c[2];
+        target[3] = this._getBubbleOpacity(d[0]) * 255;
+        return target;
       },
-      getLineColor: (d) => {
+      getLineColor: (d, { target }) => {
         if (!d) return;
         const ui = this.ui;
-        const c = [0x3, 0x3, 0x3, 255]
-        const alpha = this.activeObject && d[KEY] == this.activeObject[KEY] ? ui.opacityHighlight : this.__someSelected ? this.__selectedMarkers.has(d[TRAIL_KEY] || d[KEY]) ? ui.opacitySelect : ui.opacitySelectDim : this.activeObject ? ui.opacityHighlightDim : ui.opacityRegular;
-        c[3] = alpha * 255;
-        return c;
+        target[0] = 0x3;
+        target[1] = 0x3;
+        target[2] = 0x3;
+        target[3] = this._getBubbleOpacity(d) * 255;
+        return target;
       },
       getRadius: (d) => {
         if (!d) return;
