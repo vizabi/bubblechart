@@ -3,7 +3,7 @@ import {
   Utils,
   LegacyUtils as utils,
   axisSmart,
-  Labels,
+  LabelSizeHelper,
   DateTimeBackground
 } from "@vizabi/shared-components";
 import PanZoom from "./panzoom";
@@ -103,14 +103,8 @@ class _VizabiBubbleChart extends Chart {
 
   constructor(config) {
     config.subcomponents = [{
-      type: Labels,
+      type: LabelSizeHelper,
       placeholder: ".vzb-bc-labels",      
-      options: {
-        CSS_PREFIX: "vzb-bc",
-        LABELS_CONTAINER_CLASS: "vzb-bc-labels",
-        LINES_CONTAINER_CLASS: "vzb-bc-lines",
-        SUPPRESS_HIGHLIGHT_DURING_PLAY: false
-      },
       name: "labels"
     },{
       type: DateTimeBackground,
@@ -258,7 +252,7 @@ class _VizabiBubbleChart extends Chart {
       .attr("filter", `url(#vzb-glow-filter-${this.id})`);
 
     this._date = this.findChild({type: "DateTimeBackground"});
-    this._labels = this.findChild({type: "Labels"});
+    this._labels = this.findChild({type: "LabelSizeHelper"});
     this._panZoom = new PanZoom(this);    
     this.decorations = new BCDecorations(this);
   
@@ -356,6 +350,7 @@ class _VizabiBubbleChart extends Chart {
     //this.addReaction(this._updateOpacity_);
     this.addReaction(this._redrawOpacity);
     this.addReaction(this._updateHighlighted);
+    this.addReaction(this._updateLabelFontSizes);
     this.addReaction(this._updateSelected);
     this.addReaction(this.updateColorPatterns);
     this.addReaction(this._updateShowYear);
@@ -922,7 +917,7 @@ class _VizabiBubbleChart extends Chart {
   _updateScales() {
     this.yScale = this.MDL.y.scale.d3Scale;
     this.xScale = this.MDL.x.scale.d3Scale;
-    this._labels.setScales(this.xScale, this.yScale);
+    //this._labels.setScales(this.xScale, this.yScale);
   }
 
   get cScale() {
@@ -1325,6 +1320,15 @@ class _VizabiBubbleChart extends Chart {
   _getLabelText(d) {
     return this.KEYS.map(key => d.label[key]).join(",");
     ////  + (this.model.ui.chart.timeInTrails && time && (this.model.time.start - this.model.time.end !== 0) ? " " + time : "");
+  }
+
+  _updateLabelFontSizes() {
+    this._labels.MDL.size_label.scale.extent;
+
+    this.__defaultFontSize = this._labels.defaultFontSize;
+    this.__isConstantFontSize = this._labels.MDL.size_label.data.isConstant;
+    this.__fontSize = this._labels.getFontSize(this._labels.MDL.size_label.data.constant);
+    this.deckBubble.setProps({layers: this.getBubbleLayers(undefined, false)})
   }
 
   _updateHighlighted() {
@@ -1945,6 +1949,17 @@ class _VizabiBubbleChart extends Chart {
         
         this.deckBubble.setProps({layers: this.getBubbleLayers(undefined, false, 0, false)});
       },
+      onLabelHover: ({ object:d, layer, x, y }) => {
+        if (d && this.__selectedKeys.at(-1) !== d[KEY]) {
+          const index = this.__selectedKeys.indexOf(d[KEY]);
+          this.__selectedKeys.push(this.__selectedKeys.splice(index, 1)[0]);
+          const data = this.__labelData.splice(index, 1);
+          this.__labelData = [...this.__labelData, ...data];
+          layer.setState({ closeData: [layer.state.closeData[0]]});
+          layer.state.closeData[0].dataIndex = this.__selectedKeys.length - 1;
+          this.deckBubble.setProps({layers: this.getBubbleLayers(undefined, false)});
+        }
+      },
       getLabelLineTargetPixelOffset: (d) => {
         if (!d) return;
         const key = d[TRAIL_KEY] || d[KEY];
@@ -2276,23 +2291,29 @@ class _VizabiBubbleChart extends Chart {
           }
         },
         data: this.activeObject && this.__tooltipDataFilter() ? this.activeObjectData : null,
+        fontSettings: this.ui.labels.removeLabelBox ? {
+          sdf: true,
+          fontSize: 24
+        } : { sdf: false },
         getPosition: this.props.getLabelPosition,
         getPixelOffset: this.props.getTooltipPixelOffset,
         getText: this.props.getTooltipText,
         getColor: [10, 10, 10],
-        getSize: 16,
+        getSize: this.__defaultFontSize,
         getTextAnchor: 'end',
         getAlignmentBaseline: 'bottom',
         getDragged: this.props.getDragged,
         pickable: true,
-        background: true,
+        background: !this.ui.labels.removeLabelBox,
         backgroundPadding: [6, 4],
-        getBorderWidth: 1.5,
+        getBorderWidth: 1,
         billboard: true,
         lineWidthUnits: 'pixels',
         radiusUnits: 'pixels',
         fontFamily: this.FONT_FAMILY,
         characterSet: CHARACTER_SET,
+        outlineColor: [255, 255, 255],
+        outlineWidth: this.ui.labels.removeLabelBox ? 4 : 0,
         updateTriggers: {
           getPosition: [this.redrawUpdateTrigger]
         },
@@ -2329,7 +2350,7 @@ class _VizabiBubbleChart extends Chart {
         //}
       }),*/
       
-      new LabelLayer({
+      this.ui.labels.enabled && new LabelLayer({
         //parameters: {depthTest: false},
         id: 'labelTextLayer',
         _subLayerProps: {
@@ -2351,17 +2372,17 @@ class _VizabiBubbleChart extends Chart {
           }
         },
         data: this.__labelData,
-        //fontSettings: {
-        //  sdf: true,
-        //  fontSize: 24,
-        //},
+        fontSettings: this.ui.labels.removeLabelBox ? {
+          sdf: true,
+          fontSize: 24
+        } : { sdf: false },
         getPosition: this.props.getLabelPositionZ,
         getPixelOffset: this.props.getPixelOffset,
         getText: this.props.getLabelText,
         getLineSourceFillOffset: this.props.getRadius,
         getRadius: this.props.getRadius,
         getColor: [10, 10, 10],
-        getSize: 16,
+        getSize: this.__isConstantFontSize ? this.__fontSize : this.props.getLabelFontSize,
         getTextAnchor: 'end',
         getAlignmentBaseline: 'bottom',
         getDragged: this.props.getDragged,
@@ -2369,19 +2390,19 @@ class _VizabiBubbleChart extends Chart {
         onDragStart: this.props.onLabelDragStart,
         onDrag: this.props.onLabelDrag,
         onDragEnd: this.props.onLabelDragEnd,
-        //onHover: this.props.onLabelHover,
+        onHover: this.props.onLabelHover,
         onClick: this.props.onLabelClick,
         characterSet: CHARACTER_SET,
         fontFamily: this.FONT_FAMILY,
         pickable: true,
-        background: true,
+        outlineColor: [255, 255, 255],
+        outlineWidth: 4,
+        background: !this.ui.labels.removeLabelBox,
         backgroundPadding: [6, 4],
         getBorderWidth: 1,
         billboard: true,
         lineWidthUnits: 'pixels',
         radiusUnits: 'pixels',
-        //outlineColor: [255, 255, 255],
-        //outlineWidth: 0,
         updateTriggers: {
           getPixelOffset: [this.dragX, this.dragY, this.redrawUpdateTrigger],
           getDragged: [this.dragX0, this.dragY0],
