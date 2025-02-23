@@ -86,19 +86,9 @@ void main(void) {
   }
 
   //edge check
+  gl_Position.x = clamp(gl_Position.x, -edgeMaxCoord + clip_paddLT.x + clip_dimensions_wo_padd.x + clip_offset_icon.x , edgeMaxCoord - clip_paddRB.x + clip_offset_icon.x);
+  gl_Position.y = clamp(gl_Position.y, -edgeMaxCoord + clip_paddRB.y - clip_offset_icon.y, edgeMaxCoord - clip_paddLT.y - clip_dimensions_wo_padd.y - clip_offset_icon.y);
 
-    vec2 a = vec2(0.);
-    vec2 b = vec2(0.);
-
-    a.x = clamp(gl_Position.x, -edgeMaxCoord + clip_paddLT.x + clip_dimensions_wo_padd.x + clip_offset_icon.x , edgeMaxCoord - clip_paddRB.x + clip_offset_icon.x);
-    b.x = clamp(gl_Position.x, -edgeMaxCoord + clip_paddLT.x + clip_dimensions_wo_padd.x + clip_offset_icon.x , edgeMaxCoord - clip_paddRB.x + clip_offset_icon.x);
-
-    a.y = clamp(gl_Position.y, -edgeMaxCoord + clip_paddRB.y - clip_offset_icon.y, edgeMaxCoord - clip_paddLT.y - clip_dimensions_wo_padd.y - clip_offset_icon.y);
-    b.y = clamp(gl_Position.y, -edgeMaxCoord + clip_paddRB.y - clip_offset_icon.y, edgeMaxCoord - clip_paddLT.y - clip_dimensions_wo_padd.y - clip_offset_icon.y);
-
-    gl_Position.x = mix(a.x, b.x, positions0.x);
-    gl_Position.y = mix(a.y, b.y, 1. - positions0.y);
-  
   } else {
     vec3 offset_common = vec3(project_pixel_size(pixelOffset), 0.0);
     DECKGL_FILTER_SIZE(offset_common, geometry);
