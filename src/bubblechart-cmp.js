@@ -1536,9 +1536,9 @@ class _VizabiBubbleChart extends Chart {
 //      _this._labels.highlight(null, false);
 //      _this._labels.highlight({ [KEY]: selectedKey }, true);
       if (isSelected) {
-        const skipCrownInnerFill = !isTrail;
+        //const skipCrownInnerFill = !isTrail;
         //!d.trailStartTime || d.trailStartTime == _this.model.time.formatDate(_this.time);
-        _this._setBubbleCrown(x, y, s, c, skipCrownInnerFill);
+        _this._setBubbleCrown(x, y, s, c, true);
       }
 
       if (!entityOutOfView) {
@@ -1949,9 +1949,9 @@ class _VizabiBubbleChart extends Chart {
         
         this.deckBubble.setProps({layers: this.getBubbleLayers(undefined, false, 0, false)});
       },
-      onLabelHover: ({ object:d, layer, x, y }) => {
-        if (d && this.__selectedKeys.at(-1) !== d[KEY]) {
-          const index = this.__selectedKeys.indexOf(d[KEY]);
+      onLabelHover: ({ object:d, layer }) => {
+        if (d && this.__selectedKeys.at(-1) !== (d[TRAIL_KEY] || d[KEY])) {
+          const index = this.__selectedKeys.indexOf(d[TRAIL_KEY] || d[KEY]);
           this.__selectedKeys.push(this.__selectedKeys.splice(index, 1)[0]);
           const data = this.__labelData.splice(index, 1);
           this.__labelData = [...this.__labelData, ...data];
@@ -1969,14 +1969,18 @@ class _VizabiBubbleChart extends Chart {
       },
       getPosition: (d) => {
         if (!d) return;
-        let zHover = 0;
-        if (this.activeObject && this.activeObject[KEY] == d[KEY]) {
+        //let zHover = 0;
+        // if (this.activeObject && this.activeObject[KEY] == d[KEY]) {
           //zHover = -0.05;
           //console.log("zHover", zHover, d, this.activeObject)
-        }
+        // }
         //console.log(d[KEY],this.xScale(d.x), this.yScale(d.y), d.uz ? d.uz : this.zScale(d.size))
         //return [this.xScale(d.x), this.yScale(d.y), d.uz ? d.uz : this.zScale(d.size)]
         return [this.xScale(d.x), this.yScale(d.y), d.uz ? d.uz : this.zScale(d.size)]
+      },
+      getPositionHighlight: (d) => {
+        if (!d) return;
+        return [this.xScale(d.x), this.yScale(d.y), -0.095];
       },
       getPositionXY: (d) => {
         if (!d) return;
@@ -2147,7 +2151,7 @@ class _VizabiBubbleChart extends Chart {
         getSourcePosition: this.props.getSourcePosition,
         getTargetPosition: this.props.getTargetPosition,
         getWidth: this.props.getTrailLineWidth,
-        getPolygonOffset: ({layerIndex}) => [0, layerIndex * 100],
+        //getPolygonOffset: ({layerIndex}) => [0, layerIndex * 100],
         updateTriggers: {
           getColor: [this.activeObject, this.opacityUpdateTrigger],
           getSourcePosition: [this.redrawUpdateTrigger],
@@ -2235,10 +2239,10 @@ class _VizabiBubbleChart extends Chart {
       }),
       new ScatterplotLayer({
         parameters: {depthTest: false},
-        id: "activeObjectscatterPlotLayer",//_"+s,
+        id: "activeObjectScatterPlotLayer",//_"+s,
         data: this.activeObjectData,//.slice(0),//.slice(s, s+chunkCount),
         stroked: true,
-        getPosition: this.props.getPosition,
+        getPosition: this.props.getPositionHighlight,
         getRadius: this.props.getRadius,
         radiusUnits: 'pixels',
         getFillColor: this.props.getFillColor,
@@ -2246,8 +2250,8 @@ class _VizabiBubbleChart extends Chart {
         getLineWidth: 1.0,
         lineWidthUnits: 'pixels',
         pickable: false,
-        onHover: this.props.onHover,
-        onClick: this.props.onClick,
+        // onHover: this.props.onHover,
+        // onClick: this.props.onClick,
         //padding: this.activeObject ? [6, 4] : 0,
         updateTriggers: {
           getFillColor: [this.activeObject, this.opacityUpdateTrigger],
@@ -2386,7 +2390,7 @@ class _VizabiBubbleChart extends Chart {
         getTextAnchor: 'end',
         getAlignmentBaseline: 'bottom',
         getDragged: this.props.getDragged,
-        //getPolygonOffset: null,//({layerIndex}) => [0, layerIndex * 100],
+        getPolygonOffset: null,//({layerIndex}) => [0, layerIndex * 100],
         onDragStart: this.props.onLabelDragStart,
         onDrag: this.props.onLabelDrag,
         onDragEnd: this.props.onLabelDragEnd,
