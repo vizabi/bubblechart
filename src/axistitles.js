@@ -48,7 +48,7 @@ class BCAxisTitles extends BaseComponent {
 
     this.addReaction(this.updateUIStrings);
     this.addReaction(this.updateTreemenu);
-    this.addReaction(this.updateSize);
+    this.addReaction(this.updateSize, {throttle_ms: 50});
     this.addReaction(this.updateInfoElements);
   }
 

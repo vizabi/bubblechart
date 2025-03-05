@@ -344,9 +344,9 @@ class _VizabiBubbleChart extends Chart {
 
     if (this._updateLayoutProfile()) return; //return if exists with error
     this.addReaction(this._updateScales);
-    this.addReaction(this._updateSize);
-    //    this.addReaction(this._resetZoomMinMaxXReaction, this._resetZoomMinMaxX);
-    //    this.addReaction(this._resetZoomMinMaxYReaction, this._resetZoomMinMaxY);
+    this.addReaction(this.updateSize, {throttle_ms: 50});
+    //    this.addReaction(this._resetZoomMinMaxXReaction, {ignoreStatus: this._resetZoomMinMaxX});
+    //    this.addReaction(this._resetZoomMinMaxYReaction, {ignoreStatus: this._resetZoomMinMaxY});
     //this.addReaction(this._updateOpacity_);
     this.addReaction(this._redrawOpacity);
     this.addReaction(this._updateHighlighted);
@@ -924,7 +924,7 @@ class _VizabiBubbleChart extends Chart {
     return this.MDL.color.scale.d3Scale;
   }
   
-  _updateSize() {
+  updateSize() {
     this.services.layout.size;
 
     const {
