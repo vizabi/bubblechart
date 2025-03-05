@@ -1021,8 +1021,8 @@ class _VizabiBubbleChart extends Chart {
         formatter: this.services.locale.auto({shareOrPercent: x.data?.conceptProps?.format})
       });
 
-    canvasWrap.style("width", width + "px");
-    canvasWrap.style("height", Math.max(0, height) + "px");
+    //canvasWrap.style("width", width + "px");
+    //canvasWrap.style("height", Math.max(0, height) + "px");
 
     bubbleContainerCropAll
       .attr("width", width)
@@ -1183,7 +1183,7 @@ class _VizabiBubbleChart extends Chart {
       });
     }
     
-    console.log("__data", this.model.dataArray, this.__data, newData, this.__trailsData, newTrailsData);
+    //console.log("__data", this.model.dataArray, this.__data, newData, this.__trailsData, newTrailsData);
     
     this.__newLabelData = trailsShowAndSomeSelected ? this.__selectedKeys.map(key => selectedData.get(key) || this.model.dataMap.get(key)).filter(d => d && true) 
       :
@@ -1786,7 +1786,7 @@ class _VizabiBubbleChart extends Chart {
         this.deckBubble.setProps({ viewState: this.__viewState });
       },
       onResize: ({ width, height }) => {
-        console.log("onresize", this, width, height);
+        //console.log("onresize", this, width, height);
         const targetDelta = [(this.__viewState.width - width) * 0.5, (this.__viewState.height - height) * 0.5, 0];
         this.deckBubble.setProps({ viewState: { ...this.__viewState, target: this.__viewState.target.map((v, i) => v - targetDelta[i])}});
       }
