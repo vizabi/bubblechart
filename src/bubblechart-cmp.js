@@ -1021,8 +1021,8 @@ class _VizabiBubbleChart extends Chart {
         formatter: this.services.locale.auto({shareOrPercent: x.data?.conceptProps?.format})
       });
 
-    //canvasWrap.style("width", width + "px");
-    //canvasWrap.style("height", Math.max(0, height) + "px");
+    canvasWrap.style("width", width + "px");
+    canvasWrap.style("height", Math.max(0, height) + "px");
 
     bubbleContainerCropAll
       .attr("width", width)
