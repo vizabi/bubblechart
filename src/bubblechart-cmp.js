@@ -26,6 +26,7 @@ import LabelMultiIconLayer from "./layers/label-layer/label-multi-icon-layer/lab
 const COLOR_WHITEISH = "rgb(253, 253, 253)";
 const COLOR_BLACKISH = "rgb(51, 51, 51)";
 const THICK_LINE_THRESHOLD_FOR_DARKER_COLOR = 3;
+const SUPERHIGHLIGHT_DELAY = 500;
 const CHARACTER_SET =
 'ABCDEFGHIJKLMNOPQRSTUVWXYZÅÄÖabcdefghijklmnopqrstuvwxyzåäéö0123456789+-−–*/%,.²:() '.split('');
 
@@ -363,7 +364,7 @@ class _VizabiBubbleChart extends Chart {
 
     this.addReaction(this._selectDataPoints);
     this.addReaction(this._highlightDataPoints);
-    //this.addReaction(this._blinkSuperHighlighted);
+    this.addReaction(this._blinkSuperHighlighted);
     this.addReaction(this._drawForecastOverlay);
     this.addReaction(this._setupCursorMode);
     this.addReaction(this.updateDecorations);
@@ -1572,9 +1573,32 @@ class _VizabiBubbleChart extends Chart {
     if (!this.MDL.superHighlighted) return;
 
     const superHighlightFilter = this.MDL.superHighlighted.data.filter;
+    if (!superHighlightFilter.any() || this.duration) {
+      if (this.__superHLTimeoutID) {
+        clearTimeout(this.__superHLTimeoutID);
+        this.__superHLTimeoutID = null;
+        this.opacityUpdateTrigger++;
+        this.__superHLBlink = false;
+        this.deckBubble.setProps({ layers: this.getBubbleLayers(this.__data, false, 0) });
+      }
+      return;
+    };
 
-    //this.bubbles
-    //  .classed("vzb-super-highlighted", d => superHighlightFilter.has(d));
+    const _this = this;
+    this.superHighlightFilter = superHighlightFilter;
+    this.__superHLBlink = false;
+    loop();
+
+    function loop() {
+      _this.__superHLTimeoutID = setTimeout(() => {
+        _this.__superHLBlink = !_this.__superHLBlink;
+        _this.opacityUpdateTrigger++;
+        _this.deckBubble.setProps({ layers: _this.getBubbleLayers(_this.__data, false, 0) });
+
+        loop();
+      }, SUPERHIGHLIGHT_DELAY);
+    };
+    
   }
 
   _selectDataPoints() {
@@ -1990,7 +2014,10 @@ class _VizabiBubbleChart extends Chart {
       
       getFillColor: (d, { target }) => {
         if (!d) return;
-        const ui = this.ui;
+        if (this.__superHLBlink && this.superHighlightFilter.has(d)) {
+          target[3] = 0;
+          return target;
+        }
         const c = d3.color(this.__getColor(d[TRAIL_KEY] || d[KEY], d.color)).formatRgb().slice(4, -1).split(",").map(v=>+v);
         target[0] = c[0];
         target[1] = c[1];
@@ -2000,7 +2027,10 @@ class _VizabiBubbleChart extends Chart {
       },
       getTrailLineFillColor: (d, { data, index, target }) => {
         if (!d) return;
-        const ui = this.ui;
+        if (this.__superHLBlink && this.superHighlightFilter.has(d)) {
+          target[3] = 0;
+          return target;
+        }
         const d1 = data[index + 1] || d;
         const c = d3.color(this.__getColorForTrail(d1.color, d1.size)).formatRgb().slice(4, -1).split(",").map(v=>+v);
         target[0] = c[0];
@@ -2011,7 +2041,6 @@ class _VizabiBubbleChart extends Chart {
       },
       getLastTrailLineFillColor: (d, { target }) => {
         if (!d) return;
-        const ui = this.ui;
         const c = d3.color(this.__getColorForTrail(d[1].color, d[1].size)).formatRgb().slice(4, -1).split(",").map(v=>+v);
         target[0] = c[0];
         target[1] = c[1];
@@ -2021,10 +2050,13 @@ class _VizabiBubbleChart extends Chart {
       },
       getLineColor: (d, { target }) => {
         if (!d) return;
-        const ui = this.ui;
-        target[0] = 0x3;
-        target[1] = 0x3;
-        target[2] = 0x3;
+        if (this.__superHLBlink && this.superHighlightFilter.has(d)) {
+          target[3] = 0;
+          return target;
+        }
+        target[0] = 0x33;
+        target[1] = 0x33;
+        target[2] = 0x33;
         target[3] = this._getBubbleOpacity(d) * 255;
         return target;
       },
