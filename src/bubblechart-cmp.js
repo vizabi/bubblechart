@@ -348,7 +348,6 @@ class _VizabiBubbleChart extends Chart {
     this.addReaction(this.updateSize, {throttle_ms: 50});
     //    this.addReaction(this._resetZoomMinMaxXReaction, {ignoreStatus: this._resetZoomMinMaxX});
     //    this.addReaction(this._resetZoomMinMaxYReaction, {ignoreStatus: this._resetZoomMinMaxY});
-    //this.addReaction(this._updateOpacity_);
     this.addReaction(this._redrawOpacity);
     this.addReaction(this._updateHighlighted);
     this.addReaction(this._updateLabelFontSizes);
@@ -356,10 +355,8 @@ class _VizabiBubbleChart extends Chart {
     this.addReaction(this.updateColorPatterns);
     this.addReaction(this._updateShowYear);
     this.addReaction(this._updateYear);
-    //this.addReaction(this.drawData_);
     this.addReaction(this.drawData);
     this.addReaction(this._zoomToMarkerMaxMin);
-    //this.addReaction(this.redrawData_);
     this.addReaction(this.redrawData);
 
     this.addReaction(this._selectDataPoints);
@@ -368,13 +365,6 @@ class _VizabiBubbleChart extends Chart {
     this.addReaction(this._drawForecastOverlay);
     this.addReaction(this._setupCursorMode);
     this.addReaction(this.updateDecorations);
-  }
-
-  drawData_() {
-    this.processFrameData_();
-    this._updateMarkerSizeLimits();
-    //this._createAndDeleteBubbles();
-    //this.redrawData();
   }
 
   drawData() {
@@ -436,262 +426,6 @@ class _VizabiBubbleChart extends Chart {
     return this.MDL.color.scale.palette.getColorShade({colorID: valueC}) || COLOR_BLACKISH;
   }
 
-  _createAndDeleteBubbles() {
-    const _this = this;
-    const duration = this.duration;
-    const transition = this._getTransition(duration);
-    const data = this.__dataProcessed_;
-    let trailRedrawDate;
-
-    runInAction(()=>{
-      trailRedrawDate = this.MDL.frame.stepScale.invert(Math.min(this.__lastStep, this.__lastStep = this.MDL.frame.step << 0) - 1);
-    });
-
-    this.bubbles = this.DOM.bubbleContainer.selectAll(".vzb-bc-entity")
-      .data(this.__dataProcessed_, d => d[KEY])
-      .join(
-        enter => enter
-          .append(d => {
-            const g = document.createElementNS("http://www.w3.org/2000/svg", "g");
-            const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-            const trailLine = document.createElementNS("http://www.w3.org/2000/svg", "line");
-            const diagonalLine = document.createElementNS("http://www.w3.org/2000/svg", "line");
-            trailLine.classList.add("vzb-trail-line");
-            diagonalLine.classList.add("vzb-diagonal-line");
-            g.appendChild(circle);
-            g.appendChild(diagonalLine);
-            if (isTrailBubble(d)) g.appendChild(trailLine);
-            return g;
-          })
-          .attr("class", "vzb-bc-entity")
-          .attr("id", d => `vzb-bc-bubble-${d[KEY]}-${this.id}`)
-          .style("opacity", d => d[Symbol.for("opacity")] = this._getBubbleOpacity(d))
-          .call(selection => {
-            if(!utils.isTouchDevice()){
-              selection
-                .on("mouseover", (event, d) => {
-                  if (this.ui.cursorMode !== "arrow" && this.ui.cursorMode !== "hand") return;
-                  if (this._labels.dragging) return;
-                  this._bubblesInteract().mouseover(event, d);
-                })
-                .on("mouseout", (event, d) => {
-                  if (this.ui.cursorMode !== "arrow" && this.ui.cursorMode !== "hand") return;
-                  if (this._labels.dragging) return;
-                  this._bubblesInteract().mouseout(event, d);
-                })
-                .on("click", (event, d) => {
-                  if (this.ui.cursorMode !== "arrow" && this.ui.cursorMode !== "hand") return;
-                  this._bubblesInteract().click(event, d);
-                });
-            } else {
-              selection
-                .onTap((event, d) => {
-                  event.stopPropagation();
-                  this._bubblesInteract().click(event, d);
-                })
-                .onLongTap(() => {});
-            }
-          })
-          .each(function(d, index) {
-            const dataNext = data[index + 1] || {};
-            const isTrail = isTrailBubble(d);
-            const isExtrapolated = d[Symbol.for("extrapolated")];
-            const headTrail = isTrail && !dataNext[TRAIL_KEY];
-            const view = d3.select(this);
-            const circle = view.select("circle");
-            const diagonalLine = view.select(".vzb-diagonal-line");
-      
-            const valueX = d[_this._alias("x")];
-            const valueY = d[_this._alias("y")];
-            const valueS = d.size;
-            const valueC = d.color;
-      
-            //d.hidden = (!valueS && valueS !== 0) || valueX == null || valueY == null;
-      
-            //view.classed("vzb-hidden", d.hidden);
-            d.r = utils.areaToRadius(_this.sScale(valueS || 0));
-            const scaledX = _this.xScale(valueX);
-            const scaledY = _this.yScale(valueY);
-            const scaledC = _this.__getColor(d[isTrail ? TRAIL_KEY : KEY], valueC);
-      
-            if (!duration || !headTrail) {
-              circle
-                .attr("r", d.r)
-                .attr("fill", scaledC)
-                .attr("cy", scaledY)
-                .attr("cx", scaledX);
-              //.transition(transition)
-
-              if(isExtrapolated)
-                diagonalLine
-                  .attr("x1", scaledX + d.r/Math.sqrt(2))
-                  .attr("y1", scaledY + d.r/Math.sqrt(2))
-                  .attr("x2", scaledX - d.r/Math.sqrt(2))
-                  .attr("y2", scaledY - d.r/Math.sqrt(2));
-              diagonalLine
-                .classed("vzb-hidden", !isExtrapolated);
-      
-              //trail line
-              if (isTrail) {
-                const trailLine = view.select(".vzb-trail-line");
-
-                const scaledX0 = _this.xScale(dataNext[_this._alias("x")]);
-                const scaledY0 = _this.yScale(dataNext[_this._alias("y")]);
-                const scaledCT = _this.__getColorForTrail(dataNext.color, dataNext.size);
-
-                const nextR = utils.areaToRadius(_this.sScale(dataNext.size || 0));
-                const length = Math.sqrt( (scaledX - scaledX0)**2 + (scaledY - scaledY0)**2 ) - d.r - nextR;
-                
-                trailLine
-                  .attr("x1", scaledX)
-                  .attr("y1", scaledY)
-                  .attr("x2", scaledX0)
-                  .attr("y2", scaledY0)                  
-                  .attr("stroke-dasharray", `0 ${d.r} ${length > 0 ? length : 0} ${nextR}`)
-                  .style("stroke-width", _this.trailSizeScale(dataNext.size))
-                  .style("stroke", scaledCT);
-              }
-            }
-      
-            if (duration && !isTrail) {
-              view
-                .style("opacity", 0)
-                .transition().duration(duration*0.9)
-                .style("opacity", d[Symbol.for("opacity")]);
-            }
-      
-            if (!isTrail) {
-              _this._updateLabel(d, valueX, valueY, duration, true, false);
-            }
-          }),
-
-        update => update
-          .each(function(d, index) {
-            
-            const isTrail = isTrailBubble(d);
-            const isExtrapolated = d[Symbol.for("extrapolated")];
-            const dataNext = data[index + 1] || {};
-            const headTrail = isTrail && !dataNext[TRAIL_KEY];
-      
-            const valueS = d.size;
-            d.r = utils.areaToRadius(_this.sScale(valueS || 0));
-            if (isTrail && d["frame"] < trailRedrawDate) return;
-      
-            const valueX = d[_this._alias("x")];
-            const valueY = d[_this._alias("y")];
-            const valueC = d.color;
-      
-            //d.hidden = (!valueS && valueS !== 0) || valueX == null || valueY == null;
-      
-            //view.classed("vzb-hidden", d.hidden);
-            const scaledX = _this.xScale(valueX);
-            const scaledY = _this.yScale(valueY);
-            const scaledC = _this.__getColor(d[isTrail ? TRAIL_KEY : KEY], valueC);
-      
-            const group = d3.select(this);
-            if (!duration || !headTrail) {
-              const circle = group.select("circle");
-              if (duration && !isTrail) {
-                circle.transition(transition)
-                  .attr("r", d.r)
-                  .attr("fill", scaledC)
-                  .attr("cy", scaledY)
-                  .attr("cx", scaledX);
-              } else {
-                circle.interrupt()
-                  .attr("r", d.r)
-                  .attr("fill", scaledC)
-                  .attr("cy", scaledY)
-                  .attr("cx", scaledX);
-              }
-                
-              const diagonalLine = group.select(".vzb-diagonal-line");
-              if (duration && isExtrapolated && diagonalLine.classed("vzb-hidden")) {
-                const cx = +circle.attr("cx");
-                const cy = +circle.attr("cy");
-                const r = +circle.attr("r");
-                diagonalLine
-                  .attr("x1", cx + r/Math.sqrt(2))
-                  .attr("y1", cy + r/Math.sqrt(2))
-                  .attr("x2", cx - r/Math.sqrt(2))
-                  .attr("y2", cy - r/Math.sqrt(2));
-              }
-              diagonalLine
-                .classed("vzb-hidden", !isExtrapolated);
-              if(isExtrapolated){
-                if (duration && !isTrail){
-                  diagonalLine.transition(transition)
-                    .attr("x1", scaledX + d.r/Math.sqrt(2))
-                    .attr("y1", scaledY + d.r/Math.sqrt(2))
-                    .attr("x2", scaledX - d.r/Math.sqrt(2))
-                    .attr("y2", scaledY - d.r/Math.sqrt(2));
-                } else {
-                  diagonalLine.interrupt()
-                    .attr("x1", scaledX + d.r/Math.sqrt(2))
-                    .attr("y1", scaledY + d.r/Math.sqrt(2))
-                    .attr("x2", scaledX - d.r/Math.sqrt(2))
-                    .attr("y2", scaledY - d.r/Math.sqrt(2));
-                }
-              }
-              
-              //trail line
-              if (isTrail) {
-                const trailLine = group.select(".vzb-trail-line");
-                const scaledX0 = _this.xScale(dataNext[_this._alias("x")]);
-                const scaledY0 = _this.yScale(dataNext[_this._alias("y")]);
-                const scaledCT = _this.__getColorForTrail(dataNext.color, dataNext.size);
-                
-                trailLine
-                  .attr("x1", scaledX)
-                  .attr("y1", scaledY);
-                if (duration && !data[index + 2][TRAIL_KEY]) {
-                  trailLine
-                    .attr("x2", scaledX)
-                    .attr("y2", scaledY)
-                    .transition(transition)
-                    .attr("x2", scaledX0)
-                    .attr("y2", scaledY0);
-                } else {
-                  trailLine.interrupt()
-                    .attr("x2", scaledX0)
-                    .attr("y2", scaledY0);
-                }
-      
-                const nextR = utils.areaToRadius(_this.sScale(dataNext.size || 0));
-                const length = Math.sqrt( (scaledX - scaledX0)**2 + (scaledY - scaledY0)**2 ) - d.r - nextR;
-
-                trailLine
-                  .style("stroke", scaledCT)
-                  .style("stroke-width", _this.trailSizeScale(dataNext.size))
-                  .attr("stroke-dasharray", `0 ${d.r} ${length > 0 ? length : 0} ${nextR}`);
-              }
-            }
-            
-            if (!isTrail)
-              _this._updateLabel(d, valueX, valueY, duration, false, false);    
-          }),    
-
-        exit => exit
-          .each(function(d) {
-            const isTrail = isTrailBubble(d);
-            
-            const view = duration && !isTrail ?
-              d3.select(this).transition(transition)
-                .duration(duration*0.9)
-                .style("opacity", 0)
-              :
-              d3.select(this).interrupt();
-      
-            view
-              .remove();
-            
-            if (!isTrail) 
-              _this._updateLabel(d, d[_this._alias("x")], d[_this._alias("y")], duration, true, true);
-          })
-      )
-      .order();
-
-  }
 
   redrawData(duration = 0) {
     //this.services.layout.size;
@@ -715,105 +449,6 @@ class _VizabiBubbleChart extends Chart {
       this.redrawUpdateTrigger++;
       this.deckBubble.setProps({ layers: this.getBubbleLayers(this.__data, !!duration, duration) });
     }
-  }
-
-  redrawData_(duration) {
-    //this.services.layout.size;
-    //this.MDL.x.scale.type;
-    //this.MDL.y.scale.type;
-    this.MDL.color.scale.type;
-    this.MDL.size.scale.type;
-    this.MDL.size.scale.extent;
-
-    const _this = this;
-    const data = this.__dataProcessed_;
-    const transition = this._getTransition(duration);
-
-    if (this.bubbles) this.bubbles.each(function(d, index) {
-      const isTrail = isTrailBubble(d);
-      const dataNext = data[index + 1] || {};
-      const headTrail = isTrail && !dataNext[TRAIL_KEY];
-      const isExtrapolated = d[Symbol.for("extrapolated")];
-
-      const valueX = d[_this._alias("x")];
-      const valueY = d[_this._alias("y")];
-      const valueS = d.size;
-      const valueC = d.color;
-
-      d.r = utils.areaToRadius(_this.sScale(valueS || 0));
-      const scaledX = _this.xScale(valueX);
-      const scaledY = _this.yScale(valueY);
-      const scaledC = _this.__getColor(d[isTrail ? TRAIL_KEY : KEY], valueC);
-
-      const group = d3.select(this);
-
-      if (duration && headTrail) {
-        group.style("opacity", 0)
-          .transition().delay(duration).duration(0)
-          .style("opacity", d[Symbol.for("opacity")]);
-      }
-
-      const circle = group.select("circle");                            
-      if (duration && !headTrail) {
-        circle.transition(transition)
-          .attr("r", d.r)
-          .attr("fill", scaledC)
-          .attr("cy", scaledY)
-          .attr("cx", scaledX);
-      } else {
-        circle.interrupt()
-          .attr("r", d.r)
-          .attr("fill", scaledC)
-          .attr("cy", scaledY)
-          .attr("cx", scaledX);
-      }
-
-      const diagonalLine = group.select(".vzb-diagonal-line");
-      diagonalLine
-        .classed("vzb-hidden", !isExtrapolated);
-      if(isExtrapolated){
-        if (duration && !headTrail){
-          diagonalLine.transition(transition)
-            .attr("x1", scaledX + d.r/Math.sqrt(2))
-            .attr("y1", scaledY + d.r/Math.sqrt(2))
-            .attr("x2", scaledX - d.r/Math.sqrt(2))
-            .attr("y2", scaledY - d.r/Math.sqrt(2));
-        } else {
-          diagonalLine.interrupt()
-            .attr("x1", scaledX + d.r/Math.sqrt(2))
-            .attr("y1", scaledY + d.r/Math.sqrt(2))
-            .attr("x2", scaledX - d.r/Math.sqrt(2))
-            .attr("y2", scaledY - d.r/Math.sqrt(2));
-        }
-      }
-      
-
-      if (isTrail) {
-        const trailLine = (duration  && !headTrail) ? 
-          group.select(".vzb-trail-line")
-            .transition(transition)
-          : group.select(".vzb-trail-line").interrupt();
-
-        const dataNext = data[index + 1];
-        const scaledX0 = _this.xScale(dataNext[_this._alias("x")]);
-        const scaledY0 = _this.yScale(dataNext[_this._alias("y")]);
-        const scaledCT = _this.__getColorForTrail(dataNext.color, dataNext.size);
-
-        const nextR = utils.areaToRadius(_this.sScale(dataNext.size || 0));
-        const length = Math.sqrt( (scaledX - scaledX0)**2 + (scaledY - scaledY0)**2 ) - d.r - nextR;
-
-        trailLine
-          .attr("x1", scaledX)
-          .attr("y1", scaledY)
-          .attr("x2", scaledX0)
-          .attr("y2", scaledY0)
-          .style("stroke", scaledCT)
-          .style("stroke-width", _this.trailSizeScale(dataNext.size))
-          .attr("stroke-dasharray", `0 ${d.r} ${length > 0 ? length : 0} ${nextR}`);
-      }
-    });
-
-    runInAction(() => _this._updateLabels(duration));
   }
 
   __getZoomed(type, zoomed, domain) {
@@ -1230,47 +865,6 @@ class _VizabiBubbleChart extends Chart {
     });
   }
 
-  processFrameData_() {
-    return this.__dataProcessed_ = this.model.dataArray;
-  }
-
-  _getTransition(duration) {
-    return duration ? d3.transition()
-      .duration(duration)
-      .ease(d3.easeLinear) : d3.transition();
-  }  
-
-  _bubblesInteract() {
-    const _this = this;
-
-    return {
-      mouseover(event, d) {
-        _this.hoverBubble = true;
-        _this.MDL.highlighted.data.filter.set(d);
-        _this._labels.showCloseCross(d, true);
-      },
-
-      mouseout(event, d) {
-        _this.hoverBubble = false;
-        _this.MDL.highlighted.data.filter.delete(d);
-        //_this._setTooltip();
-        _this._labels.showCloseCross(d, false);
-      },
-
-      click(event, d) {
-        if (_this.draggingNow) return;
-        // // const isSelected = d.isSelected;
-        if (!isTrailBubble(d)) _this.MDL.selected.data.filter.toggle(d);
-        //_this.MDL.selected.data.filter.toggle(d);
-        // // //return to highlighted state
-        // // if (!utils.isTouchDevice()) {
-        // //   if (isSelected) _this.model.marker.highlightMarker(d);
-        // //   _this.highlightDataPoints();
-      }
-    };
-  }
-  
-
   _updateMarkerSizeLimits() {
     this.services.layout.size;
     this.MDL.size.scale.domain;
@@ -1292,30 +886,6 @@ class _VizabiBubbleChart extends Chart {
 
     this.sScale.range([minArea, maxArea]);
     this.trailSizeScale.domain(this.MDL.size.scale.domain).range([minTrailThicknessPx, maxTrailThicknessPx]);
-  }
-
-  _setTooltip(tooltipText, x, y, s, c, d) {
-    if (tooltipText) {
-      const labelValues = {};
-      if (d) {
-        labelValues.valueY = d[this._alias("y")];
-        labelValues.valueX = d[this._alias("x")];
-        labelValues.valueS = d.size;
-        labelValues.valueC = d.color;
-        labelValues.valueLST = d.size_label || null;
-        labelValues.labelText = this.__labelWithoutFrame(d, this.localise);
-      }
-
-      const tooltipCache = {};
-      tooltipCache.labelX0 = this.xScale.invert ? this.xScale.invert(x) : d.x;
-      tooltipCache.labelY0 = this.yScale.invert ? this.yScale.invert(y) : d.y;
-      tooltipCache.scaledS0 = s;
-      tooltipCache.scaledC0 = null;
-
-      this._labels.setTooltip(d, tooltipText, tooltipCache, labelValues);
-    } else {
-      this._labels.setTooltip();
-    }
   }
 
   _getLabelText(d) {
@@ -1364,24 +934,6 @@ class _VizabiBubbleChart extends Chart {
         this.deckBubble.setProps({layers: this.getBubbleLayers(undefined, false)});
       }
     });
-  }
-
-  _updateOpacity_(selection) {
-    //this.MDL.frame.value; //listen
-
-    const highlightedFilter = this.MDL.highlighted.data.filter;
-    const selectedFilter = this.MDL.selected.data.filter;
-
-    this.__highlightedMarkers = new Map(highlightedFilter.markers);
-    this.__selectedMarkers = new Map(selectedFilter.markers);
-    this.__someSelected = this.__selectedMarkers.size != 0;
-    this.__someHighlighted = this.__highlightedMarkers.size != 0;
-
-    const _selection = selection || this.bubbles;
-    if(!_selection) return;
-    _selection
-      .style("opacity", d => this._getBubbleOpacity(d, this.ui))
-      .style("pointer-events", d => this._getBubbleOpacity(d, this.ui) === 0 ? "none" : "visible");
   }
 
   _redrawOpacity() {
@@ -1648,108 +1200,13 @@ class _VizabiBubbleChart extends Chart {
     }
   }
 
-  _setupCursorMode_() {
-    const svg = this.DOM.chartSvgAll;
-    if (this.ui.cursorMode === "plus") {
-      svg.classed("vzb-zoomin", true);
-      svg.classed("vzb-zoomout", false);
-      svg.classed("vzb-panhand", false);
-    } else if (this.ui.cursorMode === "minus") {
-      svg.classed("vzb-zoomin", false);
-      svg.classed("vzb-zoomout", true);
-      svg.classed("vzb-panhand", false);
-    } else if (this.ui.cursorMode === "hand") {
-      svg.classed("vzb-zoomin", false);
-      svg.classed("vzb-zoomout", false);
-      svg.classed("vzb-panhand", true);
-    } else {
-      svg.classed("vzb-zoomin", false);
-      svg.classed("vzb-zoomout", false);
-      svg.classed("vzb-panhand", false);
-    }
-  }
-
   updateDecorations(){
     this.services.layout.size;
     this.MDL.x.scale.zoomed;
     this.MDL.y.scale.zoomed;
     this.decorations.update.bind(this)(this.duration);
   }
-
-  _updateLabel(d, x, y, duration, showhide, hidden) {
-    const selectedMarkers = this.MDL.selected.data.filter.markers;
-    const key = d[KEY];
-    // only for selected markers
-    if (selectedMarkers.has(key)) {
-      const trail = this.MDL.trail;
   
-      const cache = {};
-
-      let labelText = "";
-
-      //if (showhide && hidden && trail.show && trailStartTime && (trailStartTime < _this.time)) showhide = false;
-      if (hidden && !trail.show) showhide = true;
-
-      if (trail.show && key in trail.starts) {
-        const trailStart = trail.starts[key];
-        //console.log("trailstart", trailStart)
-        // if this bubble is trail start bubble
-        if (trailStart >= this.MDL.frame.value || showhide) {
-          const trailData = this.model.getDataMapByFrameValue(trailStart, "trail.addTrails").getByStr(key);
-          
-          cache.labelText = labelText = this.__labelWithFrame(trailData);
-          cache.labelX0 = trailData[this._alias("x")];
-          cache.labelY0 = trailData[this._alias("y")];
-          cache.scaledC0 = trailData.color != null ? this.cScale(trailData.color) : COLOR_WHITEISH,
-          cache.scaledS0 = (trailData.size || trailData.size === 0) ? utils.areaToRadius(this.sScale(trailData.size)) : null;
-          cache.valueS0 = trailData.size;
-          trailData.hidden = hidden;
-          this._labels.updateLabel(trailData, cache, cache.labelX0, cache.labelY0, trailData.size, trailData.color, labelText, trailData.size_label, duration, showhide);
-        }
-      } else {
-        cache.labelText = labelText = this.__labelWithoutFrame(d);
-        cache.labelX0 = x;
-        cache.labelY0 = y;
-        cache.scaledC0 = d.color != null ? this.cScale(d.color) : COLOR_WHITEISH,
-        cache.scaledS0 = (d.size || d.size === 0) ? utils.areaToRadius(this.sScale(d.size)) : null;
-        cache.valueS0 = d.size;
-        d.hidden = hidden;
-        this._labels.updateLabel(d, cache, x, y, d.size, d.color, labelText, d.size_label, duration, showhide);
-      }
-    }
-  }
-  
-  _updateLabels(duration) {
-    //console.log("updateLabels");
-
-    const selectedFilter = this.MDL.selected.data.filter;
-    const trail = this.MDL.trail;
-
-    for (const key of selectedFilter.markers.keys()) {
-      if (!(key in trail.starts))
-        continue;
-
-      if (!this._labels.cached[key]) this._labels.cached[key] = {};
-      const cache = this._labels.cached[key];
-
-      const datamap = (trail.show ? this.model.getDataMapByFrameValue(trail.starts[key], "trail.addTrails") : this.model.dataMap);
-      if (!datamap.hasByStr(key))
-        continue;
-
-      const d = datamap.getByStr(key);
-      
-      cache.labelText = this[(trail.show && this.ui.timeInTrails ? "__labelWithFrame" : "__labelWithoutFrame")](d);
-      cache.labelX0 = d[this._alias("x")];
-      cache.labelY0 = d[this._alias("y")];
-      cache.scaledC0 = d.color != null ? this.cScale(d.color) : COLOR_WHITEISH,
-      cache.scaledS0 = (d.size || d.size === 0) ? utils.areaToRadius(this.sScale(d.size)) : null;
-      cache.valueS0 = d.size;
-      cache.initTextBBox = null;
-      cache.initFontSize = null;
-      this._labels.updateLabel({ [KEY]: key }, null, null, null, null, null, null, d.size_label, duration);
-    }
-  }
-
   __labelWithoutFrame(d) {
     const markerSpace = this.model.data.space;
     if (typeof d.label == "object") 
