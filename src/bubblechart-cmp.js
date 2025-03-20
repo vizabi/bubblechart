@@ -291,7 +291,7 @@ class _VizabiBubbleChart extends Chart {
 
     this.DOM.canvasWrap.style("pointer-events", "all");
     this.FONT_FAMILY = 
-      'ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji"';
+      'Verdana, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji"';
 
     this.deckBubble = this.getDeck();
     this.props = this.getProps();  
@@ -1794,7 +1794,7 @@ class _VizabiBubbleChart extends Chart {
           cutoff: 0.24,
           //smoothing: 0.1
         } : { sdf: false },
-        fontWeight: '500',
+        //fontWeight: '500',
         getPosition: this.props.getLabelPosition,
         getPixelOffset: this.props.getTooltipPixelOffset,
         getText: this.props.getTooltipText,
@@ -1881,7 +1881,7 @@ class _VizabiBubbleChart extends Chart {
           cutoff: 0.24,
           //smoothing: 0.1
         } : { sdf: false },
-        fontWeight: '500',
+        //fontWeight: '500',
         getPosition: this.props.getLabelPositionZ,
         getPixelOffset: this.props.getPixelOffset,
         getText: this.props.getLabelText,
