@@ -657,9 +657,6 @@ class _VizabiBubbleChart extends Chart {
         formatter: this.services.locale.auto({shareOrPercent: x.data?.conceptProps?.format})
       });
 
-    canvasWrap.style("width", width + "px");
-    canvasWrap.style("height", Math.max(0, height) + "px");
-
     bubbleContainerCropAll
       .attr("width", width)
       .attr("height", Math.max(0, height));
@@ -704,6 +701,8 @@ class _VizabiBubbleChart extends Chart {
         (this.elementWidth - this.DOM.graph.select(".vzb-bc-axis-x-title").node().getBBox().width - infoElHeight * 3)
     });
 
+    canvasWrap.style("max-width", width + "px");
+    canvasWrap.style("max-height", Math.max(0, height) + "px");
   }
 
   _rangeBump(arg, undo) {
