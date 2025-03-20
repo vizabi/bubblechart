@@ -157,7 +157,7 @@ export default class LabelLayer extends TextLayer {
           fontSettings: {
             sdf: true,
             fontSize: 9 * 3,
-            buffer: Math.ceil(9 * 0.3) + 1,
+            buffer: 8,
           },
           characterSet:["❌"],
           //getPolygonOffset: null,//({layerIndex}) => [0, layerIndex * 100],

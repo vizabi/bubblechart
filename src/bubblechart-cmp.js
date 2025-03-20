@@ -290,7 +290,9 @@ class _VizabiBubbleChart extends Chart {
     });
 
     this.DOM.canvasWrap.style("pointer-events", "all");
-    this.FONT_FAMILY = this.element.style("font-family").split(",")[0];
+    this.FONT_FAMILY = 
+      'ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji"';
+
     this.deckBubble = this.getDeck();
     this.props = this.getProps();  
 
@@ -1787,10 +1789,10 @@ class _VizabiBubbleChart extends Chart {
           sdf: true,
           // fontSize: 24,
           fontSize: Math.ceil(this.__defaultFontSize * 1.3),
-          buffer: 10,
-          radius: 10,
-          cutoff: 0.24,
-          smoothing: 0.05
+          buffer: 8,
+          //radius: 10,
+          //cutoff: 0.24,
+          smoothing: 0.1
         } : { sdf: false },
         getPosition: this.props.getLabelPosition,
         getPixelOffset: this.props.getTooltipPixelOffset,
@@ -1873,10 +1875,10 @@ class _VizabiBubbleChart extends Chart {
           sdf: true,
           // fontSize: 24,
           fontSize: Math.ceil((this.__isConstantFontSize ? this.__fontSize : this._labels.maxLabelTextSize) * 1.3),
-          buffer: 10,
-          radius: 10,
-          cutoff: 0.24,
-          smoothing: 0.05
+          buffer: 8,
+          //radius: 10,
+          //cutoff: 0.24,
+          smoothing: 0.1
         } : { sdf: false },
         getPosition: this.props.getLabelPositionZ,
         getPixelOffset: this.props.getPixelOffset,
