@@ -1790,10 +1790,11 @@ class _VizabiBubbleChart extends Chart {
           // fontSize: 24,
           fontSize: Math.ceil(this.__defaultFontSize * 1.3),
           buffer: 8,
-          //radius: 10,
-          //cutoff: 0.24,
-          smoothing: 0.1
+          radius: 11,
+          cutoff: 0.24,
+          //smoothing: 0.1
         } : { sdf: false },
+        fontWeight: '500',
         getPosition: this.props.getLabelPosition,
         getPixelOffset: this.props.getTooltipPixelOffset,
         getText: this.props.getTooltipText,
@@ -1876,10 +1877,11 @@ class _VizabiBubbleChart extends Chart {
           // fontSize: 24,
           fontSize: Math.ceil((this.__isConstantFontSize ? this.__fontSize : this._labels.maxLabelTextSize) * 1.3),
           buffer: 8,
-          //radius: 10,
-          //cutoff: 0.24,
-          smoothing: 0.1
+          radius: 11,
+          cutoff: 0.24,
+          //smoothing: 0.1
         } : { sdf: false },
+        fontWeight: '500',
         getPosition: this.props.getLabelPositionZ,
         getPixelOffset: this.props.getPixelOffset,
         getText: this.props.getLabelText,
