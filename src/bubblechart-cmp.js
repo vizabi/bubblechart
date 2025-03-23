@@ -1788,7 +1788,7 @@ class _VizabiBubbleChart extends Chart {
         fontSettings: this.ui.labels.removeLabelBox ? {
           sdf: true,
           // fontSize: 24,
-          fontSize: Math.ceil(this.__defaultFontSize * 1.3),
+          fontSize: Math.ceil(this.__fontSize * 1.3),
           buffer: 8,
           radius: 11,
           cutoff: 0.24,
@@ -1799,7 +1799,7 @@ class _VizabiBubbleChart extends Chart {
         getPixelOffset: this.props.getTooltipPixelOffset,
         getText: this.props.getTooltipText,
         getColor: [0x33, 0x33, 0x33],
-        getSize: this.__defaultFontSize,
+        getSize: this.__fontSize,
         getTextAnchor: 'end',
         getAlignmentBaseline: 'bottom',
         getDragged: this.props.getDragged,
