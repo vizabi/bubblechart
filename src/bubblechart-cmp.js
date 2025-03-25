@@ -932,6 +932,7 @@ class _VizabiBubbleChart extends Chart {
     runInAction(() => {
       if (!this.MDL.trail.show) {
         this.__labelData = this.__selectedKeys.map(key => this.model.dataMap.get(key));
+        this.opacityUpdateTrigger++;
         this.deckBubble.setProps({layers: this.getBubbleLayers(undefined, false)});
       }
     });
