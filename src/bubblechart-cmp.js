@@ -944,6 +944,7 @@ class _VizabiBubbleChart extends Chart {
     this.ui.opacitySelectDim;
     this.ui.opacityHighlight;
     this.ui.opacityHighlightDim;
+    this.MDL.color.scale.d3Scale;
 
     this.opacityUpdateTrigger++;
     this.deckBubble.setProps({layers: this.getBubbleLayers(this.__data, false, 0)});
