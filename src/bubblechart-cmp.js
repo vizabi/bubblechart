@@ -1944,42 +1944,6 @@ class _VizabiBubbleChart extends Chart {
 
 
 _VizabiBubbleChart.DEFAULT_UI = {
-  show_ticks: true,
-  showForecast: false,
-  showForecastOverlay: true,
-  pauseBeforeForecast: true,
-  opacityHighlight: 1.0,
-  opacitySelect: 1.0,
-  opacityHighlightDim: 0.1,
-  opacitySelectDim: 0.3,
-  opacityRegular: 0.5,
-  timeInBackground: true,
-  timeInTrails: true,
-  lockNonSelected: 0,
-  panWithArrow: false,
-  adaptMinMaxZoom: false,
-  cursorMode: "arrow",
-  zoomOnScrolling: true,
-  decorations: {
-    enabled: true,
-    xAxisGroups: null //left to be set by external page
-  },
-  superhighlightOnMinimapHover: true,
-  whenHovering: {
-    showProjectionLineX: true,
-    showProjectionLineY: true,
-    higlightValueX: true,
-    higlightValueY: true
-  },
-  labels: {
-    enabled: true,
-    dragging: true,
-    removeLabelBox: false
-  },
-  margin: {
-    left: 0,
-    top: 0
-  }
 };
 
 //export default BubbleChart;

@@ -122,7 +122,55 @@ export default class BubbleChart extends BaseComponent {
 }
 
 BubbleChart.DEFAULT_UI = {
+  //ui
+  "buttons": {
+    "buttons": ["colors", "markercontrols", "trails", "moreoptions", "presentation", "sidebarcollapse", "fullscreen"]
+  },
+  "dialogs": {
+    "dialogs": {
+      "popup": ["colors", "markercontrols", "moreoptions"],
+      "sidebar": ["colors", "markercontrols", "size", "zoom"],
+      "moreoptions": ["opacity", "speed", "axes", "size", "colors", "label", "zoom", "technical", "repeat", "presentation", "about"]
+    },
+    "markercontrols": {}
+  },
   chart: {
+    show_ticks: true,
+    showForecast: false,
+    showForecastOverlay: true,
+    pauseBeforeForecast: true,
+    opacityHighlight: 1.0,
+    opacitySelect: 1.0,
+    opacityHighlightDim: 0.1,
+    opacitySelectDim: 0.3,
+    opacityRegular: 0.8,
+    timeInBackground: true,
+    timeInTrails: true,
+    lockNonSelected: 0,
+    panWithArrow: false,
+    adaptMinMaxZoom: false,
+    cursorMode: "arrow",
+    zoomOnScrolling: true,
+    decorations: {
+      enabled: true,
+      xAxisGroups: null //left to be set by external page
+    },
+    superhighlightOnMinimapHover: true,
+    whenHovering: {
+      showProjectionLineX: true,
+      showProjectionLineY: true,
+      higlightValueX: true,
+      higlightValueY: true
+    },
+    labels: {
+      enabled: true,
+      dragging: true,
+      removeLabelBox: false
+    },
+    margin: {
+      left: 0,
+      top: 0
+    }
   }
 };
 
@@ -131,6 +179,7 @@ BubbleChart.mainComponent = VizabiBubbleChart;
 BubbleChart.DEFAULT_CORE = (markerName) => ({
   requiredEncodings: ["x", "y", "size"],
   encoding: {
+    "show": { modelType: "selection" },
     "selected": {
       modelType: "selection",
       data: { 
@@ -173,6 +222,7 @@ BubbleChart.DEFAULT_CORE = (markerName) => ({
         constant: "_default"
       },
       scale: {
+        extent: [0, 0.35],
         modelType: "size",
         allowedTypes: ["linear", "point"]
       }
