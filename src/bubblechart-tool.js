@@ -60,7 +60,7 @@ export default class BubbleChart extends BaseComponent {
     },{
       type: DataWarning,
       placeholder: ".vzb-datawarning",
-      options: {button: ".vzb-datawarning-button"},
+      options: {appendButtonHere: ".vzb-repeater"},
       model: marker,
       name: "data-warning"
     },{
@@ -170,6 +170,13 @@ BubbleChart.DEFAULT_UI = {
     margin: {
       left: 0,
       top: 0
+    }
+  },
+  "data-warning": {
+    margin: {
+      LARGE: { bottom: 90 },
+      MEDIUM: { bottom: 70 },
+      SMALL: { bottom: 50 }
     }
   }
 };

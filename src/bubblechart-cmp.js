@@ -143,7 +143,6 @@ class _VizabiBubbleChart extends Chart {
 
                   <rect class="vzb-bc-zoom-rect"></rect>
               </g>
-              <g class="vzb-datawarning-button vzb-noexport"></g>
           </svg>
       </svg>
       <svg class="vzb-bubblechart-svg vzb-export">
@@ -691,17 +690,6 @@ class _VizabiBubbleChart extends Chart {
 
     xAxisGroupsEl
       .style("font-size", infoElHeight * 0.8 + "px");
-
-    this.root.findChild({type: "_DataWarning"}).setOptions({
-      width: this.elementWidth,
-      height: this.elementHeight,
-      vertical: "bottom", 
-      horizontal: "right", 
-      right: margin.right,
-      bottom: xAxisTitleBottomMargin,
-      wLimit: (layoutProfile !== "SMALL" ? 0.5 : 1) *
-        (this.elementWidth - this.DOM.graph.select(".vzb-bc-axis-x-title").node().getBBox().width - infoElHeight * 3)
-    });
 
     canvasWrap.style("max-width", width + "px");
     canvasWrap.style("max-height", Math.max(0, height) + "px");
