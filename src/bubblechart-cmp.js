@@ -45,7 +45,7 @@ const MAX_RADIUS_EM = 0.05;
 
 const PROFILE_CONSTANTS = (width, height) => ({
   SMALL: {
-    margin: { top: 30, bottom: 35, left: 30, right: 10},
+    margin: { top: 30, bottom: 40, left: 30, right: 10},
     leftMarginRatio: 1,
     padding: 2,
     minRadiusPx: 0.5,
@@ -57,7 +57,7 @@ const PROFILE_CONSTANTS = (width, height) => ({
     xAxisTitleBottomMargin: 4
   },
   MEDIUM: {
-    margin: { top: 15, bottom: 40, left: 40, right: 15},
+    margin: { top: 15, bottom: 45, left: 40, right: 15},
     leftMarginRatio: 1.6,
     padding: 2,
     minRadiusPx: 1,
