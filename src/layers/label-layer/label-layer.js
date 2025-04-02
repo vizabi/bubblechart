@@ -78,6 +78,7 @@ export default class LabelLayer extends TextLayer {
             getSourcePosition: this.props.transitions?.getPosition,
             getTargetPosition: this.props.transitions?.getPosition,
             getTargetPixelOffset: this.props.transitions?.getPosition,
+            getSourceDashOffset: this.props.transitions?.getPosition
           }
           //pickable: true,
           //_dataDiff: (newData, oldData) => {
