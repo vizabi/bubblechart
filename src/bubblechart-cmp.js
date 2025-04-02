@@ -33,6 +33,7 @@ const CHARACTER_SET =
 const KEY = Symbol.for("key");
 const TRAIL_KEY = Symbol.for("trailHeadKey");
 const OPACITY_KEY = Symbol.for("opacity");
+const REQUIRED_KEY = Symbol.for("bubbleRequired");
 
 const marginScaleH = (marginMin, ratio = 0) => height => marginMin + height * ratio;
 const marginScaleW = (marginMin, ratio = 0) => width => marginMin + width * ratio;
@@ -769,34 +770,42 @@ class _VizabiBubbleChart extends Chart {
           newTrailsData.length += trailsCount;
           dataTrailChunkIndex = res.length;          
           res.length += trailsCount;
-          selectedData.set(d[TRAIL_KEY], Object.assign({}, d));
           trailChunkIndex1 = trailChunkIndex + 1;
         }
-        newTrailsData[trailChunkIndex++] = d;
-        res[dataTrailChunkIndex++] = d;
+        if (!d[REQUIRED_KEY]) {
+          newTrailsData[trailChunkIndex++] = d;
+          res[dataTrailChunkIndex++] = d;
+          if (!selectedData.has(d[TRAIL_KEY])) selectedData.set(d[TRAIL_KEY], Object.assign({}, d));
+        }
       } else {
         if (currentTrailKey) {
           trailsZ[currentTrailKey] = d.size;//d.z
           //newTrailsData[trailChunkIndex] = Object.assign({}, newTrailsData[trailChunkIndex - 1]);
-          newTrailsData.fill(d, trailChunkIndex, newTrailsData.length);
           //_newUpdateRangesLine.push({startRow: trailChunkIndex - 2, endRow: trailChunkIndex});
           //newTrailsData[trailChunkIndex - 1] = d;
-          indexOffset = trailChunkIndex == trailChunkIndex1 ? 1 : 2;
-          lastLineTrailData.push([newTrailsData[trailChunkIndex - indexOffset], newTrailsData[trailChunkIndex - indexOffset]]);
-          newLastLineTrailData.push([newTrailsData[trailChunkIndex - indexOffset], d]);
+          if(!d[REQUIRED_KEY]) {
+            newTrailsData.fill(d, trailChunkIndex, newTrailsData.length);
+            indexOffset = trailChunkIndex == trailChunkIndex1 ? 1 : 2;
+            lastLineTrailData.push([newTrailsData[trailChunkIndex - indexOffset], newTrailsData[trailChunkIndex - indexOffset]]);
+            newLastLineTrailData.push([newTrailsData[trailChunkIndex - indexOffset], d]);
+            res.fill(Object.assign({uz: -15000}, res[dataTrailChunkIndex - 1]), dataTrailChunkIndex, res.length - 1);
+            res[res.length - 1] = d;
+          } else {
+            res.fill(Object.assign({uz: -15000}, res[dataTrailChunkIndex - 1]), dataTrailChunkIndex, res.length - 1);
+            res.length--;
+          }
           trailChunkIndex = newTrailsData.length;
-          res.fill(Object.assign({uz: -15000}, res[dataTrailChunkIndex - 1]), dataTrailChunkIndex, res.length - 1);
-          res[res.length - 1] = d;
           currentTrailKey = null;
         } else {
-          res.push(d);
+          if(!d[REQUIRED_KEY]) res.push(d);
         }
       }
       return res;
 
-    }, []) : this.model.dataArray.map(d => {
+    }, []) : this.model.dataArray.filter(d => {
+      if (d[REQUIRED_KEY]) return false;
       d.r = utils.areaToRadius(this.sScale(d.size || 0));
-      return d;
+      return true;
     });
 
     this.labelZScale = d3.scaleLinear([0, selectedData.size - 1],[-0.09, -0.05]);
@@ -810,9 +819,9 @@ class _VizabiBubbleChart extends Chart {
     
     //console.log("__data", this.model.dataArray, this.__data, newData, this.__trailsData, newTrailsData);
     
-    this.__newLabelData = trailsShowAndSomeSelected ? this.__selectedKeys.map(key => selectedData.get(key) || this.model.dataMap.get(key)).filter(d => d && true) 
+    this.__newLabelData = trailsShowAndSomeSelected ? this.__selectedKeys.map(key => selectedData.get(key) || this.model.dataMap.get(key)).filter(d => d && !d[REQUIRED_KEY])
       :
-      this.__selectedKeys.map(key => this.model.dataMap.get(key)).filter(d => d && true);
+      this.__selectedKeys.map(key => this.model.dataMap.get(key)).filter(d => d && !d[REQUIRED_KEY]);
 
     if (this.__selectedKeys.length > this.__newLabelData.length) {
       const labelKeys = this.__newLabelData.map(d => d[TRAIL_KEY] || d[KEY]);
@@ -896,7 +905,8 @@ class _VizabiBubbleChart extends Chart {
 
     this.__someHighlighted = highlightedFilter.any();
     this.__highlightedMarkers = new Map(highlightedFilter.markers);
-    this.activeObject = this.__highlightedMarkers.size == 1 ? Object.assign({}, this.model.dataMap.get(this.__highlightedMarkers.keys().next().value)) : null;
+    const activeObject = this.__highlightedMarkers.size == 1 ? Object.assign({}, this.model.dataMap.get(this.__highlightedMarkers.keys().next().value)) : null;
+    this.activeObject = activeObject?.[REQUIRED_KEY] ? null : activeObject;
     this.activeObjectData = this.activeObject ? [this.activeObject] : [];
     this.opacityUpdateTrigger++;
     this.deckBubble.setProps({layers: this.getBubbleLayers(undefined, false)})
@@ -919,7 +929,7 @@ class _VizabiBubbleChart extends Chart {
 
     runInAction(() => {
       if (!this.MDL.trail.show) {
-        this.__labelData = this.__selectedKeys.map(key => this.model.dataMap.get(key));
+        this.__labelData = this.__selectedKeys.map(key => this.model.dataMap.get(key)).filter(d => d && !d[REQUIRED_KEY]);
         this.opacityUpdateTrigger++;
         this.deckBubble.setProps({layers: this.getBubbleLayers(undefined, false)});
       }
@@ -1045,10 +1055,10 @@ class _VizabiBubbleChart extends Chart {
     //const trailShow = this.MDL.trail.show;
     //const trailStarts = this.MDL.trail.starts;
     //const trailGroupDim = this.MDL.trail.groupDim;
+    const d = this.activeObject;
 
-    if (highlightedFilter.markers.size === 1) {
+    if (highlightedFilter.markers.size === 1 && d && !d[REQUIRED_KEY]) {
       const highlightedKey = highlightedFilter.markers.keys().next().value;
-      const d = this.activeObject;
       //Object.assign(this.model.dataMap.get(highlightedKey));
       const selectedKey = d[TRAIL_KEY] || d[KEY];
 
