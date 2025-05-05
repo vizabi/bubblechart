@@ -1135,7 +1135,7 @@ class _VizabiBubbleChart extends Chart {
         this.deckBubble.setProps({ layers: this.getBubbleLayers(this.__data, false, 0) });
       }
       return;
-    };
+    }
 
     const _this = this;
     this.superHighlightFilter = superHighlightFilter;
@@ -1150,7 +1150,7 @@ class _VizabiBubbleChart extends Chart {
 
         loop();
       }, SUPERHIGHLIGHT_DELAY);
-    };
+    }
     
   }
 
@@ -1318,7 +1318,9 @@ class _VizabiBubbleChart extends Chart {
       },
       getTooltipText: (d) => {
         if (!d) return;
-        return d[TRAIL_KEY] || this.__selectedMarkers.has(d[KEY])? this.localise(d.frame) : this.__labelWithoutFrame(d);
+        return this.ui.labels.enabled ? d[TRAIL_KEY] || this.__selectedMarkers.has(d[KEY]) ? this.localise(d.frame) : this.__labelWithoutFrame(d)
+          :
+          d[TRAIL_KEY] ? this.__labelWithFrame(d) : this.__labelWithoutFrame(d);
       },
       getLabelPosition: (d) => {
         if (!d) return;
@@ -1803,7 +1805,7 @@ class _VizabiBubbleChart extends Chart {
         getTextAnchor: 'end',
         getAlignmentBaseline: 'bottom',
         getDragged: this.props.getDragged,
-        pickable: true,
+        pickable: false,
         background: !this.ui.labels.removeLabelBox,
         backgroundPadding: [6, 4],
         getBorderWidth: 1,
@@ -1931,8 +1933,8 @@ class _VizabiBubbleChart extends Chart {
 
   __tooltipDataFilter() {
     const index = this.__selectedKeys.indexOf(this.activeObject[TRAIL_KEY] || this.activeObject[KEY]);
-    return this.MDL.trail.show ? this.activeObject.frame != this.__labelData[index]?.frame || ((this.activeObject[TRAIL_KEY] || this.activeObject[KEY]) != this.__labelData[index]?.[TRAIL_KEY]) 
-      : index == -1;
+    return !this.ui.labels.enabled || (this.MDL.trail.show ? this.activeObject.frame != this.__labelData[index]?.frame || ((this.activeObject[TRAIL_KEY] || this.activeObject[KEY]) != this.__labelData[index]?.[TRAIL_KEY]) 
+      : index == -1);
   }
 
   get zScale() {
