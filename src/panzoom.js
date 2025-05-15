@@ -22,7 +22,7 @@ export default class PanZoom {
 
     this.zoomer
       .filter(this.zoomFilter())
-      .scaleExtent([0.0625, +Infinity])
+      .scaleExtent([1, 100])
       .on("start", this.zoom().start)
       .on("zoom", this.zoom().go)
       .on("end", this.zoom().stop);

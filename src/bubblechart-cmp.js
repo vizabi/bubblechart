@@ -297,6 +297,14 @@ class _VizabiBubbleChart extends Chart {
     this.props = this.getProps();  
 
     this._panZoom.zoomSelection(this.DOM.canvasWrap.select("canvas"));
+    this.DOM.canvasWrap.select("canvas").node()
+      .addEventListener("wheel", e => {
+        if(!_this.ui?.zoomOnScrolling) return;
+        e.preventDefault();
+        e.stopPropagation();
+      },
+      { passive: false }
+    );
     this.DOM.canvasWrap.select("canvas")
       .call(this._panZoom.dragRectangle)
       .call(this._panZoom.zoomer)
