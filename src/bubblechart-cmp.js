@@ -758,6 +758,7 @@ class _VizabiBubbleChart extends Chart {
     let trailChunkIndex = 0;
     let trailChunkIndex1 = 0;
     let indexOffset;
+    let newData = [];
     //let deltaTrailChunkIndex = 0;
     let currentTrailKey = null;
     //const _updateRanges = [];
@@ -770,7 +771,7 @@ class _VizabiBubbleChart extends Chart {
     let dataTrailChunkIndex;
     const trailsShowAndSomeSelected = this.MDL.trail.show && this.__someSelected;
 
-    const newData = trailsShowAndSomeSelected ? this.model.dataArray.reduce((res, d, i) => {
+    if (trailsShowAndSomeSelected) newData = this.model.dataArray.reduce((res, d, i) => {
       d.r = utils.areaToRadius(this.sScale(d.size || 0));
       if (d[TRAIL_KEY]) {
         if (!currentTrailKey) {
@@ -810,7 +811,18 @@ class _VizabiBubbleChart extends Chart {
       }
       return res;
 
-    }, []) : this.model.dataArray.filter(d => {
+    }, []) 
+    
+    //handle a situation when user is using opacity feature to hide unselected bubbles completely
+    //the invisible bubbles should be completely transparent to mouse events, better yet not exist at all
+    //it is convenient to do here because we are running O(N) filter for other purposes anyway
+    else if (this.__someSelected && this.ui.opacitySelectDim === 0) newData = this.model.dataArray.filter(d => {
+      if (d[REQUIRED_KEY] || !this.MDL.selected.data.filter.markers.has(d[KEY])) return false;
+      d.r = utils.areaToRadius(this.sScale(d.size || 0));
+      return true;
+    });
+    
+    else newData = this.model.dataArray.filter(d => {
       if (d[REQUIRED_KEY]) return false;
       d.r = utils.areaToRadius(this.sScale(d.size || 0));
       return true;
