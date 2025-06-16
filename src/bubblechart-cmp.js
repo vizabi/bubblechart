@@ -1580,33 +1580,19 @@ class _VizabiBubbleChart extends Chart {
         }
       },
       onClick: ({ object:d, index }) => {
-        //console.log("onclick", d, this.activeObject);  
         if (!d) return;
-        //zero opacity for non-selected markers
+        //invisible bubbles should not react to clicks
         if (this._getBubbleOpacity(d) == 0) return;
-
-        let dataKey = {[KEY]: d[KEY]}
-        console.log("click pretoggle", d, dataKey);
-        if (d[TRAIL_KEY]) {
-          const nextIndex = index + 1;
-          if (this.__data[nextIndex]?.[TRAIL_KEY] == d[TRAIL_KEY]) {
-            return;
-          } else {
-            dataKey = {[KEY]: d[TRAIL_KEY]}
-          }
-        }
-        //const invalidate = d?.[KEY] !== this.activeObject?.[KEY]
+        //no reaction on trail bubbles either
+        if (d[TRAIL_KEY]) return;
+        
         runInAction(() => {
+          let dataKey = {[KEY] : d[KEY]};
           this.MDL.selected.data.filter.toggle(dataKey);
-          console.log("click toggle", dataKey);
         })      
-        //this.activeObject = d;
-        //if (invalidate) {
-          //setTimeout(() => {
-          //console.log("invalidate", d, this.activeObject);  
-        this.deckBubble.setProps({layers: this.getBubbleLayers(undefined, false, 0, false)})
-          //}, 0);
-        //}
+
+        // not sure why this is needed? -- angie
+        //this.deckBubble.setProps({layers: this.getBubbleLayers(undefined, false, 0, false)})
       },
     }
   }
