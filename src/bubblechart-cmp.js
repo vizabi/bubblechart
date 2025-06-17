@@ -308,6 +308,7 @@ class _VizabiBubbleChart extends Chart {
     this.DOM.canvasWrap.select("canvas")
       .call(this._panZoom.dragRectangle)
       .call(this._panZoom.zoomer)
+      .on("contextmenu", (evt) => evt.preventDefault())
       .on("dblclick.zoom", null)
       .on("mouseup", () => {
         _this.draggingNow = false;
@@ -1579,7 +1580,7 @@ class _VizabiBubbleChart extends Chart {
           //}, 0);
         }
       },
-      onClick: ({ object:d, index }) => {
+      onClick: ({ object:d, index }, event) => {
         if (!d) return;
         //invisible bubbles should not react to clicks
         if (this._getBubbleOpacity(d) == 0) return;
@@ -1588,7 +1589,15 @@ class _VizabiBubbleChart extends Chart {
         
         runInAction(() => {
           let dataKey = {[KEY] : d[KEY]};
-          this.MDL.selected.data.filter.toggle(dataKey);
+
+          if(event.rightButton) {
+            //set context menu
+            const contextMenuComponent = this.root.findChild({type: "MarkerContextmenu"});
+
+            contextMenuComponent.show(dataKey, event.offsetCenter);
+          } else {
+            this.MDL.selected.data.filter.toggle(dataKey);
+          }
         })      
 
         // not sure why this is needed? -- angie
