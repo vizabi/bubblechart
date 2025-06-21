@@ -1588,18 +1588,19 @@ class _VizabiBubbleChart extends Chart {
         if (d[TRAIL_KEY]) return;
         
         runInAction(() => {
-          let dataKey = {[KEY] : d[KEY]};
+          const dataKey = {[KEY] : d[KEY]};
 
           if (event.rightButton) {
             dataKey.name = this.__labelWithoutFrame(d);
             const margin = this.profileConstants.margin;
+            const toolNode = this.element.node();
             const x = (this.width - event.offsetCenter.x) < 250 ? this.width - 250 : event.offsetCenter.x - 5;
 
             //set context menu
             const contextMenuComponent = this.root.findChild({type: "MarkerContextmenu"});
             contextMenuComponent.show(dataKey, {
-              x: x + margin.left * this.profileConstants.leftMarginRatio,
-              y: event.offsetCenter.y + margin.top - 5
+              x: toolNode.offsetLeft + x + margin.left * this.profileConstants.leftMarginRatio,
+              y: toolNode.offsetTop + event.offsetCenter.y + margin.top - 5
             });
           } else {
             this.MDL.selected.data.filter.toggle(dataKey);
