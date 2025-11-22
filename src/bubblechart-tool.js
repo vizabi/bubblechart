@@ -24,7 +24,7 @@ export default class BubbleChart extends BaseComponent {
 
     const fullMarker = config.model.markers?.bubble;
     const fullMarkerLegend = config.model.markers?.legend;
-    config.Vizabi.utils.applyDefaults(fullMarker?.config, BubbleChart.DEFAULT_MODEL.bubble);   
+    config.Vizabi.utils.applyDefaults(fullMarker?.config || {}, BubbleChart.DEFAULT_MODEL.bubble);   
     config.Vizabi.utils.applyDefaults(fullMarkerLegend?.config || {}, BubbleChart.DEFAULT_MODEL.legend);  
 
     const frameType = config.Vizabi.stores.encodings.modelTypes.frame;
