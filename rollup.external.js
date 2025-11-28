@@ -1,1 +1,5 @@
-module.exports = require("vizabi-tool-bundler").bind(null, 'BubbleChart', 'bubblechart', __dirname, require("./package.json"));
+module.exports = require("vizabi-tool-bundler")
+.bind(null, 'BubbleChart', 'bubblechart', __dirname, require("./package.json"), {
+"@deck.gl/core": "deck",
+"@deck.gl/layers": "deck"
+});
