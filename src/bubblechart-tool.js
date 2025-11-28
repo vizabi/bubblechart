@@ -135,6 +135,7 @@ BubbleChart.DEFAULT_UI = {
     },
     "markercontrols": {
       "disableSlice": true,
+      "disableSwitch": false,
       "disableAddRemoveGroups": true,
       "primaryDim": null,
       "drilldown": null,
@@ -273,7 +274,7 @@ BubbleChart.DEFAULT_MODEL = {
       },
       "repeat": {
         "modelType": "repeat",
-        "useConnectedRowsAndColumns": true,
+        "useConnectedRowsAndColumns": false,
         "row": ["y"],
         "column": ["x"],
         "allowEnc": ["y", "x"]
