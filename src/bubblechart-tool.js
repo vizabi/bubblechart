@@ -307,13 +307,23 @@ BubbleChart.DEFAULT_MODEL = {
         }
         //"scale": { "ref": "markers.bubble.encoding.color.scale" }
       },
-      "name": { "data": { } },
+      "name": { 
+        "data": {
+          "concept": {"filter": { "concept": { "$in": ["name"]} } }
+        }
+      },
       "order": {
         "modelType": "order",
         "direction": "asc",
-        "data": { }
+        "data": {
+          "concept": {"filter": { "concept": { "$in": ["rank"]} } }
+        }
       },
-      "map": { "data": { } }
+      "map": { 
+        "data": {
+          "concept": {"filter": { "concept": { "$in": ["shape_lores_svg", "shape", "svg"]} } }
+        }
+      }
     }
   },
 };
