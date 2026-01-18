@@ -830,8 +830,6 @@ class _VizabiBubbleChart extends Chart {
       return true;
     });
 
-    this.labelZScale = d3.scaleLinear([0, selectedData.size - 1],[-0.09, -0.05]);
-    
     if (newTrailsData.length) {
       newTrailsData.forEach(d => {
         if (!d[TRAIL_KEY]) return;
@@ -949,6 +947,7 @@ class _VizabiBubbleChart extends Chart {
     this.__selectedMarkers = new Map(selectedFilter.markers);
     this.__selectedKeys = [...this.__selectedMarkers.keys()];
 
+    this.labelZScale = d3.scaleLinear([0, this.__selectedKeys.length - 1],[-0.09, -0.05]);
 
     Object.keys(this.labelOffset).forEach(key => {
       if (!this.__selectedMarkers.has(key)) delete this.labelOffset[key];
