@@ -195,6 +195,7 @@ class _VizabiBubbleChart extends Chart {
     this.dragX;
     this.dragY;
     this.redrawUpdateTrigger = 0;
+    this.lastLineRedrawUpdateTrigger = 0;
     this.opacityUpdateTrigger = 0;
   }
 
@@ -736,7 +737,7 @@ class _VizabiBubbleChart extends Chart {
       //requestAnimationFrame(() => {
         this.deckBubble.setProps({layers: this.getBubbleLayers(this.__oldData, false, 0, undefined, this.__lastLineTrailData)})
         requestAnimationFrame(() => {
-          this.redrawUpdateTrigger++;
+          this.lastLineRedrawUpdateTrigger++;
           this.deckBubble.setProps({layers: this.getBubbleLayers(this.__oldData, true, 0.001, undefined, this.__lastLineTrailData)})
           requestAnimationFrame(() => {
             this.redrawUpdateTrigger++;
@@ -896,8 +897,16 @@ class _VizabiBubbleChart extends Chart {
     } = this.profileConstants;
 
     //transfer min max radius to size dialog via root ui observable (probably a cleaner way is possible)
-    this.root.ui.minMaxRadius = {min: minRadiusPx, max: maxRadiusPx};
-    
+    if (this.root.ui.minMaxRadius) {
+      this.root.ui.minMaxRadius.min = minRadiusPx;
+      this.root.ui.minMaxRadius.max = maxRadiusPx;
+    } else {
+      this.root.ui.minMaxRadius = {
+        min: minRadiusPx,
+        max: maxRadiusPx
+      };
+    }
+
     const extent = this.MDL.size.scale.extent || [0, 1];
     
     let minArea = utils.radiusToArea(Math.max(maxRadiusPx * extent[0], minRadiusPx));
@@ -1698,7 +1707,7 @@ class _VizabiBubbleChart extends Chart {
         getWidth: this.props.getLastTrailLineWidth,
         updateTriggers: {
           getColor: [this.activeObject, this.opacityUpdateTrigger],
-          getTargetPosition: [this.redrawUpdateTrigger]
+          getTargetPosition: [this.redrawUpdateTrigger, this.lastLineRedrawUpdateTrigger]
         },
         transitions: t ? { 
           getTargetPosition: { 
