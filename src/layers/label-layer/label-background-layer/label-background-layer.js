@@ -5,6 +5,8 @@ import fs from './label-background-layer-fragment.glsl';
 export default class LabelBackgroundLayer extends _TextBackgroundLayer {
   static defaultProps = {
     getDragged: {type: 'accessor', value: 0.0},
+    getGlowColor: {type: 'accessor', value: [0, 0, 0, 255]},
+    getGlowWidth: {type: 'accessor', value: 0.0},
   };
 
   initializeState() {
@@ -18,6 +20,19 @@ export default class LabelBackgroundLayer extends _TextBackgroundLayer {
         //accessor: (object, info) => {
         //  return this.parent.props.getDragged(object, info);
         //}
+      },
+      instanceGlowColors: {
+        size: 4,
+        transition: true,
+        type: 'unorm8',
+        accessor: 'getGlowColor',
+        defaultValue: [0, 0, 0, 255]
+      },
+      instanceGlowWidths: {
+        size: 1,
+        transition: false,
+        accessor: "getGlowWidth",
+        defaultValue: 0.0
       },
     });
   }

@@ -11,8 +11,10 @@ in float instanceSizes;
 in float instanceAngles;
 in vec2 instancePixelOffsets;
 in float instanceLineWidths;
+in float instanceGlowWidths;
 in vec4 instanceFillColors;
 in vec4 instanceLineColors;
+in vec4 instanceGlowColors;
 in vec3 instancePickingColors;
 in float instanceDragged;
 
@@ -25,9 +27,11 @@ uniform vec4 padding;
 uniform int sizeUnits;
 uniform float edgeMaxCoord;
 
+out vec4 vGlowColor;
 out vec4 vFillColor;
 out vec4 vLineColor;
 out float vLineWidth;
+out float vGlowWidth;
 out vec2 uv;
 out vec2 dimensions;
 
@@ -45,6 +49,8 @@ void main(void) {
   geometry.pickingColor = instancePickingColors;
   uv = positions;
   vLineWidth = instanceLineWidths;
+  vGlowWidth = instanceGlowWidths;
+  vec4 glowPadding = padding + vec4(instanceGlowWidths);
 
   // convert size in meters to pixels, then scaled and clamp
 
@@ -54,9 +60,9 @@ void main(void) {
     sizeMinPixels, sizeMaxPixels
   );
 
-  dimensions = instanceRects.zw * sizePixels + padding.xy + padding.zw;
+  dimensions = instanceRects.zw * sizePixels + glowPadding.xy + glowPadding.zw;
 
-  vec2 pixelOffset = (positions * instanceRects.zw + instanceRects.xy) * sizePixels + mix(-padding.xy, padding.zw, positions);
+  vec2 pixelOffset = (positions * instanceRects.zw + instanceRects.xy) * sizePixels + mix(-glowPadding.xy, glowPadding.zw, positions);
   pixelOffset = rotate_by_angle(pixelOffset, instanceAngles);
   pixelOffset += instancePixelOffsets;
   pixelOffset.y *= -1.0;
@@ -69,6 +75,7 @@ void main(void) {
     gl_Position.xy += project_pixel_size_to_clipspace(offset.xy);
 
     vec2 clip_dimensions = project_pixel_size_to_clipspace(dimensions);
+    vec2 clip_glow = project_pixel_size_to_clipspace(vec2(vGlowWidth));
 
     //default pos switch on edge
     if (instanceDragged < 0.5) {
@@ -78,8 +85,8 @@ void main(void) {
     }
 
     //edge check
-    vec2 a = clamp(gl_Position.xy, vec2(-edgeMaxCoord), vec2(edgeMaxCoord) - clip_dimensions);
-    vec2 b = clamp(gl_Position.xy, clip_dimensions - edgeMaxCoord, vec2(edgeMaxCoord));
+    vec2 a = clamp(gl_Position.xy, vec2(-edgeMaxCoord) - clip_glow, vec2(edgeMaxCoord) - clip_dimensions + clip_glow);
+    vec2 b = clamp(gl_Position.xy, clip_dimensions - edgeMaxCoord - clip_glow, vec2(edgeMaxCoord) + clip_glow);
     //flip y
     gl_Position.xy = mix(a, b, vec2(positions.x, 1.0 - positions.y));
 
@@ -95,5 +102,7 @@ void main(void) {
   DECKGL_FILTER_COLOR(vFillColor, geometry);
   vLineColor = vec4(instanceLineColors.rgb, instanceLineColors.a * opacity);
   DECKGL_FILTER_COLOR(vLineColor, geometry);
+  vGlowColor = vec4(instanceGlowColors.rgb, instanceGlowColors.a * opacity);
+  DECKGL_FILTER_COLOR(vGlowColor, geometry);
 }
 `;
