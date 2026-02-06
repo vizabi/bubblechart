@@ -936,12 +936,14 @@ class _VizabiBubbleChart extends Chart {
     const activeObject = this.__highlightedMarkers.size == 1 ? Object.assign({}, this.model.dataMap.get(this.__highlightedMarkers.keys().next().value)) : null;
     this.activeObject = activeObject?.[REQUIRED_KEY] ? null : activeObject;
     this.activeObjectData = this.activeObject ? [this.activeObject] : [];
+    this.labelGlow = false;
     if (this.activeObject && this.__someSelected) {
       const index = this.__selectedKeys.indexOf(this.activeObject[TRAIL_KEY] || this.activeObject[KEY]);
       if (index > -1) {
-      this.__selectedKeys.push(this.__selectedKeys.splice(index, 1)[0]);
-      const data = this.__labelData.splice(index, 1);
-      this.__labelData = [...this.__labelData, ...data];
+        this.__selectedKeys.push(this.__selectedKeys.splice(index, 1)[0]);
+        const data = this.__labelData.splice(index, 1);
+        this.__labelData = [...this.__labelData, ...data];
+        this.labelGlow = true;
       }
     }
     this.opacityUpdateTrigger++;
@@ -1937,7 +1939,7 @@ class _VizabiBubbleChart extends Chart {
           //smoothing: 0.1
         } : { sdf: false },
         //fontWeight: '500',
-        glow: this.__someSelected && !!this.activeObject,
+        glow: this.labelGlow,
         getGlowColor: this.props.getGlowColor,
         getGlowWidth: this.props.getGlowWidth,
         getPosition: this.props.getLabelPositionZ,

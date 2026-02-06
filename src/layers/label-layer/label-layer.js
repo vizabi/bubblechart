@@ -102,15 +102,28 @@ export default class LabelLayer extends TextLayer {
           }
         }), {
           data: this.props.data,
-          getPosition: this.props.getPosition,
+          getPosition: (d, { index, data }) => {
+            const pos = this.props.getPosition(d, { index, data });
+            return index == (data.length - 1) ? pos : [...pos.slice(0, 2), -10];
+          },
           getBoundingRect: this.getBoundingRect,
           getPixelOffset: this.props.getPixelOffset,
           getSize: this.props.getSize,
-          getFillColor: [0,0,0,0],
-          getLineColor: this.props.getBorderColor,
-          getLineWidth: 0,
+          getFillColor: (_, { index, data }) => {
+            const alpha = index == (data.length - 1) ? 255 : 0;
+            return [255, 255, 255, alpha];
+          },
+          getLineColor: (d, { index, data }) => {
+            const alpha = index == (data.length - 1) ? 255: 0;
+            return [...(typeof this.props.getBorderColor == "function" ? this.props.getBorderColor(d) : this.props.getBorderColor).slice(0,3), alpha];
+          },
+          getLineWidth: (_, { index, data }) => {
+            return index == (data.length - 1) ? 1: 0;
+          },
           getGlowColor: this.props.getGlowColor,
-          getGlowWidth: this.props.getGlowWidth,
+          getGlowWidth:  (d, { index, data }) => {
+            return index == (data.length - 1) ? this.props.getGlowWidth(d) : 0;
+          },
           getDragged: this.props.getDragged,
           padding: this.props.backgroundPadding,
           edgeMaxCoord: this.props.edgeMaxCoord,
