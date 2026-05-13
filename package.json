@@ -55,6 +55,6 @@
   "devDependencies": {
     "cross-env": "^7.0.3",
     "css.escape": "^1.5.1",
-    "vizabi-tool-bundler": "^1.4.0"
+    "vizabi-tool-bundler": "^1.5.0"
   }
 }
