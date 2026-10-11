@@ -356,6 +356,9 @@ class _VizabiBubbleChart extends Chart {
     this.KEYS = this.model.data.space.filter(dim => dim !== this.TIMEDIM);
 
     if (this._updateLayoutProfile()) return; //return if exists with error
+    // draw() can run again without rerunning the existing drawData reaction.
+    // Restore pixel thicknesses before any layer uses the copied size scale.
+    this._updateMarkerSizeLimits();
     this.addReaction(this._updateScales);
     this.addReaction(this.updateSize, {throttle_ms: 50});
     //    this.addReaction(this._resetZoomMinMaxXReaction, {ignoreStatus: this._resetZoomMinMaxX});
@@ -1706,7 +1709,8 @@ class _VizabiBubbleChart extends Chart {
         updateTriggers: {
           getColor: [this.activeObject, this.opacityUpdateTrigger],
           getSourcePosition: [this.redrawUpdateTrigger],
-          getTargetPosition: [this.redrawUpdateTrigger]
+          getTargetPosition: [this.redrawUpdateTrigger],
+          getWidth: [this.redrawUpdateTrigger]
         },
         transitions: t ? { 
           getSourcePosition: duration,
@@ -1729,7 +1733,9 @@ class _VizabiBubbleChart extends Chart {
         getWidth: this.props.getLastTrailLineWidth,
         updateTriggers: {
           getColor: [this.activeObject, this.opacityUpdateTrigger],
-          getTargetPosition: [this.redrawUpdateTrigger, this.lastLineRedrawUpdateTrigger]
+          getSourcePosition: [this.redrawUpdateTrigger],
+          getTargetPosition: [this.redrawUpdateTrigger, this.lastLineRedrawUpdateTrigger],
+          getWidth: [this.redrawUpdateTrigger]
         },
         transitions: t ? { 
           getTargetPosition: { 
