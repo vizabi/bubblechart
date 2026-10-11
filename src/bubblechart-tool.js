@@ -146,6 +146,8 @@ BubbleChart.DEFAULT_UI = {
   "marker-contextmenu": {
     "primaryDim": null,
     "drilldown": null,
+    "allowExplodeTo": [],
+    "allowFoldTo": []
   },
   "chart": {
     "show_ticks": true,
